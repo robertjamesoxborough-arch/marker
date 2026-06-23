@@ -15,6 +15,27 @@
 
 ## STAGE LOG
 
+### Stage 0.5 — Git repo repair (2026-06-23)
+
+**Problem:** The `~/Desktop/marker/.git` was corrupted — a `refs/heads/main 2` ref (space in name), four duplicate index files (`index 2/3/4`), and ~30 MB of large PNGs committed in previous sessions caused `pack-objects` to crash with SIGBUS (signal 10) on macOS every time `git push` was attempted. All normal git operations were broken.
+
+**Fix:**
+1. Cloned fresh from GitHub (`git clone git@github.com:robertjamesoxborough-arch/marker.git /tmp/marker-clean`) — 544 KB, single clean commit
+2. Deleted broken `.git` and swapped in the clean clone's `.git`
+3. Updated `.gitignore` to exclude 19 large images (>1 MB) in `public/brand/` and `app/opengraph-image.png` — **all files preserved on disk, nothing deleted**
+4. Normal `git push` now completes in under 5 seconds
+
+**Large images NOT in git (kept on disk, back up in `~/Desktop/marker-backup-20260623/public/`):**
+- `public/brand/hero-ambient.png` (2.3 MB)
+- `public/brand/lifestyle/ls-01.png` through `ls-07.png` + photo variants (1.3–2.1 MB each)
+- `public/brand/blog-pillars.png`, `blog-desk.png`, `blog-staircase.png`, `og-dark.png`, `product-showcase.png`
+- `app/opengraph-image.png` (1.9 MB)
+- **Action for Stage 7:** Move these to Vercel Blob or a CDN; then they can be removed from disk
+
+**Git is now healthy.** `git status` / `git add` / `git commit` / `git push` all work normally from `~/Desktop/marker`.
+
+---
+
 ### Stage 0 — Audit, Assets & Consolidation (2026-06-23)
 **Goal:** Complete picture of what exists. No code changes.
 
