@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { MODELS } from '../../../lib/anthropic'
 
 
 function buildCandidateProfile(profile) {
@@ -41,7 +42,7 @@ function buildFallbackSearchTerms(profile) {
 }
 
 export async function POST(req) {
-  const apiKey = process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return Response.json({ error: 'No API key configured' }, { status: 500 })
 
   // Read user profile for personalised scoring
@@ -110,7 +111,7 @@ export async function POST(req) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: MODELS.sonnet,
           max_tokens: 2000,
           tools: [{ type: 'web_search_20250305', name: 'web_search' }],
           messages: [{ role: 'user', content: `Search for current UK job listings: "${query}". Find specific job postings with direct application URLs. Focus on roles posted in the last 30 days. Return the job titles, companies, and URLs you find.` }],
@@ -184,7 +185,7 @@ Return ONLY the JSON array.`
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: MODELS.sonnet,
         max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }],
       }),

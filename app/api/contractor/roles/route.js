@@ -1,13 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { MODELS } from '../../../../lib/anthropic'
 
 
 const CONTRACT_TITLE_MUST = ['contract', 'interim', 'ftc', 'fixed.term', 'day rate', 'freelance', 'fractional', 'maternity cover', 'parental cover', 'temporary']
 const CONTRACT_TITLE_REJECT = ['permanent', ' perm ', 'graduate', 'apprentice', 'junior', 'intern ']
 
 export async function POST() {
-  const apiKey = process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   const adzunaId = process.env.ADZUNA_APP_ID
   const adzunaKey = process.env.ADZUNA_API_KEY
 
@@ -144,7 +145,7 @@ Scoring: 8+ use 0.2 increments. Only include score ≥ 7. Reject perm roles, wro
   const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
   })
 
   const aiData = await aiRes.json()

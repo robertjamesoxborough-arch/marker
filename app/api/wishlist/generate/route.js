@@ -2,9 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-
-
-const client = new Anthropic()
+import { MODELS } from '../../../../lib/anthropic'
 
 const TRACK_CONTEXT = {
   parent:         'Prioritise companies known for generous parental leave (20+ weeks full pay), flexible return policies, and family-friendly culture.',
@@ -15,6 +13,7 @@ const TRACK_CONTEXT = {
 }
 
 export async function POST() {
+  const client = new Anthropic()
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -83,7 +82,7 @@ Rules:
 
   try {
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODELS.haiku,
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })

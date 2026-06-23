@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { MODELS } from '../../../../lib/anthropic'
 
 
 const COUNT = { light: 2, medium: 4, deep: 7 }
@@ -40,7 +41,7 @@ Return ONLY a JSON array of strings: ["Q1?", "Q2?", ...]`
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODELS.haiku, max_tokens: 800, messages: [{ role: 'user', content: prompt }] }),
     })
     const data = await res.json()
     const text = data.content?.map(c => c.text || '').join('') || '[]'

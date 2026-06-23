@@ -1,3 +1,5 @@
+import { MODELS } from '../../../lib/anthropic'
+
 const PROFILE =`Rob Oxborough — Strategic Partnership Manager EMEA at Meta. 12+ years across PlayStation, NatWest, King/Activision Blizzard, Google, B2B SEO consultancy. Won 2x Drum Awards including Best Integrated SEO Campaign. Skills: partnerships, product marketing, digital marketing, online marketing, performance marketing, SEO/organic growth, digital strategy, growth, BD, programme management. Based in Greater London.`
 const RECIPE = `MATCH: Partnerships, Product Marketing, Digital Marketing, Online Marketing, Performance Marketing, SEO, Organic Growth, Programme Lead, Digital Strategy, Growth, BD roles. Senior Manager+ at big cos, Head/Director/VP at 100-500 person cos. UK or remote, max 2 days office. Fintech, SaaS, gaming, martech, retail tech, media, energy tech. REJECT: junior, pure sales quota, 3+ office days, non-UK.`
 
@@ -24,7 +26,7 @@ const REJECT_TITLE = ['engineer','software','developer','design','data sci','dat
 
 export async function POST() {
   try {
-    const apiKey = process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.ANTHROPIC_API_KEY
     const allJobs = []
 
     const promises = Object.entries(BOARDS).map(async ([slug, name]) => {
@@ -94,7 +96,7 @@ Return ONLY JSON array, no markdown. If nothing matches, return [].`
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
     })
     const aiData = await aiRes.json()
     const text = aiData.content?.map(c => c.text || '').join('') || '[]'

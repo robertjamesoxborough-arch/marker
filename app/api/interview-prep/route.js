@@ -4,10 +4,11 @@ import { cookies } from 'next/headers'
 import { after } from 'next/server'
 
 import { trackAiUsage } from '../../../lib/ai-usage'
+import { MODELS } from '../../../lib/anthropic'
 
 
 export async function POST(req) {
-  const apiKey = process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return Response.json({ error: 'No API key' }, { status: 500 })
 
   const cookieStore = await cookies()
@@ -153,7 +154,7 @@ Execute this in full. Use web search to research the company, role, and intervie
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: MODELS.sonnet,
         max_tokens: 4096,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content }]
@@ -164,7 +165,7 @@ Execute this in full. Use web search to research the company, role, and intervie
     const text = data.content?.filter(c => c.type === 'text').map(c => c.text).join('') || ''
     if (!text) return Response.json({ error: 'No response from AI' }, { status: 500 })
     if (user && data.usage) {
-      after(() => trackAiUsage({ userId: user.id, model: 'claude-sonnet-4-20250514', action: 'interview_prep', usage: data.usage }))
+      after(() => trackAiUsage({ userId: user.id, model: MODELS.sonnet, action: 'interview_prep', usage: data.usage }))
     }
     return Response.json({ prep: text, usedJdText: hasJdText, hadJobLink: hasJobLink })
   } catch (err) {

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { MODELS } from '../../../lib/anthropic'
 
 
 function buildProfileStr(profile) {
@@ -75,7 +76,7 @@ function buildQueries(profile) {
 
 export async function POST() {
   try {
-    const apiKey = process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.ANTHROPIC_API_KEY
     const adzunaId = process.env.ADZUNA_APP_ID
     const adzunaKey = process.env.ADZUNA_API_KEY
 
@@ -163,7 +164,7 @@ export async function POST() {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] }),
     })
     const aiData = await aiRes.json()
     const text = aiData.content?.map(c => c.text || '').join('') || '[]'

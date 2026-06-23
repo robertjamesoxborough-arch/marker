@@ -5,15 +5,43 @@
 
 ## CURRENT STATE
 
-**Stage:** 0 complete — audit, assets, progress files written  
-**Last commit:** Stage 0 audit (this commit)  
-**Live URL:** https://marker-silk.vercel.app (Marker branding — pre-Requite)  
+**Stage:** 1 complete — brand constant, anthropic config, chrome tokens, bug fixes  
+**Last commit:** stage 1: brand constant, anthropic config, chrome tokens, bug fixes  
+**Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
 
 ---
 
 ## STAGE LOG
+
+### Stage 1 — Brand + skeleton + chrome tokens (2026-06-23)
+
+**Goal:** Wire Requite brand constant, fix three known bugs from audit, add Calibre OS rainbow-chrome design tokens.
+
+**Changes made:**
+1. **`lib/brand.js`** (NEW) — `export const BRAND_NAME = 'Requite'`
+2. **`lib/anthropic.js`** (NEW) — `export const MODELS = { haiku: 'claude-haiku-4-5-20251001', sonnet: 'claude-sonnet-4-6' }`
+3. **Bug fix:** `app/api/wishlist/generate/route.js` — moved `new Anthropic()` from module scope into POST handler; added `MODELS.haiku`
+4. **Bug fix:** `lib/stripe.js` — removed `export const stripe = getStripe()` eager call; exported `getStripe` as named function only
+5. **Stripe consumers:** `app/api/stripe/checkout/route.js`, `portal/route.js`, `webhook/route.js` — updated to call `getStripe()` inside handlers
+6. **jobtrackergeneral removed** from 11 routes: `analyse`, `interview-prep`, `job-feed`, `feed-web`, `feed-gov`, `feed-tasklist`, `contractor/companies`, `contractor/roles`, `contractor/recruiters`, `perm/recruiters`, `onboard/parse-cv`
+7. **Model strings replaced** with `MODELS.haiku` / `MODELS.sonnet` across 16 files — no inline model strings remain outside `lib/anthropic.js`
+8. **`lib/ai-usage.js`** — updated COSTS table keys: `claude-sonnet-4-20250514` → `claude-sonnet-4-6`, `claude-opus-4-20250514` → `claude-opus-4-8`
+9. **`app/layout.js`** — imported BRAND_NAME; replaced all `'Marker'` literals in metadata
+10. **`lib/email.js`** — imported BRAND_NAME; replaced FROM address and all email template "Marker" references
+11. **`app/page.js`** — imported BRAND_NAME; Logo component uses `BRAND_NAME.toLowerCase()`; hero h1 first line wrapped in `<span className="chrome-text">`
+12. **`app/globals.css`** — added chrome tokens: `--color-iris-*` CSS vars, `aurora-drift` (18s) + `chrome-shift` (7s) keyframes, `.aurora-bg`, `.chrome-text`, `.iris-divider`, `.iris-border`, `.btn-iris-sheen`, `.iris-progress` classes
+
+**Verification:**
+- ✅ `npm run build` — clean, zero errors (87 static pages + all routes compiled)
+- ✅ `/api/profile/tier` → 200
+- ✅ `/api/tagline` → 200
+- ✅ No `claude-sonnet-4-20250514` or `claude-opus-4-20250514` anywhere in app/ or lib/
+- ✅ No `jobtrackergeneral` in app/ or lib/
+- ✅ No `new Anthropic()` at module scope (all inside handler functions)
+
+---
 
 ### Stage 0.5 — Git repo repair (2026-06-23)
 
@@ -120,20 +148,19 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 1 — Brand + skeleton + chrome tokens**
+**Stage 2 — Schema additions + G1 marketplace foundation**
+
+Stage 1 is complete. Stage 2 adds the employer-side schema and wires the first Guarantee (G1: "The marketplace is real, or we say it isn't").
 
 Tasks:
-1. Add `BRAND_NAME = 'Requite'` constant to `lib/brand.js` — wire into layout, email, landing
-2. Create `lib/anthropic.js` with `MODELS = { haiku: 'claude-haiku-4-5-20251001', sonnet: 'claude-sonnet-4-6' }` — replace all inline model strings
-3. **Fix import-time bug:** `wishlist/generate/route.js` — move `new Anthropic()` inside handler
-4. **Fix lazy Stripe:** convert `lib/stripe.js` to export function `getStripe()` only
-5. Copy calibre-os chrome tokens into `app/globals.css` (`.aurora-bg`, `.chrome-text`, `.iris-divider`, `.iris-border`, `.btn-iris-sheen`, `.iris-progress`, colour variables, animations)
-6. Update landing page (`app/page.js`) with Requite branding + chrome headline treatment
-7. Confirm infra: same Supabase + Vercel project, no new infrastructure
-8. Run §15 self-test: build passes, routes respond, no secrets leaked
-9. Commit + push
+1. **Confirm backup** — supabase db dump before any migration
+2. **Migration:** Add `source_type`, `first_seen_at`, `last_verified_at`, `freshness` to `jobs_cache` + `pipeline_items`
+3. **New tables:** `employer_profiles`, `employer_roles`, `candidate_employer_matches`, `intro_requests`, `intro_receipts`
+4. **Live Network Meter** component — shows real employer count on landing page
+5. **Freshness Pulse** UI — badge on job cards (Fresh/Aging/Stale/Expired)
+6. Confirm schema change with Rob before running migration
 
-**Pre-flight checklist for Stage 1:**
+**Pre-flight checklist for Stage 2:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md, ASSETS.md
 - State in 3 lines: current stage, last done, this session's plan
 - Ask Rob to confirm before any schema change

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
+import { MODELS } from '../../../lib/anthropic'
 
 
 function buildCandidateString(profile) {
@@ -34,7 +35,7 @@ function buildCandidateString(profile) {
 }
 
 export async function POST(req) {
-  const apiKey = process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return Response.json({ error: 'No API key' }, { status: 500 })
 
   const cookieStore = await cookies()
@@ -264,7 +265,7 @@ ${JSON_SCHEMA}`
 }
 
 async function runClaude(apiKey, systemPrompt, userPrompt, userId) {
-  const MODEL = 'claude-haiku-4-5-20251001'
+  const MODEL = MODELS.haiku
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -307,7 +308,7 @@ async function runClaudeWithSearch(apiKey, prompt) {
         'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: MODELS.sonnet,
         max_tokens: 2000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }],

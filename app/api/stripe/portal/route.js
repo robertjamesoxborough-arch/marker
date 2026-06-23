@@ -2,9 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { stripe } from '../../../../lib/stripe'
+import { getStripe } from '../../../../lib/stripe'
 
 export async function POST() {
+  const stripe = getStripe()
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

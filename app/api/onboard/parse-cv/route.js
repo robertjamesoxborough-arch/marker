@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse } from 'next/server'
+import { MODELS } from '../../../../lib/anthropic'
 
 const ROLE_FAMILIES = [
   'Partnerships', 'Product Marketing', 'Programme Lead', 'Digital Strategy',
@@ -16,7 +17,7 @@ const INDUSTRIES = [
 ]
 
 export async function POST(request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.jobtrackergeneral
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return NextResponse.json({ suggested: [], keywords: [], seniority: [], industries: [], salaryHint: null, error: 'ANTHROPIC_API_KEY not set' })
   }
@@ -29,7 +30,7 @@ export async function POST(request) {
   try {
     const client = new Anthropic()
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODELS.haiku,
       max_tokens: 500,
       messages: [{
         role: 'user',

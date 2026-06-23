@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse, after } from 'next/server'
 import { trackAiUsage } from '../../../../lib/ai-usage'
+import { MODELS } from '../../../../lib/anthropic'
 
 
 export async function POST(request) {
@@ -69,7 +70,7 @@ Return the cover letter only — no commentary, no title, no labels.`
 
   try {
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODELS.haiku,
       max_tokens: 800,
       system: [{ type: 'text', text: SYSTEM_CACHED, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: prompt }],
@@ -77,7 +78,7 @@ Return the cover letter only — no commentary, no title, no labels.`
     })
     const text = msg.content[0]?.text?.trim() || ''
     if (msg.usage) {
-      after(() => trackAiUsage({ userId: user.id, model: 'claude-haiku-4-5-20251001', action: 'cover_letter', usage: msg.usage }))
+      after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cover_letter', usage: msg.usage }))
     }
     return NextResponse.json({ type: 'cv', text })
   } catch (e) {

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse, after } from 'next/server'
 import { trackAiUsage } from '../../../../lib/ai-usage'
+import { MODELS } from '../../../../lib/anthropic'
 
 
 export async function POST(request) {
@@ -117,7 +118,7 @@ Match score: X/100
   const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates — accuracy, specificity, and professional tone are essential. Never invent experience, credentials, or metrics. Return exactly what is asked in the format specified.`
 
   try {
-    const model = 'claude-haiku-4-5-20251001'
+    const model = MODELS.haiku
     const msg = await client.messages.create({
       model,
       max_tokens: maxTokens,

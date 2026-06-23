@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@supabase/supabase-js'
+import { BRAND_NAME } from '../lib/brand'
 import styles from './marketing.module.css'
 import PricingSection from './PricingSection'
 import TaglineTracker from '../components/TaglineTracker'
@@ -11,7 +12,7 @@ import NavHamburger from '../components/NavHamburger'
 function Logo({ size = 20 }) {
   return (
     <span style={{ fontFamily: 'var(--font-display)', fontSize: size, fontWeight: 500, letterSpacing: '-0.03em', color: 'var(--marker-black)', display: 'inline-flex', alignItems: 'baseline', lineHeight: 1 }}>
-      marker
+      {BRAND_NAME.toLowerCase()}
       <span className="holo-dot" style={{ display: 'inline-block', width: '0.32em', height: '0.32em', borderRadius: '50%', marginLeft: '0.05em', position: 'relative', top: '-0.55em', flexShrink: 0 }} />
     </span>
   )
@@ -113,8 +114,8 @@ export default async function Home() {
           }}>
             For experienced people who&apos;d quite like their evenings back
           </div>
-          <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 8vw, 120px)', color: 'var(--marker-black)', marginBottom: 24, textWrap: 'balance' }}>
-            Mark your moves.<br />
+          <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 8vw, 120px)', marginBottom: 24, textWrap: 'balance' }}>
+            <span className="chrome-text">Mark your moves.</span><br />
             <span style={{ color: 'var(--marker-mid)' }}>Skip the rest.</span>
           </h1>
           <p className={`body ${styles.heroBody} ${styles.heroBodyDesktop}`}>

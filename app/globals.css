@@ -241,3 +241,89 @@ button { font-family: var(--font-body); cursor: pointer; }
   background-size: 200% 100%;
   animation: marker-shimmer 1.4s ease-in-out infinite;
 }
+
+/* ── Chrome / Aurora tokens — Calibre OS design DNA ── */
+:root {
+  --color-iris-indigo: #6366F1;
+  --color-iris-violet: #A855F7;
+  --color-iris-rose: #EC4899;
+  --color-teal: #00C4A0;
+  --color-teal-light: #00E5BC;
+}
+@keyframes aurora-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes chrome-shift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.aurora-bg {
+  position: relative;
+  isolation: isolate;
+}
+.aurora-bg::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  z-index: 0;
+  background-image: linear-gradient(135deg,
+    rgba(0, 196, 160, 0.16) 0%,
+    rgba(99, 102, 241, 0.13) 30%,
+    rgba(168, 85, 247, 0.12) 60%,
+    rgba(236, 72, 153, 0.09) 80%,
+    rgba(0, 196, 160, 0.15) 100%
+  );
+  background-size: 400% 400%;
+  filter: blur(90px);
+  animation: aurora-drift 18s ease infinite;
+  pointer-events: none;
+}
+.aurora-bg > * {
+  position: relative;
+  z-index: 1;
+}
+.chrome-text {
+  background-image: linear-gradient(135deg, var(--color-teal), var(--color-iris-indigo), var(--color-iris-violet), var(--color-iris-rose), var(--color-teal));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: chrome-shift 7s ease infinite;
+}
+.iris-divider {
+  height: 2px;
+  border-radius: 999px;
+  background-image: linear-gradient(135deg, var(--color-teal), var(--color-iris-indigo), var(--color-iris-violet), var(--color-iris-rose), var(--color-teal));
+  background-size: 200% auto;
+  animation: chrome-shift 7s ease infinite;
+}
+.iris-border {
+  background-image: linear-gradient(135deg, var(--color-teal) 0%, var(--color-iris-indigo) 33%, var(--color-iris-violet) 66%, var(--color-iris-rose) 100%);
+  border-radius: 14px;
+  padding: 1.5px;
+}
+.btn-iris-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.btn-iris-sheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s ease;
+  pointer-events: none;
+}
+.btn-iris-sheen:hover::after {
+  left: 125%;
+}
+.iris-progress {
+  background-image: linear-gradient(135deg, var(--color-teal), var(--color-iris-indigo), var(--color-iris-violet), var(--color-iris-rose), var(--color-teal));
+  background-size: 200% auto;
+  animation: chrome-shift 7s ease infinite;
+}
