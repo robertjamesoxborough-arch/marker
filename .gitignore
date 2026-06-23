@@ -1,8 +1,21 @@
 node_modules/
 .next/
+.next 2/
 .env
 .env.local
 .env*.local
 .vercel
 *.log
+*.tar.gz
 .DS_Store
+
+# Large images (>1MB) — keep locally, use CDN/LFS for production
+# All 18 files listed here are preserved on disk; none deleted
+public/brand/lifestyle/
+public/brand/hero-ambient.png
+public/brand/blog-pillars.png
+public/brand/og-dark.png
+public/brand/blog-desk.png
+public/brand/product-showcase.png
+public/brand/blog-staircase.png
+app/opengraph-image.png
