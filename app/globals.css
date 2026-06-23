@@ -1,0 +1,243 @@
+:root {
+  /* Brand — canonical tokens */
+  --marker-lime: #C6F432;
+  --marker-lime-dim: #B5E020;
+  --marker-black: #0A0A0A;
+  --marker-cream: #FAF7F2;
+  --marker-cream-2: #F8F6F1;
+  --marker-border: #E5E2DC;
+  --marker-border-soft: #EFECE6;
+  --marker-mid: #6B6863;
+  --marker-text: #2C2A26;
+  --marker-text-soft: #4A4742;
+
+  /* Legacy aliases (used in layout.js) */
+  --color-lime: #C6F432;
+  --color-black: #0A0A0A;
+  --color-cream: #FAF7F2;
+  --color-cream-secondary: #F8F6F1;
+  --color-border: #E5E2DC;
+  --color-text-mid: #6B6863;
+  --color-text-body: #2C2A26;
+
+  /* Type stacks */
+  --font-display: 'Space Grotesk', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  scroll-behavior: smooth;
+  background-color: var(--marker-cream);
+  color: var(--marker-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: inherit; text-decoration: none; cursor: pointer; }
+button { font-family: var(--font-body); cursor: pointer; }
+
+/* ── Holo treatments ── */
+.holo-dot {
+  background: conic-gradient(
+    from 210deg,
+    #e080c8 0deg,
+    #80b8ff 55deg,
+    #70d890 110deg,
+    #f5d840 165deg,
+    #ff8cc0 220deg,
+    #a080ff 275deg,
+    #e080c8 360deg
+  );
+  position: relative;
+  isolation: isolate;
+  animation: holo-spin 6s linear infinite;
+  box-shadow: 0 0 6px 1px rgba(160, 128, 255, 0.45), 0 0 12px 2px rgba(112, 216, 144, 0.25);
+}
+@keyframes holo-spin {
+  from { filter: hue-rotate(0deg); }
+  to   { filter: hue-rotate(360deg); }
+}
+.holo-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.06) 100%);
+  pointer-events: none;
+}
+
+.holo-hairline {
+  background: linear-gradient(90deg, transparent 0%, #b060d8 6%, #5090f0 22%, #50c878 38%, #e8c830 54%, #e05898 70%, #8060e8 86%, transparent 100%);
+  background-size: 200% 100%;
+  height: 3px;
+  width: 100%;
+  animation: holo-shift 4s linear infinite;
+}
+
+/* Rainbow gradient text — kickers, step numbers, score labels */
+.holo-text {
+  background: linear-gradient(90deg, #a060d8 0%, #4888f0 22%, #40b870 44%, #d8b828 62%, #d84888 80%, #7848d8 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: holo-shift 5s linear infinite;
+}
+
+/* Animated foil — use on one accent element per surface */
+.holo-foil {
+  background: linear-gradient(100deg, #d4a8f0 0%, #a8c8ff 18%, #a8e8c0 36%, #f5e080 54%, #f0a8d0 72%, #b8a0f8 88%, #d4a8f0 100%);
+  background-size: 200% 100%;
+  animation: holo-shift 4s linear infinite;
+}
+@keyframes holo-shift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Buttons ── */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform .12s, background .12s, opacity .12s;
+  white-space: nowrap;
+}
+.btn:hover { opacity: 0.88; }
+.btn-primary { background: var(--marker-black); color: var(--marker-cream); }
+.btn-lime    { background: var(--marker-lime);  color: var(--marker-black); }
+.btn-ghost   { background: transparent; color: var(--marker-text); border-color: var(--marker-border); }
+
+/* ── Typography ── */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--marker-mid);
+}
+.display-xl { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.035em; line-height: 0.96; }
+.display-lg { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.03em;  line-height: 1.0;  }
+.display-md { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.025em; line-height: 1.05; }
+.body       { font-family: var(--font-body);    font-weight: 400; letter-spacing: -0.005em; line-height: 1.5;  color: var(--marker-text-soft); }
+
+/* ── Cards ── */
+.card {
+  background: var(--marker-cream-2);
+  border: 1px solid var(--marker-border);
+  border-radius: 12px;
+}
+.card-dark {
+  background: var(--marker-black);
+  color: var(--marker-cream);
+  border-radius: 12px;
+}
+
+/* ── Chips ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--marker-border);
+  color: var(--marker-text);
+  background: var(--marker-cream);
+}
+.chip-lime { background: var(--marker-lime); border-color: var(--marker-lime); color: var(--marker-black); }
+.chip-dark { background: var(--marker-black); border-color: var(--marker-black); color: var(--marker-cream); }
+
+/* ── Adzuna badge — min 116×23px per API ToS ── */
+.adzuna-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 116px;
+  height: 23px;
+  background: var(--marker-black);
+  color: var(--marker-cream);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ── Legal lines ── */
+.legal-line {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--marker-mid);
+  line-height: 1.5;
+}
+
+/* ── Wordmark ── */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--marker-black);
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  position: relative;
+}
+.wordmark .dot {
+  display: inline-block;
+  width: 0.22em;
+  height: 0.22em;
+  border-radius: 50%;
+  margin-left: 0.04em;
+  vertical-align: baseline;
+  position: relative;
+  top: -0.62em;
+}
+
+/* ── Feed / Wishlist / Search animations ── */
+@keyframes marker-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+@keyframes marker-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40%           { transform: translateY(-5px); opacity: 1; }
+}
+@keyframes marker-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.anim-pulse  { animation: marker-pulse 1.6s ease-in-out infinite; }
+.anim-b1     { animation: marker-bounce 1.2s 0s ease-in-out infinite; }
+.anim-b2     { animation: marker-bounce 1.2s 0.2s ease-in-out infinite; }
+.anim-b3     { animation: marker-bounce 1.2s 0.4s ease-in-out infinite; }
+.shimmer-bg  {
+  background: linear-gradient(90deg, var(--marker-border) 25%, var(--marker-cream) 50%, var(--marker-border) 75%);
+  background-size: 200% 100%;
+  animation: marker-shimmer 1.4s ease-in-out infinite;
+}

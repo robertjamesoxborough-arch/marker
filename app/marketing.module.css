@@ -1,0 +1,488 @@
+/* ─────────────────────────────────────────────
+   Marketing homepage — responsive layout
+   Breakpoints: 1024 · 768 · 480 · 380
+───────────────────────────────────────────── */
+
+/* ── NAV ── */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 64px;
+  position: sticky;
+  top: 0;
+  background: var(--marker-cream);
+  z-index: 50;
+}
+/* Burger — hidden on desktop, shown on mobile */
+.navBurger { display: none; }
+/* Sign in text link — visible on desktop only */
+.navSignIn { font-size: 14px; }
+/* Start free CTA in nav */
+.navCTA {}
+.navRule {
+  position: sticky;
+  top: 73px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+.navRule::after {
+  content: '';
+  display: block;
+  height: 32px;
+  background: linear-gradient(to bottom, var(--marker-cream) 0%, transparent 100%);
+  pointer-events: none;
+}
+.navLinks {
+  display: flex;
+  gap: 32px;
+  font-size: 14px;
+  color: var(--marker-text);
+}
+.navActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ── HERO ── */
+.hero {
+  padding: 72px 64px 80px;
+  position: relative;
+}
+.heroBody {
+  font-size: 20px;
+  max-width: 600px;
+  margin-bottom: 40px;
+  line-height: 1.6;
+  color: var(--marker-text-soft);
+}
+.heroBodyMobile { display: none; }
+.heroBodyDesktop { display: block; }
+.heroActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.heroNote {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--marker-mid);
+  margin-left: 4px;
+}
+.heroCard {
+  position: absolute;
+  right: 64px;
+  top: 160px;
+  width: 360px;
+  background: var(--marker-cream-2);
+  border: 1px solid var(--marker-border);
+  border-radius: 12px;
+  padding: 20px;
+  transform: rotate(-1.5deg);
+  box-shadow: 0 20px 60px rgba(10,10,10,0.06);
+}
+
+/* ── PROOF STRIP ── */
+.proofStrip {
+  padding: 36px 64px;
+  border-top: 1px solid var(--marker-border);
+  border-bottom: 1px solid var(--marker-border);
+  background: var(--marker-cream-2);
+}
+.proofInner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.proofInner::-webkit-scrollbar { display: none; }
+.proofItem {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--marker-text);
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+/* ── AMBIENT LIFESTYLE STRIP ── */
+.ambientHero {
+  height: 520px;
+  overflow: hidden;
+  position: relative;
+}
+.ambientHero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Fade left edge to mask any baked-in text on lifestyle images */
+  background: linear-gradient(to right, var(--marker-cream) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── STATS ── */
+.statsSection {
+  padding: 100px 64px;
+  display: grid;
+  grid-template-columns: 1fr 1.8fr;
+  gap: 80px;
+  align-items: center;
+  background: var(--marker-cream-2);
+}
+.statsCopy { /* text column */ }
+.statsCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+.statCard {
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 0.2s ease;
+  box-shadow: 0 12px 40px rgba(10,10,10,0.10);
+  border-radius: 12px;
+}
+.statCard:hover {
+  transform: rotate(0deg) scale(1.02);
+}
+
+/* ── HOW IT WORKS ── */
+.howSection {
+  padding: 120px 64px;
+}
+.howHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 64px;
+  gap: 32px;
+}
+.howSub {
+  font-size: 15px;
+  color: var(--marker-mid);
+  max-width: 280px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.stepCard {
+  padding: 32px;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── PRODUCT SHOWCASE ── */
+.productShowcase {
+  height: 520px;
+  overflow: hidden;
+  position: relative;
+  background: var(--marker-black);
+}
+
+/* ── PERSONAS ── */
+.personaSection {
+  padding: 100px 64px;
+}
+.personaHeader {
+  margin-bottom: 64px;
+}
+.personaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+}
+.personaCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.personaText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.personaPortrait {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--marker-border);
+  background: var(--marker-cream-2);
+  flex-shrink: 0;
+}
+.personaRole {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--marker-mid);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.personaLine {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--marker-text-soft);
+  line-height: 1.7;
+  max-width: 300px;
+}
+
+/* ── BALANCED ROLES ── */
+.balancedSection {
+  padding: 64px 64px 120px;
+}
+.balancedInner {
+  background: var(--marker-black);
+  color: var(--marker-cream);
+  border-radius: 16px;
+  padding: 80px 64px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 64px;
+  position: relative;
+  overflow: hidden;
+}
+.balancedRow {
+  background: #171717;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1.6fr repeat(3, 1fr) 52px;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.balancedMeta {
+  font-family: var(--font-mono);
+  color: #A8A8A8;
+}
+
+/* ── PRICING ── */
+.pricingSection {
+  padding: 40px 64px 120px;
+}
+.pricingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* ── CTA ── */
+.ctaSection {
+  padding: 160px 64px;
+  border-top: 1px solid var(--marker-border);
+  background: var(--marker-black);
+  position: relative;
+  overflow: hidden;
+}
+.ctaSub {
+  font-size: 18px;
+  color: rgba(250,247,242,0.65);
+  margin-bottom: 32px;
+}
+
+/* ── FOOTER ── */
+.footerInner {
+  padding: 40px 64px;
+  border-top: 1px solid var(--marker-border);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 12px;
+  color: var(--marker-mid);
+}
+.footerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footerLinks {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.footerBottom {
+  border-top: 1px solid var(--marker-border);
+  padding-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+
+/* ════════════════════════════════════════════
+   TABLET  ≤ 1024px
+════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .heroCard { display: none; }
+
+  .nav { padding: 20px 40px; }
+  .navRule { top: 69px; }
+
+  .hero { padding: 64px 40px 72px; }
+  .heroBody { font-size: 18px; }
+
+  .proofStrip { padding: 32px 40px; }
+
+  .ambientHero { height: 420px; }
+  .productShowcase { height: 420px; }
+
+  .statsSection { padding: 80px 40px; gap: 56px; }
+
+  .howSection { padding: 96px 40px; }
+  .stepsGrid { gap: 16px; }
+  .stepCard { min-height: 300px; }
+
+  .personaSection { padding: 80px 40px; }
+  .personaPortrait { width: 160px; height: 160px; }
+
+  .balancedSection { padding: 56px 40px 96px; }
+  .balancedInner { padding: 64px 48px; gap: 48px; }
+
+  .pricingSection { padding: 40px 40px 96px; }
+
+  .ctaSection { padding: 120px 40px; }
+
+  .footerInner { padding: 36px 40px; }
+}
+
+
+/* ════════════════════════════════════════════
+   SMALL TABLET / LANDSCAPE PHONE  ≤ 768px
+════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .nav { padding: 16px 24px; }
+  .navLinks { display: none; }
+  .navBurger { display: flex; align-items: center; }
+  .navSignIn { display: none; }
+  .navRule { top: 57px; }
+
+  .hero { padding: 48px 24px 48px; }
+  .heroBody { font-size: 17px; margin-bottom: 28px; }
+  .heroBodyDesktop { display: none; }
+  .heroBodyMobile { display: block; }
+  .heroNote { display: block; margin-left: 0; margin-top: 8px; }
+
+  .proofStrip { padding: 24px 24px; }
+  .proofItem { font-size: 15px; }
+
+  .ambientHero { height: 340px; }
+  .productShowcase { height: 340px; }
+
+  .statsSection {
+    padding: 64px 24px;
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .statsCards { grid-template-columns: 1fr; gap: 16px; }
+  .statCard { transform: none !important; }
+
+  .howSection { padding: 72px 24px; }
+  .howHeader { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 40px; }
+  .howSub { max-width: 100%; font-size: 15px; }
+  .stepsGrid { grid-template-columns: 1fr; }
+  .stepCard { min-height: 0; padding: 28px; }
+
+  .personaSection { padding: 72px 24px; }
+  .personaHeader { margin-bottom: 40px; }
+  .personaGrid { grid-template-columns: 1fr; gap: 32px; }
+  .personaCard { flex-direction: row; align-items: flex-start; gap: 20px; }
+  .personaPortrait { width: 88px; height: 88px; flex-shrink: 0; }
+  .personaLine { max-width: 100%; font-size: 14px; }
+
+  .balancedSection { padding: 48px 24px 72px; }
+  .balancedInner { grid-template-columns: 1fr; padding: 48px 32px; gap: 36px; }
+  .balancedRow { grid-template-columns: 1fr auto; gap: 8px; }
+  .balancedMeta { display: none; }
+
+  .pricingSection { padding: 40px 24px 72px; }
+  .pricingGrid { grid-template-columns: 1fr 1fr; }
+
+  .ctaSection { padding: 96px 24px; }
+  .ctaSub { font-size: 16px; }
+
+  .footerInner { padding: 28px 24px; }
+  .footerBottom { flex-direction: column; align-items: flex-start; }
+}
+
+
+/* ════════════════════════════════════════════
+   MOBILE  ≤ 480px
+════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .nav { padding: 14px 16px; }
+  .navRule { top: 53px; }
+  .navCTA { display: none; } /* burger has its own CTA inside */
+
+  .hero { padding: 48px 16px 52px; }
+  .heroBody { font-size: 16px; margin-bottom: 28px; max-width: 100%; }
+  .heroActions { gap: 10px; }
+
+  .proofStrip { padding: 20px 16px; }
+  .proofInner { gap: 24px; }
+  .proofItem { font-size: 13px; }
+
+  .ambientHero { height: 260px; }
+  .productShowcase { height: 240px; }
+
+  .statsSection { padding: 48px 16px; gap: 32px; }
+  .statsCards { grid-template-columns: 1fr; gap: 16px; }
+  .statCard { transform: none !important; box-shadow: 0 6px 20px rgba(10,10,10,0.08); }
+
+  .howSection { padding: 56px 16px; }
+  .howHeader { margin-bottom: 32px; }
+  .stepsGrid { gap: 12px; }
+  .stepCard { padding: 24px; gap: 12px; }
+
+  .personaSection { padding: 56px 16px; }
+  .personaHeader { margin-bottom: 32px; }
+  .personaGrid { gap: 28px; }
+  .personaPortrait { width: 72px; height: 72px; }
+  .personaLine { font-size: 13px; }
+  .personaRole { font-size: 10px; }
+
+  .balancedSection { padding: 40px 16px 56px; }
+  .balancedInner { padding: 36px 20px; border-radius: 12px; }
+  .balancedRow { padding: 12px 14px; font-size: 12px; }
+
+  .pricingSection { padding: 32px 16px 56px; }
+  .pricingGrid { grid-template-columns: 1fr; }
+
+  .ctaSection { padding: 80px 16px; }
+  .ctaSub { font-size: 15px; margin-bottom: 24px; }
+
+  .footerInner { padding: 24px 16px; }
+  .footerLinks { gap: 16px; }
+}
+
+
+/* ════════════════════════════════════════════
+   SMALL MOBILE  ≤ 380px
+════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .hero { padding: 40px 14px 44px; }
+  .statsCards { gap: 12px; }
+  .balancedInner { padding: 28px 16px; }
+  .ctaSection { padding: 64px 14px; }
+}

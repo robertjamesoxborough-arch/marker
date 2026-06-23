@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Marker — Brand & Marketing</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #f0eee9;
+    color: #2C2A26;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="components/Logo.jsx"></script>
+<script type="text/babel" src="components/Legal.jsx"></script>
+<script type="text/babel" src="components/BrandFoundation.jsx"></script>
+<script type="text/babel" src="components/Personas.jsx"></script>
+<script type="text/babel" src="components/WebDesktopHome.jsx"></script>
+<script type="text/babel" src="components/WebMobileHome.jsx"></script>
+<script type="text/babel" src="components/ProductMobileUI.jsx"></script>
+<script type="text/babel" src="components/Ads.jsx"></script>
+<script type="text/babel" src="components/Marketing.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function App() {
+  return (
+    <DesignCanvas>
+
+      <DCSection id="brand" title="Brand foundation" subtitle="Logo, palette, type, voice — and where the holographic signature lives.">
+        {BrandFoundation().props.children}
+      </DCSection>
+
+      <DCSection id="audience" title="Audience & personas" subtitle="Who Marker is for. Burned-out senior IC is the wedge — Sam is who every word is written to.">
+        {Personas().props.children}
+      </DCSection>
+
+      <DCSection id="web" title="Website — desktop" subtitle="Editorial, generous whitespace. One full homepage including hero, social proof, how it works, Balanced Roles feature, pricing, footer.">
+        {WebDesktopHome()}
+      </DCSection>
+
+      <DCSection id="web-mobile" title="Website — mobile" subtitle="The same homepage adapted for a 390-wide viewport.">
+        {WebMobileHome()}
+        <DCArtboard id="mobile-notes" label="Notes" width={300} height={420}>
+          <div style={{
+            width: '100%', height: '100%',
+            background: 'var(--marker-cream-2)',
+            border: '1px solid var(--marker-border)',
+            padding: 20,
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--marker-text)',
+            lineHeight: 1.5,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}>
+            <div className="kicker">RESPONSIVE NOTES</div>
+            <div>· 24px horizontal padding throughout.</div>
+            <div>· Display type drops from 120 → 52px at the H1.</div>
+            <div>· Pricing collapses 4-up to a stacked list, Pro highlighted as the obvious pick.</div>
+            <div>· Holo hairline survives full-bleed at any width — it's the brand anchor.</div>
+            <div>· Tap targets ≥44px throughout.</div>
+            <div className="holo-hairline" style={{ marginTop: 'auto' }} />
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="product" title="Product UI — in-app preview" subtitle="A glimpse of the pipeline view senior users would actually see day-to-day. Shown in an iPhone frame.">
+        {ProductMobileUI()}
+      </DCSection>
+
+      <DCSection id="ads" title="Ad set — paid + organic" subtitle="LinkedIn, Instagram square, Story, plus two display sizes. Single holo accent per asset.">
+        {AdLinkedIn1()}
+        {AdLinkedIn2()}
+        {AdInstagramSquare()}
+        {AdInstagramStory()}
+        {AdDisplayMR()}
+        {AdDisplayLB()}
+      </DCSection>
+
+      <DCSection id="marketing" title="Marketing surfaces" subtitle="OG card for social shares, the weekly digest email, Product Hunt thumbnail, app icons.">
+        {OGImage()}
+        {EmailHeader()}
+        {ProductHuntThumb()}
+        {FaviconSet()}
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>

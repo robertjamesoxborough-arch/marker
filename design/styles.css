@@ -1,0 +1,213 @@
+/* Marker — design system tokens & utility classes */
+
+:root {
+  /* Brand colors */
+  --marker-lime: #C6F432;
+  --marker-lime-dim: #B5E020;
+  --marker-black: #0A0A0A;
+  --marker-cream: #FAF7F2;
+  --marker-cream-2: #F8F6F1;
+  --marker-border: #E5E2DC;
+  --marker-border-soft: #EFECE6;
+  --marker-mid: #6B6863;
+  --marker-text: #2C2A26;
+  --marker-text-soft: #4A4742;
+
+  /* Type stacks */
+  --font-display: 'Space Grotesk', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+/* Metallic rainbow — used SPARINGLY as a single highlight per surface.
+   The signature: a CD-rainbow holo. Treated as a foil sheen via conic gradient
+   and a subtle linear shimmer overlay. Reserved for: the dot above the 'i',
+   thin hairline rules, and one accent shape per layout. */
+
+.holo-dot {
+  background: conic-gradient(
+    from 210deg,
+    #f4d4e7 0deg,
+    #c9e4ff 60deg,
+    #d5f4d8 120deg,
+    #faecc4 180deg,
+    #f4d4e7 240deg,
+    #c9bcff 300deg,
+    #f4d4e7 360deg
+  );
+  position: relative;
+  isolation: isolate;
+}
+.holo-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 40%, rgba(0,0,0,0.08) 100%);
+  pointer-events: none;
+}
+
+.holo-foil {
+  background: linear-gradient(
+    100deg,
+    #e4d5f0 0%,
+    #c9deff 18%,
+    #d6f0d8 36%,
+    #faecc4 54%,
+    #f4d4e7 72%,
+    #c9bcff 88%,
+    #e4d5f0 100%
+  );
+  background-size: 200% 100%;
+}
+
+.holo-hairline {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #d4b8e8 10%,
+    #b8d4f5 28%,
+    #c5e8c5 46%,
+    #f0e0a8 64%,
+    #e8b8d0 82%,
+    transparent 100%
+  );
+  height: 1px;
+  width: 100%;
+}
+
+/* Logo wordmark */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--marker-black);
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  position: relative;
+}
+.wordmark .dot {
+  display: inline-block;
+  width: 0.22em;
+  height: 0.22em;
+  border-radius: 50%;
+  margin-left: 0.04em;
+  vertical-align: baseline;
+  position: relative;
+  top: -0.62em;
+}
+
+/* Lime accent — solid only, no gradients on it */
+.lime-accent {
+  background: var(--marker-lime);
+  color: var(--marker-black);
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform .12s, background .12s;
+}
+.btn-primary { background: var(--marker-black); color: var(--marker-cream); }
+.btn-lime { background: var(--marker-lime); color: var(--marker-black); }
+.btn-ghost { background: transparent; color: var(--marker-text); border-color: var(--marker-border); }
+
+/* Editorial caps */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--marker-mid);
+}
+
+/* Card surfaces */
+.card {
+  background: var(--marker-cream-2);
+  border: 1px solid var(--marker-border);
+  border-radius: 12px;
+}
+.card-dark {
+  background: var(--marker-black);
+  color: var(--marker-cream);
+  border-radius: 12px;
+}
+
+/* Display type */
+.display-xl { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.035em; line-height: 0.96; }
+.display-lg { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.03em; line-height: 1.0; }
+.display-md { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.025em; line-height: 1.05; }
+.body { font-family: var(--font-body); font-weight: 400; letter-spacing: -0.005em; line-height: 1.5; color: var(--marker-text-soft); }
+.mono { font-family: var(--font-mono); letter-spacing: 0; }
+
+/* Subtle stripe placeholder for missing imagery */
+.placeholder-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(10,10,10,0.04) 0 6px,
+    transparent 6px 12px
+  );
+  background-color: var(--marker-cream-2);
+  border: 1px solid var(--marker-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--marker-mid);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Legal attribution — minimum compliant sizes */
+.adzuna-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 116px;   /* legal minimum per Adzuna API ToS */
+  height: 23px;   /* legal minimum */
+  background: var(--marker-black);
+  color: var(--marker-cream);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.legal-line {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--marker-mid);
+  line-height: 1.5;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--marker-border);
+  color: var(--marker-text);
+  background: var(--marker-cream);
+}
+.chip-lime { background: var(--marker-lime); border-color: var(--marker-lime); color: var(--marker-black); }
+.chip-dark { background: var(--marker-black); border-color: var(--marker-black); color: var(--marker-cream); }

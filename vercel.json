@@ -1,0 +1,24 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/greenhouse",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/adzuna",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/gov",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/archive-inactive",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/email-trials",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

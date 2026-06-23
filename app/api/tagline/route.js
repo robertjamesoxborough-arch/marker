@@ -1,0 +1,30 @@
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+
+function service() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+}
+
+// Public — returns the active tagline for the homepage
+export async function GET() {
+  const { data } = await service()
+    .from('admin_taglines')
+    .select('id, tagline_text')
+    .eq('active', true)
+    .single()
+  return NextResponse.json(data || null, {
+    headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
+  })
+}
+
+// Public — increment impressions or conversions
+export async function POST(request) {
+  const { id, field } = await request.json()
+  if (!id) return NextResponse.json({ ok: false })
+  const col = field === 'conversion' ? 'conversions' : 'impressions'
+  const sb = service()
+  const { data: row } = await sb.from('admin_taglines').select(col).eq('id', id).single()
+  if (!row) return NextResponse.json({ ok: false })
+  await sb.from('admin_taglines').update({ [col]: (row[col] || 0) + 1 }).eq('id', id)
+  return NextResponse.json({ ok: true })
+}

@@ -1,0 +1,72 @@
+.bottomNav {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid var(--marker-border);
+  background: var(--marker-cream-2);
+  padding: 10px 8px 14px;
+  position: sticky;
+  bottom: 0;
+}
+
+.tabScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabScroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Active tab — rainbow underline, matches holo-hairline ── */
+.tabActive {
+  position: relative;
+  color: var(--marker-black) !important;
+  font-weight: 600 !important;
+  border-bottom-color: transparent !important;
+}
+
+.tabActive::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #b060d8 0%,
+    #5090f0 22%,
+    #50c878 44%,
+    #e8c830 62%,
+    #e05898 80%,
+    #8060e8 100%
+  );
+  background-size: 200% 100%;
+  animation: holo-shift 4s linear infinite;
+  border-radius: 2px 2px 0 0;
+}
+
+@media (min-width: 768px) {
+  .bottomNav {
+    display: none;
+  }
+}
+
+/* ── Mobile optimisations ─────────────────────────── */
+@media (max-width: 640px) {
+  /* Tighter tab bar — 5 tabs fit without scroll */
+  .tabScroll button {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .tabScroll button {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 11px !important;
+  }
+}
