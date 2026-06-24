@@ -4220,6 +4220,31 @@ const DAILY_INSIGHTS = [
 
 function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
   const [scorerOpen, setScorerOpen] = useState(false)
+  const [intros, setIntros] = useState([])
+
+  useEffect(() => {
+    fetch('/api/candidate/intros')
+      .then(r => r.json())
+      .then(d => setIntros(d.intros || []))
+      .catch(() => {})
+  }, [])
+
+  async function handleIntroResponse(requestId, action) {
+    const res = await fetch('/api/candidate/intros', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, action }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setIntros(prev => prev.map(i =>
+        i.requestId === requestId
+          ? { ...i, status: data.status, isMutual: data.mutual }
+          : i
+      ))
+    }
+  }
+
   const now = Date.now()
   const DAY = 86400000
   const WEEK = 7 * DAY
@@ -4323,6 +4348,66 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── Section 0: Intro requests from employers ── */}
+      {intros.filter(i => i.status !== 'declined').length > 0 && (
+        <div style={SEC}>
+          <div style={KICKER}>Introductions</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {intros.map(intro => {
+              if (intro.status === 'declined') return null
+              const isPending = intro.status === 'pending'
+              const isAccepted = intro.status === 'accepted'
+              return (
+                <div key={intro.requestId} style={{
+                  background: isAccepted ? 'var(--marker-black)' : 'var(--marker-cream-2)',
+                  border: `1px solid ${isAccepted ? 'transparent' : isPending ? 'rgba(198,244,50,0.5)' : 'var(--marker-border)'}`,
+                  borderLeft: isPending ? '3px solid var(--marker-lime)' : undefined,
+                  borderRadius: isAccepted ? 10 : '0 10px 10px 0',
+                  padding: '12px 14px',
+                }}>
+                  {isPending && (
+                    <>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>An employer wants to connect</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 2 }}>{intro.roleTitle}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginBottom: 10 }}>
+                        {[intro.roleLocation, intro.roleSalary, intro.matchScore != null ? `${parseFloat(intro.matchScore).toFixed(1)}/10 match` : null].filter(Boolean).join(' · ')}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => handleIntroResponse(intro.requestId, 'accept')}
+                          style={{ background: 'var(--marker-lime)', color: 'var(--marker-black)', border: 'none', padding: '8px 16px', borderRadius: 6, fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                          Accept introduction
+                        </button>
+                        <button
+                          onClick={() => handleIntroResponse(intro.requestId, 'decline')}
+                          style={{ background: 'transparent', color: 'var(--marker-mid)', border: '1px solid var(--marker-border)', padding: '8px 12px', borderRadius: 6, fontFamily: 'var(--font-body)', fontSize: 12, cursor: 'pointer' }}>
+                          Decline
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {isAccepted && (
+                    <>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Introduction confirmed</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-cream)', marginBottom: 4 }}>
+                        {intro.companyName ? `Connected with ${intro.companyName}` : 'Introduction accepted'}
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+                        {intro.roleTitle}{intro.roleLocation ? ` · ${intro.roleLocation}` : ''}
+                        {intro.respondedAt ? ` · ${new Date(intro.respondedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(198,244,50,0.8)', letterSpacing: '0.04em' }}>
+                        {intro.companyName ? 'They have your contact details and will be in touch.' : 'Awaiting employer confirmation.'}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            }).filter(Boolean)}
+          </div>
+        </div>
+      )}
 
       {/* ── Section 1: Best Opportunity Today ── */}
       <div style={SEC}>

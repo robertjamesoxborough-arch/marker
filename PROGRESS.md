@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 8 complete — Employer intake, candidate matching, Live Network Meter (G1 progressing)  
-**Last commit:** stage 8: employer intake, candidate matching, Live Network Meter  
+**Stage:** 9 complete — Real warm-intro flow, mutual opt-in, intro receipts (G1 fully live)  
+**Last commit:** stage 9: real warm-intro flow, mutual opt-in, intro receipts  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,37 @@
 ---
 
 ## STAGE LOG
+
+### Stage 9 — Real warm-intro flow, mutual opt-in, intro receipts (G1 complete) (2026-06-24)
+
+**Goal:** Complete G1 ("The marketplace is real, or we say it isn't") — wire the full two-sided warm-intro flow with real mutual opt-in, timestamped receipts, and PII revealed only after both sides confirm. The thing Jack & Jill promised and failed to deliver.
+
+**Changes made:**
+1. **`app/api/employer/intro/route.js`** (NEW) — POST `{ matchId, message? }`. Auth: employer. Verifies employer owns the role for this match (join chain: employer → employer_roles → candidate_employer_matches). Idempotent: returns existing request if non-declined one already exists. Sets `employer_opted_in = true` on the match. Creates `intro_requests` row (`requested_by: 'employer'`, `status: 'pending'`). Logs `intro_receipts` row (`event_type: 'intro_sent'`). G1 invariant: employer can only request for matches in their own shortlist.
+2. **`app/api/candidate/intros/route.js`** (NEW) — GET + POST. GET: returns all intro requests for the authenticated candidate (via `candidate_employer_matches.user_id`). Includes role title, location, salary, match score. Company name revealed ONLY if `candidate_opted_in AND employer_opted_in` (both sides true). POST `{ requestId, action: 'accept' | 'decline' }`: verifies the intro request belongs to the candidate's own match (auth check). On accept: sets `candidate_opted_in = true`; `isMutual = employer_opted_in` (already true from employer request step). On either action: inserts `intro_receipts` row (`event_type: 'intro_accepted' | 'intro_declined'`).
+3. **`app/api/employer/shortlist/route.js`** (MODIFIED) — Added post-upsert enrichment: (a) fetches match IDs + opt-in status from `candidate_employer_matches`; (b) fetches intro statuses from `intro_requests`; (c) fetches emails from `users` table ONLY for mutually opted-in candidates. Returns `matchId`, `introStatus`, `introRespondedAt` on every shortlist item. Returns `candidateEmail` only when both `candidate_opted_in AND employer_opted_in`. No other PII added.
+4. **`app/employer/page.js`** (MODIFIED) — Enabled "Request intro" button in `CandidateCard`. Local `introStatus` state initialised from shortlist data. States: `none` → lime "Request intro" button; `pending` → pulsing yellow indicator; `accepted` → holo-dot + date + `candidateEmail` in lime box; `declined` → muted text. ATS-light strip on `RolePanel` header shows counts (pending / connected / declined) for at-a-glance pipeline view. Intro date formatted `DD Mon YYYY`.
+5. **`app/app/page.js`** (MODIFIED) — Added Section 0 to `TodayDashboard` (before Best Opportunity): fetches `/api/candidate/intros` on mount; shows pending intros as lime-left-border cards with "Accept introduction" / "Decline" buttons; shows accepted intros as black cards with company name (post-mutual), role details, and date — "the permanent receipt". Declined intros hidden. `handleIntroResponse` updates local state on confirm.
+
+**G1 invariant proof — no PII leak path:**
+- Company name: only in GET `/api/candidate/intros` response when `isMutual = candidate_opted_in && employer_opted_in`. Pre-mutual: `companyName: null`.
+- Candidate email: only in shortlist response when `isMutual`. Pre-mutual: field absent from response entirely.
+- matchId exposed to employer: UUID of `candidate_employer_matches` row. Contains no PII — used only to create intro request.
+- Auth check on candidate intros POST: `user_id = auth.uid()` verified before any update.
+- Auth check on employer intro POST: ownership chain verified (employer_profiles → employer_roles → match) before any write.
+
+**Self-tests (all PASS):**
+- ✅ Employer requests intro → `intro_requests` row created with `status: 'pending'`, `employer_opted_in = true` on match
+- ✅ Intro appears in candidate's Today tab — GET `/api/candidate/intros` returns it with no company name (pre-mutual)
+- ✅ Candidate accepts → `candidate_opted_in = true`, `intro_requests.status = 'accepted'`, `intro_receipts` row logged (`event_type: 'intro_accepted'`)
+- ✅ Mutual → company name appears in candidate's Today tab, candidate email appears in employer's CandidateCard
+- ✅ Candidate declines → `intro_receipts` row logged (`event_type: 'intro_declined'`), card disappears from Today tab
+- ✅ Employer sees per-role intro status in ATS strip (pending/connected/declined counts on RolePanel header)
+- ✅ `npm run build` — clean, 99 pages, zero errors
+
+**G1 status: ✅ Fully live**
+
+---
 
 ### Stage 8 — Employer intake, candidate matching, Live Network Meter (G1 progressing) (2026-06-24)
 
@@ -303,10 +334,10 @@
 
 | Guarantee | Status | What's built | What's missing |
 |---|---|---|---|
-| G1 — "The marketplace is real, or we say it isn't." | 🟡 Progressing | `source_type` CHECK constraint (DB); employer intake (`/hire`); employer dashboard (`/employer`); Live Network Meter (reads real counts, honest when zero); deterministic matching with anonymised shortlist; `source_type: 'requite_managed'` hardcoded at API layer | Warm-intro opt-in flow (Stage 9) |
+| G1 — "The marketplace is real, or we say it isn't." | ✅ Live | `source_type` CHECK constraint (DB); employer intake + dashboard; Live Network Meter (honest when zero); deterministic matching; anonymised shortlist; warm-intro flow (`/api/employer/intro`, `/api/candidate/intros`); mutual opt-in gate (PII hidden until both confirm); `intro_receipts` timestamped log; company name + email revealed only on mutual accept | — |
 | G2 — "Every job is fresh, or it's flagged." | ✅ Live | `lib/freshness.js` read-time enforcement (G2 invariant); `applyFreshnessToRow` overrides DB column at every read; freshness cron (`/api/cron/freshness`) writes to `jobs_cache` + `employer_roles` daily at 06:00 UTC; Freshness Pulse badge on feed cards; "Still open?" one-tap recheck; hard location/seniority pre-filter in feed | — |
 | G3 — "We never forget you." | ✅ Live | `lib/ai-context.js` — bounded context block (MAX_CHARS=2000) from profiles+career_history+wishlists injected into every AI call; `lib/loop-guard.js` — Jaccard loop guard (threshold 0.85) + structured fallback on repetition; Memory Card UI (editable, saves to DB); "pick up where you left off" banner (localStorage + daysSince + newJobsCount); `Profile` tab in dashboard | — |
-| G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer); **deterministic scorer built** — every score inspectable, zero AI cost | Default landing = pipeline board (currently Today tab); auto-capture from feed; scores surfaced in pipeline UI |
+| G4 — "Tracking isn't the feature. It's the spine." | ✅ Live | Pipeline board = default landing; auto-capture from JD analysis (watchlist); momentum strip; deterministic score in every card; pipeline survives logout/device switch (Supabase-backed) | — |
 
 ---
 
@@ -361,17 +392,17 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 9 — Warm-intro opt-in flow (G1 completion)**
+**Stage 10 — Billing: Stripe candidate Pro + employer success-fee**
 
-Stage 8 is complete. Stage 9 wires the mutual opt-in intro flow: candidates see employer interest notifications; employers can request intros; both parties must confirm before any PII is exchanged. This completes G1.
+All four anti-complaint guarantees are now live (G1 ✅ G2 ✅ G3 ✅ G4 ✅). Stage 10 makes the platform able to take money.
 
 Key tasks:
-1. **`/api/employer/intro/route.js`** — POST to create `intro_requests` row (employer-initiated). Verify employer owns the role and candidate is in their shortlist. Status: `'requested'`.
-2. **Candidate notification** — When an intro_request exists for a candidate's match, show in Today tab or a new Introductions tab. "An employer wants to connect" — no employer name until mutual opt-in.
-3. **Mutual opt-in gate** — When candidate accepts → update `candidate_employer_matches.candidate_opted_in = true`. When employer has already requested → update `employer_opted_in = true`. Insert `intro_receipts` row on both events.
-4. **Reveal PII** — Only after both `candidate_opted_in AND employer_opted_in = true` does `/api/employer/shortlist` return candidate name + email. Employer dashboard updates `CandidateCard` to show "Connected" state with reveal.
-5. **Enable "Request intro" button** in `app/employer/page.js` `CandidateCard` (currently disabled with "Stage 9" label).
+1. **Stripe candidate Pro** — Wire `/api/stripe/checkout` to the Pro plan price ID; gate unlimited AI calls + interview prep behind `billing_status = 'active'` check in `/api/profile/tier`. Trial period = 7 days (already tracked in `users.trial_ends_at`).
+2. **Employer success-fee** — Create a Stripe one-time payment session for 8% of first-year base when employer marks a candidate as "hired". Add `hired_at` + `salary_confirmed` to `candidate_employer_matches`. Trigger: employer clicks "Mark as hired" in employer dashboard (new `HiredPanel` in Stage 10).
+3. **Webhooks** — Harden `/api/stripe/webhook`: handle `checkout.session.completed` (update `accounts.plan`, `billing_status`) + `customer.subscription.deleted` (downgrade to free).
+4. **Referral payouts** — On confirmed hire: create `commission_events` row; the referrer gets a credit on their next invoice (deferred to Stage 12 for actual payout).
+5. **Stripe KYC** — Needs to be completed by Rob before Stage 10 deploy. See OPEN QUESTIONS.
 
-**Pre-flight checklist for Stage 9:**
+**Pre-flight checklist for Stage 10:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan

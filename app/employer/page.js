@@ -108,6 +108,14 @@ function RolePanel({ role, shortlistData, onLoadShortlist }) {
 
   const statusColor = { active: 'var(--marker-lime)', paused: '#f5d840', closed: 'var(--marker-border)' }[role.status] || 'var(--marker-border)'
 
+  // Count intros by status for the ATS strip
+  const introStats = shortlistData?.shortlist
+    ? shortlistData.shortlist.reduce((acc, c) => {
+        acc[c.introStatus] = (acc[c.introStatus] || 0) + 1
+        return acc
+      }, {})
+    : null
+
   return (
     <div style={{ border: '1px solid var(--marker-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--marker-cream-2)' }}>
       {/* Role header */}
@@ -115,12 +123,22 @@ function RolePanel({ role, shortlistData, onLoadShortlist }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{role.source_type === 'requite_managed' ? 'Requite managed' : role.source_type} · {role.status}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {role.source_type === 'requite_managed' ? 'Requite managed' : role.source_type} · {role.status}
+            </span>
           </div>
           <div className="display-md" style={{ fontSize: 20, color: 'var(--marker-black)', marginBottom: 4 }}>{role.title}</div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             {role.location && <Chip>{role.location}</Chip>}
             {role.salary_min && <Chip>£{role.salary_min}k{role.salary_max ? `–£${role.salary_max}k` : '+'}</Chip>}
+            {/* ATS-light intro status strip */}
+            {introStats && (
+              <>
+                {introStats['pending'] > 0 && <Chip style={{ background: 'rgba(245,216,64,0.2)', borderColor: '#f5d840', color: 'var(--marker-text)' }}>{introStats['pending']} pending</Chip>}
+                {introStats['accepted'] > 0 && <Chip style={{ background: 'rgba(198,244,50,0.2)', borderColor: 'rgba(198,244,50,0.6)', color: 'var(--marker-text)' }}>{introStats['accepted']} connected</Chip>}
+                {introStats['declined'] > 0 && <Chip>{introStats['declined']} declined</Chip>}
+              </>
+            )}
           </div>
         </div>
         <button
@@ -161,8 +179,28 @@ function RolePanel({ role, shortlistData, onLoadShortlist }) {
 
 function CandidateCard({ candidate, rank }) {
   const [expanded, setExpanded] = useState(false)
+  const [introStatus, setIntroStatus] = useState(candidate.introStatus || 'none')
+  const [requesting, setRequesting] = useState(false)
   const score = candidate.score
   const isTop = score >= 8
+
+  async function requestIntro() {
+    if (!candidate.matchId || requesting) return
+    setRequesting(true)
+    try {
+      const res = await fetch('/api/employer/intro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: candidate.matchId }),
+      })
+      const data = await res.json()
+      if (data.success || data.alreadyRequested) {
+        setIntroStatus(data.status || 'pending')
+      }
+    } finally {
+      setRequesting(false)
+    }
+  }
 
   return (
     <div style={{
@@ -187,6 +225,21 @@ function CandidateCard({ candidate, rank }) {
             {candidate.locationArea}{candidate.maxOfficeDays != null ? ` · max ${candidate.maxOfficeDays}d/wk office` : ''}{candidate.salaryFloor ? ` · ${candidate.salaryFloor}` : ''}
           </div>
         </div>
+
+        {/* ATS intro status pill */}
+        {introStatus !== 'none' && (
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.05em', textTransform: 'uppercase',
+            padding: '3px 8px', borderRadius: 4, flexShrink: 0,
+            background: introStatus === 'accepted' ? 'rgba(198,244,50,0.2)' : introStatus === 'pending' ? 'rgba(245,216,64,0.2)' : 'var(--marker-cream-2)',
+            border: `1px solid ${introStatus === 'accepted' ? 'rgba(198,244,50,0.6)' : introStatus === 'pending' ? '#f5d840' : 'var(--marker-border)'}`,
+            color: 'var(--marker-text)',
+          }}>
+            {introStatus === 'pending' && '⏳ Pending'}
+            {introStatus === 'accepted' && '✓ Connected'}
+            {introStatus === 'declined' && 'Declined'}
+          </div>
+        )}
 
         {/* Score */}
         <div className={isTop ? 'holo-foil' : ''} style={{
@@ -214,16 +267,51 @@ function CandidateCard({ candidate, rank }) {
             ))}
           </div>
           {candidate.industries?.length > 0 && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginBottom: 10 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginBottom: 12 }}>
               Background: {candidate.industries.join(', ')}
             </div>
           )}
-          {/* Opt-in CTA — Stage 9 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button disabled className="btn btn-ghost" style={{ fontSize: 12, padding: '7px 14px', opacity: 0.5, cursor: 'not-allowed' }}>
-              Request intro (Stage 9)
-            </button>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Warm-intro flow coming in the next update</span>
+
+          {/* Intro CTA — live in Stage 9 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {introStatus === 'none' && (
+              <button
+                onClick={requestIntro}
+                disabled={requesting || !candidate.matchId}
+                className="btn btn-lime btn-iris-sheen"
+                style={{ fontSize: 12, padding: '7px 16px', opacity: requesting ? 0.7 : 1 }}>
+                {requesting ? 'Sending…' : 'Request intro'}
+              </button>
+            )}
+            {introStatus === 'pending' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f5d840', flexShrink: 0, animation: 'marker-pulse 2s ease-in-out infinite' }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Intro requested — awaiting candidate response</span>
+              </div>
+            )}
+            {introStatus === 'accepted' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="holo-dot" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', flexShrink: 0 }} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-text)', letterSpacing: '0.04em', fontWeight: 600 }}>Introduction confirmed</span>
+                  {candidate.introRespondedAt && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+                      · {new Date(candidate.introRespondedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+                {candidate.candidateEmail ? (
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-text)', background: 'rgba(198,244,50,0.15)', border: '1px solid rgba(198,244,50,0.5)', padding: '5px 12px', borderRadius: 5 }}>
+                    {candidate.candidateEmail}
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Contact details will appear here once confirmed.</div>
+                )}
+              </div>
+            )}
+            {introStatus === 'declined' && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Candidate declined — consider the next match on the shortlist</span>
+            )}
           </div>
         </div>
       )}
@@ -272,9 +360,9 @@ function DashNav({ companyName }) {
   )
 }
 
-function Chip({ children }) {
+function Chip({ children, style }) {
   return (
-    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '3px 8px', borderRadius: 4, letterSpacing: '0.04em' }}>{children}</span>
+    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '3px 8px', borderRadius: 4, letterSpacing: '0.04em', ...style }}>{children}</span>
   )
 }
 

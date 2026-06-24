@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { scoreMatch } from '../../../../lib/match-engine'
 
-// Infer a readable city name from UK postcode area
 function inferLocationArea(postcode) {
   if (!postcode) return 'Location undisclosed'
   const area = postcode.trim().toUpperCase().replace(/\s.*$/, '').replace(/\d+.*$/, '')
@@ -57,7 +56,7 @@ export async function POST(req) {
     .maybeSingle()
   if (!role) return Response.json({ error: 'Role not found' }, { status: 404 })
 
-  // Fetch candidate pool — those who have completed enough of their profile
+  // Fetch candidate pool
   const { data: candidates } = await service
     .from('profiles')
     .select('user_id, target_roles, seniority, industries, postcode, max_office_days, salary_floor, track, hard_filters_json')
@@ -67,7 +66,7 @@ export async function POST(req) {
 
   if (!candidates?.length) return Response.json({ shortlist: [], totalCandidates: 0 })
 
-  // Convert employer role → "job" shape for scoreMatch
+  // Convert employer role → job format for scoreMatch
   const salaryStr = role.salary_min
     ? `£${role.salary_min}k${role.salary_max ? ` - £${role.salary_max}k` : '+'}`
     : ''
@@ -81,14 +80,14 @@ export async function POST(req) {
     cached_at: new Date().toISOString(),
   }
 
-  // Score every candidate against the role
+  // Score every candidate
   const scored = candidates
     .map(profile => ({ profile, ...scoreMatch(profile, roleAsJob) }))
     .sort((a, b) => b.score - a.score)
 
   const top25 = scored.slice(0, 25)
 
-  // Upsert matches into DB for later opt-in / intro flow
+  // Upsert matches
   await service.from('candidate_employer_matches').upsert(
     top25.map(c => ({
       user_id: c.profile.user_id,
@@ -99,7 +98,62 @@ export async function POST(req) {
     { onConflict: 'user_id,employer_role_id' }
   )
 
-  const shortlist = top25.map((c, idx) => anonymise(c.profile, c, idx))
+  // ── Fetch match IDs + opt-in status post-upsert ──
+  const { data: matchRows } = await service
+    .from('candidate_employer_matches')
+    .select('id, user_id, candidate_opted_in, employer_opted_in')
+    .eq('employer_role_id', roleId)
+    .in('user_id', top25.map(c => c.profile.user_id))
+
+  const matchMap = Object.fromEntries((matchRows || []).map(m => [m.user_id, m]))
+
+  // Fetch intro statuses for these matches
+  const matchIds = (matchRows || []).map(m => m.id)
+  const introMap = {}
+  const introRespondedMap = {}
+  if (matchIds.length > 0) {
+    const { data: introReqs } = await service
+      .from('intro_requests')
+      .select('match_id, status, responded_at')
+      .in('match_id', matchIds)
+      .order('requested_at', { ascending: false })
+    for (const req of introReqs || []) {
+      if (!introMap[req.match_id]) {
+        introMap[req.match_id] = req.status
+        introRespondedMap[req.match_id] = req.responded_at
+      }
+    }
+  }
+
+  // ── PII reveal: candidate email only after BOTH sides opt in (G1 invariant) ──
+  const mutualUserIds = (matchRows || [])
+    .filter(m => m.candidate_opted_in && m.employer_opted_in)
+    .map(m => m.user_id)
+  const emailMap = {}
+  if (mutualUserIds.length > 0) {
+    const { data: userRows } = await service
+      .from('users')
+      .select('id, email')
+      .in('id', mutualUserIds)
+    for (const u of userRows || []) emailMap[u.id] = u.email
+  }
+
+  // Build enriched shortlist — anonymised by default, PII added only on mutual
+  const shortlist = top25.map((c, idx) => {
+    const match = matchMap[c.profile.user_id]
+    const introStatus = match ? (introMap[match.id] || 'none') : 'none'
+    const isMutual = !!(match?.candidate_opted_in && match?.employer_opted_in)
+    const base = anonymise(c.profile, c, idx)
+    return {
+      ...base,
+      matchId: match?.id || null,
+      introStatus,
+      introRespondedAt: match ? (introRespondedMap[match.id] || null) : null,
+      ...(isMutual && emailMap[c.profile.user_id]
+        ? { candidateEmail: emailMap[c.profile.user_id] }
+        : {}),
+    }
+  })
 
   return Response.json({
     shortlist,
