@@ -160,9 +160,12 @@ function RolePanel({ role, shortlistData, onLoadShortlist }) {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
                 <div className="kicker">Anonymised shortlist — {shortlistData.shortlist.length} of {shortlistData.totalCandidates} candidates</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Identities hidden until mutual opt-in</div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Deterministic match · no AI</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Identities hidden until mutual opt-in</span>
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {shortlistData.shortlist.map((c, i) => (
@@ -260,7 +263,10 @@ function CandidateCard({ candidate, rank }) {
 
       {expanded && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--marker-border)' }}>
-          {/* Dimension breakdown */}
+          {/* Dimension breakdown — deterministic score, no AI */}
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Score breakdown · deterministic algorithm · 6 dimensions · no AI
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginBottom: 12 }}>
             {Object.entries(candidate.dimensions || {}).map(([key, dim]) => (
               <DimBar key={key} label={DIM_LABELS[key] || key} score={dim?.score ?? 0} reason={dim?.reason} />
@@ -355,6 +361,7 @@ function DashNav({ companyName }) {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <Link href="/hire" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>+ Post role</Link>
         <Link href="/app" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Candidate view</Link>
+        <Link href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Why trust us</Link>
       </div>
     </div>
   )

@@ -3301,7 +3301,10 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
             {/* Factor breakdown */}
             {result.factors && (
               <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 14, padding: 16 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Factor breakdown</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Factor breakdown</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', opacity: 0.7 }}>AI · Claude Haiku</div>
+                </div>
                 {FACTOR_META.map(({ key, label }) => (
                   <FactorBar key={key} label={label} factor={result.factors[key]} />
                 ))}
@@ -3667,7 +3670,10 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
             </div>
             {result.factors && (
               <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 14, padding: 16 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Factor breakdown</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Factor breakdown</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', opacity: 0.7 }}>AI · Claude Haiku</div>
+                </div>
                 {FACTOR_META.map(({ key, label }) => <FactorBar key={key} label={label} factor={result.factors[key]} />)}
               </div>
             )}
@@ -4218,7 +4224,7 @@ const DAILY_INSIGHTS = [
   'Practising your answer to "walk me through your background" out loud cuts interview nerves by more than you expect.',
 ]
 
-function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
+function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan }) {
   const [scorerOpen, setScorerOpen] = useState(false)
   const [intros, setIntros] = useState([])
 
@@ -4429,7 +4435,7 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
                     padding: '8px 16px', borderRadius: 10, color: 'var(--marker-black)',
                   }}
                 >{bestJob.score}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--marker-mid)', marginTop: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>match /10</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--marker-mid)', marginTop: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>AI-scored · /10</div>
               </div>
             </div>
 
@@ -4635,8 +4641,20 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
         )}
       </div>
 
-      <div style={{ padding: '10px 16px 16px' }}>
+      <div style={{ padding: '10px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div className="legal-line">AI-generated scores and summaries. Not professional career advice.</div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {plan && plan !== 'trial' && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.06em', color: 'var(--marker-mid)', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', padding: '2px 7px', borderRadius: 3 }}>
+              {plan === 'free' ? 'Free plan · 3 AI analyses/day' : `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan`}
+            </span>
+          )}
+          {plan === 'free' && (
+            <a href="/pricing" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>Upgrade for unlimited AI →</a>
+          )}
+          <a href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>Why trust Requite</a>
+          <a href="mailto:support@requite.io" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>support@requite.io</a>
+        </div>
       </div>
 
     </div>
@@ -5321,6 +5339,7 @@ export default function AppPage() {
               addJob={addJob}
               updateJob={updateJob}
               onTabSwitch={setTab}
+              plan={plan}
             />
           )
         })()}
