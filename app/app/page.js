@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import { loadJobs, saveJobs, updateJobInDb, deleteJobFromDb, getProfile } from '../../lib/db'
 import { createClient } from '../../lib/supabase/client'
+import FreshnessPulse from '../../components/FreshnessPulse'
 import s from './dashboard.module.css'
 
 // ── Shared primitives ──────────────────────────────────────────────
@@ -1754,6 +1755,13 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
           {job.location && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-mid)' }}>{job.location}</span>}
           {job.salary  && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4 }}>{job.salary}</span>}
+          {job.freshness && <FreshnessPulse freshness={job.freshness} relativeTime={job.relativeTime} />}
+          {(job.freshness === 'Aging' || job.freshness === 'Stale') && (
+            <button onClick={() => recheckJob(job.id, job.link)} disabled={recheckingJobs[job.id]}
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'transparent', border: '1px solid var(--marker-border)', color: 'var(--marker-mid)', padding: '2px 7px', borderRadius: 4, cursor: recheckingJobs[job.id] ? 'default' : 'pointer' }}>
+              {recheckingJobs[job.id] ? '…' : 'Still open?'}
+            </button>
+          )}
           {wlbScore !== null && (
             <span title="Glassdoor work-life balance score for this employer" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: wlbScore >= 4.3 ? 'var(--marker-lime)' : 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-black)', cursor: 'help' }}>
               WLB {wlbData.wlb}/5
@@ -4514,6 +4522,7 @@ export default function AppPage() {
   const [profile, setProfile] = useState(null)
   const [feedJobs, setFeedJobs] = useState([])
   const [feedLoading, setFeedLoading] = useState(true)
+  const [recheckingJobs, setRecheckingJobs] = useState({})
   const [cvPrefill, setCvPrefill] = useState(null)
   const [trialEndsAt, setTrialEndsAt] = useState(null)
   const [trialDismissed, setTrialDismissed] = useState(false)
@@ -4590,6 +4599,22 @@ export default function AppPage() {
     } finally {
       setFeedLoading(false)
     }
+  }, [])
+
+  const recheckJob = useCallback(async (jobId, jobLink) => {
+    setRecheckingJobs(prev => ({ ...prev, [jobId]: true }))
+    try {
+      const res = await fetch('/api/freshness/recheck', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, jobLink }),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setFeedJobs(prev => prev.map(j => j.id === jobId ? { ...j, freshness: d.freshness, relativeTime: d.relativeTime } : j))
+      }
+    } catch {}
+    setRecheckingJobs(prev => ({ ...prev, [jobId]: false }))
   }, [])
 
   const updateJob = useCallback((id, updates) => {

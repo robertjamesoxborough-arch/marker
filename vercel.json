@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/email-trials",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/freshness",
+      "schedule": "0 6 * * *"
     }
   ]
 }

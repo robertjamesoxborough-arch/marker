@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 3 complete — deterministic explainable match engine  
-**Last commit:** stage 3: deterministic explainable match engine  
+**Stage:** 4 complete — job feed + freshness (G2 live)  
+**Last commit:** stage 4: freshness cron, read-time enforcement, Freshness Pulse  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,29 @@
 ---
 
 ## STAGE LOG
+
+### Stage 4 — Job feed + freshness (G2 live) (2026-06-24)
+
+**Goal:** Make G2 ("every job is fresh, or it's flagged") live end-to-end. Read-time enforcement is the real gate; cron is an optimisation.
+
+**Changes made:**
+1. **`lib/freshness.js`** (NEW) — CJS helper. `computeFreshnessState(lastVerifiedAt, now?)` — thresholds: Fresh <48h, Aging <7d, Stale <14d, Expired ≥14d. `relativeTime()` — human-readable badge string. `applyFreshnessToRow(row, now?)` — OVERRIDES stored DB `freshness` field (G2 invariant). `filterAndSortByFreshness(rows, {showExpired?})` — excludes Expired from default view; sorts Fresh→Aging→Stale→Expired
+2. **`lib/freshness.test.js`** (NEW) — 20 fixture assertions; proves read-time override, threshold boundaries, sort/filter, determinism
+3. **`app/api/cron/freshness/route.js`** (NEW) — Daily batch updater. Fetches all `jobs_cache` + `employer_roles` rows, computes new freshness state, upserts only changed rows in chunks of 500. Scheduled 06:00 UTC
+4. **`vercel.json`** (UPDATED) — Added `{ "path": "/api/cron/freshness", "schedule": "0 6 * * *" }` (6th cron, no collision with 2/3/4/5/8 UTC)
+5. **`app/api/feed-cache/route.js`** (REFACTORED) — Accepts `request` param; reads `?showExpired=1` / `?broaden=1`; fetches user profile; applies `applyFreshnessToRow` at READ TIME on every row; hard location/seniority pre-filter via `scoreMatch` (excludes score=1 on either dimension unless `?broaden=1`); applies `filterAndSortByFreshness`; increased limit 300→500; returns `freshness`, `relativeTime`, `lastVerifiedAt` fields
+6. **`app/api/freshness/recheck/route.js`** (NEW) — POST `{ jobId, jobLink }`. Auth user, HEAD-check URL (8s timeout), updates `jobs_cache.last_verified_at` + `freshness` via service role, returns `{ freshness, relativeTime, alive }`
+7. **`components/FreshnessPulse.js`** (NEW) — Client component. Colored dot (7px) + "verified Xh ago" text. Colors: Fresh=#00C4A0, Aging=#F59E0B, Stale=#9CA3AF, Expired=#EF4444. `compact` prop for dot-only mode
+8. **`app/api/cron/adzuna/route.js`** (UPDATED) — Added `last_verified_at: now` and `source_type: 'public_listing'` to upsert rows so re-ingested jobs are stamped as freshly verified
+9. **`app/app/page.js`** (UPDATED) — Imports `FreshnessPulse`; adds `recheckingJobs` state + `recheckJob` callback; injects `<FreshnessPulse>` and "Still open?" button in feed card tags row for Aging/Stale jobs
+
+**Verification:**
+- ✅ `node lib/freshness.test.js` — 20 PASS, 0 FAIL (G2 invariant proven: DB column overridden at read time)
+- ✅ `npm run build` — clean, zero errors (89 pages + all routes)
+- ✅ `/api/cron/freshness` in build output
+- ✅ `/api/freshness/recheck` in build output
+
+---
 
 ### Stage 3 — Deterministic explainable match engine (2026-06-24)
 
@@ -140,7 +163,7 @@
 | Guarantee | Status | What's built | What's missing |
 |---|---|---|---|
 | G1 — "The marketplace is real, or we say it isn't." | 🟡 Partial | `source_type` CHECK constraint on `jobs_cache`, `pipeline_items`, `employer_roles` (schema enforces invariant at DB level); `employer_profiles`, `intro_requests`, `intro_receipts` tables | Live Network Meter component, real-intro UI flow, employer onboarding |
-| G2 — "Every job is fresh, or it's flagged." | 🟡 Partial | `first_seen_at`, `last_verified_at`, `freshness` columns on `jobs_cache` and `employer_roles` | Freshness cron (compute & write freshness field), Freshness Pulse UI badge, one-tap re-check |
+| G2 — "Every job is fresh, or it's flagged." | ✅ Live | `lib/freshness.js` read-time enforcement (G2 invariant); `applyFreshnessToRow` overrides DB column at every read; freshness cron (`/api/cron/freshness`) writes to `jobs_cache` + `employer_roles` daily at 06:00 UTC; Freshness Pulse badge on feed cards; "Still open?" one-tap recheck; hard location/seniority pre-filter in feed | — |
 | G3 — "We never forget you." | ⬜ Not started | Profile IS in Supabase (structured); `candidate_employer_matches` schema ready | Loop guard, context reconstruction per AI call, Memory Card UI, "pick up where you left off", bounded context |
 | G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer); **deterministic scorer built** — every score inspectable, zero AI cost | Default landing = pipeline board (currently Today tab); auto-capture from feed; scores surfaced in pipeline UI |
 
@@ -197,16 +220,16 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 4 — Job feed + freshness (G2)**
+**Stage 5 — G3: "We never forget you" (context reconstruction + Memory Card UI)**
 
-Stage 3 is complete. Stage 4 makes the freshness schema live end-to-end — cron writes to it, UI reads from it.
+Stage 4 is complete. Stage 5 wires persistent candidate context into every AI call so Requite never asks the same question twice.
 
 Tasks:
-1. **Freshness cron** (`/api/cron/freshness`) — compute Fresh/Aging/Stale/Expired from `first_seen_at`/`last_verified_at` on `jobs_cache`; write back `freshness` field; add to `vercel.json`
-2. **Freshness Pulse UI** — badge component on job cards (Fresh dot / Aging / Stale / Expired chip); consume `freshness` field from feed response
-3. **One-tap re-check** — "Still open?" button on pipeline items that triggers a link-check and updates `last_verified_at`
-4. **Hard location/seniority pre-filter** in feed routes — exclude wrong-country / wrong-band from default results
+1. **Loop guard** — Before any AI call, check `ai_usage` for the user; if they've already answered a question this session, inject prior answers as system context
+2. **Context reconstruction** — On each `/api/analyse` call, fetch `career_history`, `profiles`, `wishlists` and inject as bounded context block in the AI prompt
+3. **Memory Card UI** — Profile summary card in sidebar showing "what Requite knows about you" — editable inline
+4. **Pick up where you left off** — On dashboard load, resume the last active pipeline item if user has been away > 24h
 
-**Pre-flight checklist for Stage 4:**
+**Pre-flight checklist for Stage 5:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan

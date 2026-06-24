@@ -85,7 +85,9 @@ export async function GET(request) {
           salary: formatSalary(job),
           location: job.location?.display_name || '',
           source: 'adzuna',
+          source_type: 'public_listing',
           cached_at: now,
+          last_verified_at: now,
           adzuna_attribution_required: true,
           raw_json: {
             family,
