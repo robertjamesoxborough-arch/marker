@@ -121,7 +121,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Set |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Set |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ Set |
-| `ANTHROPIC_API_KEY` | ✅ Set in Vercel (also legacy alias `jobtrackergeneral` — remove in Stage 1) |
+| `ANTHROPIC_API_KEY` | ✅ Set in Vercel (`jobtrackergeneral` alias removed in Stage 1) |
 | `ADZUNA_APP_ID` | ✅ Set |
 | `ADZUNA_API_KEY` | ✅ Set |
 | `CRON_SECRET` | ✅ Set |
@@ -139,10 +139,9 @@
 1. **Stripe KYC** — Stripe account needs identity verification before payouts. Complete before Stage 10.
 2. **ICO registration** — Required to process personal data commercially in UK (~£40/yr at ico.org.uk). Complete before launch.
 3. **Email domain verification** — `onboarding@resend.dev` is the current FROM address. Need custom domain (e.g. `hello@requite.io`) verified with SPF/DKIM in Resend before launch.
-4. **Supabase plan** — Free tier has hard limits. Upgrade to Pro ($25/mo) before real users land.
-5. **Vercel plan** — Hobby plan ToS excludes commercial use. Upgrade to Pro ($20/mo) before launch.
-6. **Brand name confirmation** — Brief says "Requite" is the working name. Wired through `BRAND_NAME` constant from Stage 1. Final rename = one find-replace when decided.
-7. **`jobtrackergeneral` env alias** — `analyse/route.js` checks `process.env.jobtrackergeneral || process.env.ANTHROPIC_API_KEY`. Clean up to single `ANTHROPIC_API_KEY` in Stage 1.
+4. **Brand name** — ✅ Confirmed: **Requite**. Wired through `BRAND_NAME` constant. Rename later = one find-replace.
+5. **Infrastructure** — ✅ Building on existing paid Marker Supabase + Vercel projects throughout all 13 stages. No new projects or subscriptions needed.
+6. **`jobtrackergeneral` env alias** — ✅ Removed in Stage 1. All routes now use `ANTHROPIC_API_KEY` only.
 
 ---
 
