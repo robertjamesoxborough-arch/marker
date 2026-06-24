@@ -328,6 +328,17 @@ button { font-family: var(--font-body); cursor: pointer; }
   animation: chrome-shift 7s ease infinite;
 }
 
+/* ── Employer section — responsive grid ── */
+.employer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .employer-grid { grid-template-columns: 1fr; gap: 40px; }
+}
+
 /* ── Mobile — pipeline & dashboard ── */
 @media (max-width: 640px) {
   /* Pipeline cards: comfortable tap targets */

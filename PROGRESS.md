@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 7.5 complete — visual polish: CTA redesign, lifestyle photo variants, hero aurora glow  
-**Last commit:** stage 7.5: visual polish, real assets, fix banner layouts  
+**Stage:** 8 complete — Employer intake, candidate matching, Live Network Meter (G1 progressing)  
+**Last commit:** stage 8: employer intake, candidate matching, Live Network Meter  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,33 @@
 ---
 
 ## STAGE LOG
+
+### Stage 8 — Employer intake, candidate matching, Live Network Meter (G1 progressing) (2026-06-24)
+
+**Goal:** Build the employer side (G1 invariant): public intake page, employer dashboard with anonymised candidate shortlists, and the Live Network Meter.
+
+**Changes made:**
+1. **`middleware.js`** — Added `/employer` to protected route prefixes (requires auth).
+2. **`app/api/network-meter/route.js`** (NEW) — GET endpoint, service role (bypasses RLS for accurate aggregate counts). Returns `{ roleCount, employerCount, candidateCount }` — reads real live Supabase rows. Honest: zero is zero.
+3. **`components/LiveNetworkMeter.js`** (NEW) — Client component. Fetches `/api/network-meter` on mount. When `roleCount === 0`: "Launching — be a founding partner" (G1 invariant — never fake the marketplace). Full mode shows three stat chips with lime numbers. `compact` prop for inline mode. `holo-dot` live indicator.
+4. **`app/api/employer/profile/route.js`** (NEW) — GET/POST. GET returns employer_profiles row or null. POST creates or updates: select-first pattern (table has no UNIQUE on user_id), fetches `default_account_id` from users table, sets `billing_status: 'trial'` on create.
+5. **`app/api/employer/role/route.js`** (NEW) — GET/POST. GET returns all roles for authenticated employer. POST inserts with hardcoded `source_type: 'requite_managed'` (G1 invariant enforced at API layer, not just DB).
+6. **`app/api/employer/shortlist/route.js`** (NEW) — POST `{ roleId }`. Auth + employer ownership check. Fetches up to 200 opted-in candidates. Converts `employer_role` → job format; runs `scoreMatch(profile, roleAsJob)` for each candidate (reuses Stage 3 deterministic engine). Sorts desc, takes top 25, upserts to `candidate_employer_matches`. Returns anonymised shortlist: `candidateRef` (C01…), `score`, `dimensions`, `seniority`, `targetRoles`, `industries`, `locationArea` (city, not postcode), `maxOfficeDays`, `salaryFloor`. NO name, email, or precise location.
+7. **`app/hire/page.js`** (NEW) — Public employer intake. Two-step form wizard (company → role). On submit: unauthenticated → redirect to `/auth?redirect=/hire`; authenticated → sequential API calls to profile + role endpoints. Done state with link to `/employer`. `chrome-text` hero headline, `holo-text` kicker, LiveNetworkMeter inline.
+8. **`app/employer/page.js`** (NEW) — Employer dashboard. On mount: auth + employer profile check; if no profile → `/hire`. `RolePanel`: toggle shortlist, status dot (lime/yellow/grey). `CandidateCard`: anonymised ref badge, score (holo-foil ≥9, chrome-text 7–8.9, lime bg 6+), expandable dimension breakdown. `DimBar` with iris-progress on high-dimension scores. "Request intro" button disabled (Stage 9).
+9. **`app/page.js`** — Added "For employers" nav link → `/hire`. Added employer section between pricing and CTA: dark background, two-column grid (`employer-grid` global class), copy + animated score visualisation (C01, 8.5/10).
+10. **`app/globals.css`** — Added `.employer-grid` responsive class (1fr 1fr → 1fr at ≤768px).
+
+**Self-tests (all PASS):**
+- ✅ Employer can post a role → creates `employer_roles` row with `source_type: 'requite_managed'` (hardcoded at API layer in `POST /api/employer/role`)
+- ✅ Matching produces ranked, anonymised shortlist — `scoreMatch` reused from Stage 3; response strips all PII; `candidateRef` only
+- ✅ Live Network Meter reads real live counts — queries Supabase via service role; zero → "Launching" copy, never fake numbers
+- ✅ Employer sees only their own roles — `employer_roles_manage` RLS policy (Stage 2); dashboard API filters by authenticated user's `employer_profiles.id`
+- ✅ `npm run build` — clean, 97 pages, zero errors
+
+**G1 status:** 🟡 Intake + matching live. Warm-intro opt-in flow (Stage 9) remaining.
+
+---
 
 ### Stage 7.5 — Visual polish: banner layouts, real lifestyle assets, aurora hero (2026-06-24)
 
@@ -276,7 +303,7 @@
 
 | Guarantee | Status | What's built | What's missing |
 |---|---|---|---|
-| G1 — "The marketplace is real, or we say it isn't." | 🟡 Partial | `source_type` CHECK constraint on `jobs_cache`, `pipeline_items`, `employer_roles` (schema enforces invariant at DB level); `employer_profiles`, `intro_requests`, `intro_receipts` tables | Live Network Meter component, real-intro UI flow, employer onboarding |
+| G1 — "The marketplace is real, or we say it isn't." | 🟡 Progressing | `source_type` CHECK constraint (DB); employer intake (`/hire`); employer dashboard (`/employer`); Live Network Meter (reads real counts, honest when zero); deterministic matching with anonymised shortlist; `source_type: 'requite_managed'` hardcoded at API layer | Warm-intro opt-in flow (Stage 9) |
 | G2 — "Every job is fresh, or it's flagged." | ✅ Live | `lib/freshness.js` read-time enforcement (G2 invariant); `applyFreshnessToRow` overrides DB column at every read; freshness cron (`/api/cron/freshness`) writes to `jobs_cache` + `employer_roles` daily at 06:00 UTC; Freshness Pulse badge on feed cards; "Still open?" one-tap recheck; hard location/seniority pre-filter in feed | — |
 | G3 — "We never forget you." | ✅ Live | `lib/ai-context.js` — bounded context block (MAX_CHARS=2000) from profiles+career_history+wishlists injected into every AI call; `lib/loop-guard.js` — Jaccard loop guard (threshold 0.85) + structured fallback on repetition; Memory Card UI (editable, saves to DB); "pick up where you left off" banner (localStorage + daysSince + newJobsCount); `Profile` tab in dashboard | — |
 | G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer); **deterministic scorer built** — every score inspectable, zero AI cost | Default landing = pipeline board (currently Today tab); auto-capture from feed; scores surfaced in pipeline UI |
@@ -334,17 +361,17 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 6 — G4 spine: pipeline as the default view, auto-capture from feed, scores surfaced in pipeline UI**
+**Stage 9 — Warm-intro opt-in flow (G1 completion)**
 
-Stage 5 is complete. Stage 6 makes the pipeline board the primary product surface: auto-captures jobs the user engages with from the feed; surfaces deterministic scores + dimensions in pipeline cards; makes the pipeline the default landing view (not Today tab).
+Stage 8 is complete. Stage 9 wires the mutual opt-in intro flow: candidates see employer interest notifications; employers can request intros; both parties must confirm before any PII is exchanged. This completes G1.
 
-Tasks:
-1. **Pipeline as default** — Change `buildTabs()` so `'Pipeline'` is the active tab on first load (not Today). Today becomes a secondary tab.
-2. **Auto-capture from feed** — When a user clicks "Analyse" on a feed card, auto-add that job to their pipeline at `status: 'interested'` (if not already there). Call `POST /api/pipeline` from the analyse flow.
-3. **Score in pipeline cards** — Fetch `deterministicScore` + `dimensions` from `pipeline_items.match_json` and render them as a compact score bar on each pipeline card (same visual as feed cards).
-4. **Pipeline card expand** — Clicking a pipeline card shows: match score breakdown, signalReason, AI analysis (if run), stage history, "move to next stage" CTA.
-5. **G4 invariant enforcement** — Every pipeline row must have `source_type` set. Audit any existing rows with null source_type and backfill as `'public_listing'`.
+Key tasks:
+1. **`/api/employer/intro/route.js`** — POST to create `intro_requests` row (employer-initiated). Verify employer owns the role and candidate is in their shortlist. Status: `'requested'`.
+2. **Candidate notification** — When an intro_request exists for a candidate's match, show in Today tab or a new Introductions tab. "An employer wants to connect" — no employer name until mutual opt-in.
+3. **Mutual opt-in gate** — When candidate accepts → update `candidate_employer_matches.candidate_opted_in = true`. When employer has already requested → update `employer_opted_in = true`. Insert `intro_receipts` row on both events.
+4. **Reveal PII** — Only after both `candidate_opted_in AND employer_opted_in = true` does `/api/employer/shortlist` return candidate name + email. Employer dashboard updates `CandidateCard` to show "Connected" state with reveal.
+5. **Enable "Request intro" button** in `app/employer/page.js` `CandidateCard` (currently disabled with "Stage 9" label).
 
-**Pre-flight checklist for Stage 6:**
+**Pre-flight checklist for Stage 9:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan

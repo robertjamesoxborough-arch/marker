@@ -378,6 +378,8 @@
    SMALL TABLET / LANDSCAPE PHONE  ≤ 768px
 ════════════════════════════════════════════ */
 @media (max-width: 768px) {
+  /* Employer section grid → single column */
+  .employerSection { grid-template-columns: 1fr !important; gap: 40px !important; }
   .nav { padding: 16px 24px; }
   .navLinks { display: none; }
   .navBurger { display: flex; align-items: center; }

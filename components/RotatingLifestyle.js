@@ -14,7 +14,7 @@ export default function RotatingLifestyle({ style, sizes, priority }) {
       fill
       priority={priority}
       sizes={sizes || '100vw'}
-      style={{ objectFit: 'cover', objectPosition: '85% center', ...style }}
+      style={{ objectFit: 'cover', objectPosition: 'center top', ...style }}
     />
   )
 }

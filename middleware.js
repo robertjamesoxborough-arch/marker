@@ -25,7 +25,7 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl
 
   // Only these routes require authentication
-  const protectedPrefixes = ['/app', '/onboard', '/settings', '/admin']
+  const protectedPrefixes = ['/app', '/onboard', '/settings', '/admin', '/employer']
   const requiresAuth = protectedPrefixes.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   if (requiresAuth && !user) {

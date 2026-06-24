@@ -93,6 +93,7 @@ export default async function Home() {
           <a href="#how">Tracks</a>
           <a href="#pricing">Pricing</a>
           <Link href="/notes">Notes</Link>
+          <Link href="/hire" style={{ color: 'var(--marker-mid)' }}>For employers</Link>
         </nav>
         <div className={styles.navActions}>
           <Link href="/auth" style={{ fontSize: 14 }} className={styles.navSignIn}>Sign in</Link>
@@ -355,7 +356,63 @@ export default async function Home() {
 
       <PricingSection />
 
-      {/* Holo divider, pricing → cta */}
+      {/* Holo divider, pricing → employer */}
+      <div className="holo-hairline" />
+
+      {/* ── EMPLOYER SECTION ── */}
+      <section style={{ padding: '80px 64px', background: 'var(--marker-black)' }}>
+        <div className="employer-grid" style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div>
+            <div className="kicker" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>For hiring managers</div>
+            <h2 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: 'var(--marker-cream)', marginBottom: 20, textWrap: 'balance' }}>
+              Stop wading through AI-generated CVs.
+            </h2>
+            <p style={{ fontSize: 16, color: 'rgba(250,247,242,0.6)', lineHeight: 1.7, marginBottom: 28, maxWidth: 460 }}>
+              Requite matches your role against a pool of opted-in senior professionals — scored deterministically, not by an algorithm you can&apos;t inspect. You see who fits. They see you. Nobody&apos;s identity is revealed until both sides say yes.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+              {[
+                ['8% success fee — pay only on hire', 'No retainer. No subscriptions. Risk-free.'],
+                ['Anonymised shortlist, instantly', 'Ranked by fit across role, seniority, location, comp.'],
+                ['Real warm intros — receipted', 'Every intro is timestamped. No "Jill doesn\'t exist" surprises.'],
+              ].map(([bold, sub]) => (
+                <div key={bold} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--marker-lime)', flexShrink: 0, marginTop: 7 }} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--marker-cream)' }}>{bold}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', marginTop: 2 }}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 15, display: 'inline-flex' }}>Post a role →</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { label: 'Role fit',     score: 9.1, color: 'var(--marker-lime)' },
+              { label: 'Seniority',    score: 8.5, color: '#a0c8ff' },
+              { label: 'Location',     score: 7.8, color: '#f0a8d0' },
+              { label: 'Comp fit',     score: 8.2, color: 'var(--marker-lime)' },
+              { label: 'Culture / WLB',score: 9.0, color: '#a0c8ff' },
+            ].map(d => (
+              <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', width: 100, flexShrink: 0 }}>{d.label}</div>
+                <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+                  <div style={{ width: `${d.score * 10}%`, height: '100%', background: d.color, borderRadius: 2 }} />
+                </div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-cream)', width: 28, textAlign: 'right', flexShrink: 0 }}>{d.score}</div>
+              </div>
+            ))}
+            <div style={{ marginTop: 16, padding: '16px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Overall match</div>
+              <div className="display-lg" style={{ fontSize: 40, color: 'var(--marker-lime)' }}>8.5<span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>/10</span></div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em', marginTop: 4 }}>Candidate C01 · Senior Manager · London · max 2d/wk</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Holo divider, employer → cta */}
       <div className="holo-hairline" />
 
       {/* ── CTA ── */}
