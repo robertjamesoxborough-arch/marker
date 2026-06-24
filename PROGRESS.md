@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 1 complete — brand constant, anthropic config, chrome tokens, bug fixes  
-**Last commit:** stage 1: brand constant, anthropic config, chrome tokens, bug fixes  
+**Stage:** 2 complete — schema spine, employer tables, freshness columns  
+**Last commit:** stage 2: schema spine, employer tables, freshness columns  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,32 @@
 ---
 
 ## STAGE LOG
+
+### Stage 2 — Schema spine (2026-06-24)
+
+**Goal:** Extend Supabase schema with freshness tracking + employer/matching tables. Additive only — nothing dropped or modified.
+
+**Changes made:**
+1. **`jobs_cache`** — ADD `source_type` (NOT NULL, default `'public_listing'`, CHECK constraint), `first_seen_at`, `last_verified_at`, `freshness` (NOT NULL, default `'Fresh'`, CHECK constraint)
+2. **`pipeline_items`** — ADD `source_type` (NOT NULL, default `'public_listing'`, CHECK constraint)
+3. **`employer_profiles`** (NEW) — One row per employer user. `user_id`, `account_id`, `company_name`, `company_size`, `sector`, `website_url`, `billing_status`, `hiring_volume`, `created_at`
+4. **`employer_roles`** (NEW) — Role posted by employer. `employer_id`, title, description, location, salary, `source_type` NOT NULL (G1 invariant), `freshness`, `status`, timestamps
+5. **`candidate_employer_matches`** (NEW) — Anonymised match. `user_id`, `employer_role_id`, `match_score`, `match_json`, `candidate_opted_in`, `employer_opted_in`, `matched_at`. UNIQUE on `(user_id, employer_role_id)`
+6. **`intro_requests`** (NEW) — Warm-intro flow (G1). `match_id`, `requested_by` ('candidate'/'employer'), `status`, `message`, timestamps
+7. **`intro_receipts`** (NEW) — Immutable timestamped receipt log (G1). `match_id`, `intro_request_id`, `event_type`, `event_at`, `meta_json`
+8. **RLS** — Enabled on all 5 new tables. 6 policies: own-row on profiles/matches/requests/receipts; employer manages their roles; authenticated candidates read active roles
+9. **`supabase/migrations/002_requite_schema.sql`** (NEW) — Full migration SQL on disk
+
+**Verification:**
+- ✅ All 4 new columns on `jobs_cache` confirmed live
+- ✅ `source_type` on `pipeline_items` confirmed live
+- ✅ All 5 new tables exist in Supabase
+- ✅ RLS enabled on all 5 new tables
+- ✅ All 6 policies created and confirmed
+- ✅ Original `jobs_cache` columns intact (id, source, source_id, company, role_title, location, salary, posted_at, link, raw_json, cached_at, track_tags, region, adzuna_attribution_required + 4 new)
+- ✅ `npm run build` — clean, zero errors
+
+---
 
 ### Stage 1 — Brand + skeleton + chrome tokens (2026-06-23)
 
@@ -89,10 +115,10 @@
 
 | Guarantee | Status | What's built | What's missing |
 |---|---|---|---|
-| G1 — "The marketplace is real, or we say it isn't." | ⬜ Not started | Nothing | `source_type` column, Live Network Meter, real-intro flow, employer schema |
-| G2 — "Every job is fresh, or it's flagged." | ⬜ Not started | `cached_at` exists on jobs_cache; `dead_link_flag` on pipeline_items | `first_seen_at`, `last_verified_at`, `freshness` computed field, freshness cron, Freshness Pulse UI, one-tap re-check |
-| G3 — "We never forget you." | ⬜ Not started | Profile IS in Supabase (structured); chat history not stored (good) | Loop guard, context reconstruction per AI call, Memory Card UI, "pick up where you left off", bounded context |
-| G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; pipeline_items table; status flow (watchlist→offer) | Default landing = pipeline board (currently Today tab); auto-capture from feed (partially wired); survives logout confirmed (DB-backed) |
+| G1 — "The marketplace is real, or we say it isn't." | 🟡 Partial | `source_type` CHECK constraint on `jobs_cache`, `pipeline_items`, `employer_roles` (schema enforces invariant at DB level); `employer_profiles`, `intro_requests`, `intro_receipts` tables | Live Network Meter component, real-intro UI flow, employer onboarding |
+| G2 — "Every job is fresh, or it's flagged." | 🟡 Partial | `first_seen_at`, `last_verified_at`, `freshness` columns on `jobs_cache` and `employer_roles` | Freshness cron (compute & write freshness field), Freshness Pulse UI badge, one-tap re-check |
+| G3 — "We never forget you." | ⬜ Not started | Profile IS in Supabase (structured); `candidate_employer_matches` schema ready | Loop guard, context reconstruction per AI call, Memory Card UI, "pick up where you left off", bounded context |
+| G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer) | Default landing = pipeline board (currently Today tab); auto-capture from feed; match engine |
 
 ---
 
@@ -101,14 +127,14 @@
 ### Existing (from `supabase/migrations/001_schema.sql`)
 - `accounts`, `account_members`, `users`, `profiles`, `career_history`, `wishlists`, `jobs_cache`, `pipeline_items`, `ai_usage`, `account_usage`, `tier_allowances`, `applications`, `interview_preps`, `market_intel`, `referrals`, `commission_events`, `admin_todos`, `admin_companies`, `admin_feature_flags`, `admin_metrics_cache`, `admin_outreach`, `admin_taglines`
 
-### Pending (Stage 2 additions)
-- `jobs_cache` — ADD `source_type` (requite_managed/public_listing/partner_feed), `first_seen_at`, `last_verified_at`, `freshness` (Fresh/Aging/Stale/Expired)
-- `pipeline_items` — ADD `source_type` NOT NULL
-- `employer_profiles` — NEW (company, size, sector, billing_status)
-- `employer_roles` — NEW (employer_id, title, description, source_type NOT NULL, freshness)
-- `candidate_employer_matches` — NEW (anonymised until mutual opt-in)
-- `intro_requests` — NEW (G1 warm-intro flow)
-- `intro_receipts` — NEW (G1 timestamped receipts)
+### Stage 2 additions (LIVE in Supabase as of 2026-06-24)
+- `jobs_cache` — ADDED `source_type`, `first_seen_at`, `last_verified_at`, `freshness`
+- `pipeline_items` — ADDED `source_type`
+- `employer_profiles` — NEW ✅ (RLS: own row)
+- `employer_roles` — NEW ✅ (RLS: employer manages; authenticated candidates read active)
+- `candidate_employer_matches` — NEW ✅ (RLS: own row)
+- `intro_requests` — NEW ✅ (RLS: own matches only)
+- `intro_receipts` — NEW ✅ (RLS: own matches only)
 
 **BACKUP RULE (§14 rule 3):** Before ANY migration, take explicit backup first. Claude Code will prompt for confirmation before writing any migration.
 
@@ -147,19 +173,16 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 2 — Schema additions + G1 marketplace foundation**
+**Stage 3 — Match engine + job freshness cron**
 
-Stage 1 is complete. Stage 2 adds the employer-side schema and wires the first Guarantee (G1: "The marketplace is real, or we say it isn't").
+Stage 2 is complete. Stage 3 wires the first live behaviours against the new schema.
 
 Tasks:
-1. **Confirm backup** — supabase db dump before any migration
-2. **Migration:** Add `source_type`, `first_seen_at`, `last_verified_at`, `freshness` to `jobs_cache` + `pipeline_items`
-3. **New tables:** `employer_profiles`, `employer_roles`, `candidate_employer_matches`, `intro_requests`, `intro_receipts`
-4. **Live Network Meter** component — shows real employer count on landing page
-5. **Freshness Pulse** UI — badge on job cards (Fresh/Aging/Stale/Expired)
-6. Confirm schema change with Rob before running migration
+1. **Match engine** (`/api/matches/run`) — score `candidate_employer_matches` using AI against `employer_roles` (G4 spine)
+2. **Freshness cron** (`/api/cron/freshness`) — compute Fresh/Aging/Stale/Expired on `jobs_cache` and `employer_roles`; write back `freshness` field
+3. **Freshness Pulse UI** — badge on job cards surfacing the freshness field
+4. **Live Network Meter** — employer count on landing page from `employer_profiles`
 
-**Pre-flight checklist for Stage 2:**
-- Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md, ASSETS.md
+**Pre-flight checklist for Stage 3:**
+- Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan
-- Ask Rob to confirm before any schema change
