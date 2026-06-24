@@ -5,15 +5,63 @@
 
 ## CURRENT STATE
 
-**Stage:** 9 complete — Real warm-intro flow, mutual opt-in, intro receipts (G1 fully live)  
-**Last commit:** stage 9: real warm-intro flow, mutual opt-in, intro receipts  
+**Stage:** 11 complete — Trust Panel, explainability UI, transparent limits, AI-vs-human disclosure  
+**Last commit:** stage 11: Trust Panel, explainability UI, transparent limits, AI-vs-human disclosure  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
+**Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
 
 ---
 
 ## STAGE LOG
+
+### Stage 11 — Trust Panel, explainability UI, transparent limits, AI-vs-human disclosure (2026-06-24)
+
+**Goal:** Make Requite's honesty visible — the brand-defining stage. Every claim in the Trust Panel maps to a real built feature from Stages 1–9.
+
+**Changes made:**
+1. **`app/trust/page.js`** (NEW) — Public `/trust` page "Why you can trust Requite." Dark aurora hero with chrome-text headline. 4 guarantee cards (G1–G4) with left-border colour coding, plain-English invariant explanations, and "Built in:" code references. "What's AI, what's human?" disclosure table (6 rows). "Honest limits" section (free candidate tier + employer success fee). Support contact (`support@requite.io`). CTA footer with iris-sheen lime button. Chrome with restraint — one chrome moment in the hero, clean cream throughout.
+2. **`app/page.js`** — Added "Why trust us" nav link → `/trust` (after Notes, before For employers).
+3. **`app/employer/page.js`** — Added "Why trust us" link to `DashNav`. Added "Score breakdown · deterministic algorithm · 6 dimensions · no AI" kicker label above DimBar in `CandidateCard` expanded section. Shortlist header updated: "Deterministic match · no AI" label alongside "Identities hidden until mutual opt-in".
+4. **`app/app/page.js`** — Four targeted changes:
+   - `TodayDashboard` now accepts and renders `plan` prop; call site passes `plan={plan}`.
+   - TodayDashboard footer: added plan badge ("Free plan · 3 AI analyses/day" for free tier), "Upgrade for unlimited AI →" link, "Why trust Requite" link, `support@requite.io` mailto link.
+   - Both EngineTab "Factor breakdown" headers updated: split label into "Factor breakdown" + "AI · Claude Haiku" right-aligned — makes the AI nature of the score explicit.
+   - TodayDashboard best opportunity score label: "match /10" → "AI-scored · /10" — clarifies what generated the number.
+
+**Trust Panel claim → feature mapping (VERIFIED):**
+| Claim | Built feature |
+|---|---|
+| G1: `source_type` CHECK constraint | `supabase/migrations/002_requite_schema.sql` + Stage 8 `POST /api/employer/role` hardcodes `source_type: 'requite_managed'` |
+| G1: "Request intro" disabled on public listings | `app/employer/page.js` — "Request intro" button only mounted when `candidate.matchId` (only present for managed roles via shortlist) |
+| G1: Live Network Meter | `components/LiveNetworkMeter.js` + `/api/network-meter/route.js` (reads real counts, says "Launching" when zero) |
+| G1: `intro_receipts` immutable log | `app/api/employer/intro/route.js` + `app/api/candidate/intros/route.js` — every intro event inserts to `intro_receipts` |
+| G2: read-time freshness enforcement | `lib/freshness.js` `applyFreshnessToRow()` called in `/api/feed-cache` on every read |
+| G2: Freshness Pulse badge | `components/FreshnessPulse.js` shown on every feed card |
+| G2: daily cron 06:00 UTC | `vercel.json` cron entry + `/api/cron/freshness/route.js` |
+| G2: "Still open?" recheck | `/api/freshness/recheck/route.js` + button in FeedTab |
+| G3: profiles = source of truth | `supabase/migrations/001_schema.sql` profiles table; AI calls never write to conversation history |
+| G3: `lib/ai-context.js` bounded stateless context | `lib/ai-context.js` MAX_CHARS=2000, reads fresh from DB on every call |
+| G3: `lib/loop-guard.js` | `lib/loop-guard.js` Jaccard similarity guard (threshold 0.85) + structured fallback |
+| G3: Memory Card | `components/MemoryCard.js` — editable, self-fetching, Profile tab |
+| G4: Pipeline = default landing | `app/app/page.js` `useState('Pipeline')` — default tab after login |
+| G4: auto-capture from Analyse | Stage 7 `addJob()` call in `EngineTab.analyse()` on every successful analysis |
+| G4: Supabase-backed pipeline | `lib/db.js` `loadJobs()`/`saveJobs()` use `pipeline_items` table |
+| G4: momentum strip | Stage 7 momentum strip (Applied/Interviewing/Offers counts) in Pipeline tab |
+
+**Self-tests (all PASS):**
+- ✅ `npm run build` — clean, 100 pages (up from 99), zero errors
+- ✅ `/trust` compiles as static page (○) — no server-side data deps
+- ✅ Every Trust Panel claim maps to a real built feature (see table above)
+- ✅ "Factor breakdown — AI · Claude Haiku" label appears in both EngineTab instances
+- ✅ "Score breakdown · deterministic algorithm · 6 dimensions · no AI" label in employer CandidateCard
+- ✅ "Why trust us" link in landing nav + employer nav
+- ✅ Plan badge + support email in TodayDashboard footer
+- ✅ Trust Panel accessible without auth at `/trust`
+- ✅ Support contact: `support@requite.io` in Trust Panel hero and TodayDashboard footer
+
+---
 
 ### Stage 9 — Real warm-intro flow, mutual opt-in, intro receipts (G1 complete) (2026-06-24)
 
@@ -373,9 +421,9 @@
 | `RESEND_API_KEY` | ✅ Set |
 | `ADMIN_EMAIL` | ✅ Set |
 | `NEXT_PUBLIC_APP_URL` | ⚠️ Unset locally (fallback hardcoded in email.js) |
-| `STRIPE_SECRET_KEY` | ✗ NOT SET — billing broken |
-| `STRIPE_PUBLISHABLE_KEY` | ✗ NOT SET |
-| `STRIPE_WEBHOOK_SECRET` | ✗ NOT SET |
+| `STRIPE_SECRET_KEY` | ✅ Set in Vercel Production (confirmed 2026-06-24 via `vercel env ls`) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | ✅ Set in Vercel Production |
+| `STRIPE_WEBHOOK_SECRET` | ✅ Set in Vercel Production |
 
 ---
 
@@ -392,17 +440,19 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 10 — Billing: Stripe candidate Pro + employer success-fee**
+**Stage 12 — Marketing site + launch**
 
-All four anti-complaint guarantees are now live (G1 ✅ G2 ✅ G3 ✅ G4 ✅). Stage 10 makes the platform able to take money.
+All guarantees live (G1 ✅ G2 ✅ G3 ✅ G4 ✅), Trust Panel live, platform fully functional. Stage 12 is the launch surface.
 
 Key tasks:
-1. **Stripe candidate Pro** — Wire `/api/stripe/checkout` to the Pro plan price ID; gate unlimited AI calls + interview prep behind `billing_status = 'active'` check in `/api/profile/tier`. Trial period = 7 days (already tracked in `users.trial_ends_at`).
-2. **Employer success-fee** — Create a Stripe one-time payment session for 8% of first-year base when employer marks a candidate as "hired". Add `hired_at` + `salary_confirmed` to `candidate_employer_matches`. Trigger: employer clicks "Mark as hired" in employer dashboard (new `HiredPanel` in Stage 10).
-3. **Webhooks** — Harden `/api/stripe/webhook`: handle `checkout.session.completed` (update `accounts.plan`, `billing_status`) + `customer.subscription.deleted` (downgrade to free).
-4. **Referral payouts** — On confirmed hire: create `commission_events` row; the referrer gets a credit on their next invoice (deferred to Stage 12 for actual payout).
-5. **Stripe KYC** — Needs to be completed by Rob before Stage 10 deploy. See OPEN QUESTIONS.
+1. **Both-audience landing page** — Rewrite `app/page.js` with proper two-sided messaging from §5 of the brief. Candidate side: free, honest, the four guarantees. Employer side: success fee, anonymised shortlist, real intros.
+2. **Trust Panel integration** — Wire the Trust Panel into the landing page as a featured section (the "proof" section), not just a standalone page.
+3. **Referral mechanics** — Wire `components/RefCapture.js` properly; add referral CTA in the post-onboard flow.
+4. **Analytics** — Ensure Vercel Analytics events are firing for key conversion steps: landing → auth, auth → onboard complete, employer intake → role posted.
+5. **Launch copy** — The full marketing copy for this stage is written by the consultant (Rob's brief §10 says "Stage 12 consultant writes copy + playbook").
 
-**Pre-flight checklist for Stage 10:**
+**Note:** Stage 10 (Billing) was deferred past Stage 11. The Stripe keys are set in Vercel (confirmed 2026-06-24). Stage 10 can be inserted before Stage 12 if billing must go live before launch. The OPEN QUESTIONS section has the Stage 10 pre-flight checklist.
+
+**Pre-flight checklist for Stage 12:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan
