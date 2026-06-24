@@ -1,9 +1,20 @@
 // Follows Adzuna redirect URLs to find the real employer careers page
 // No Claude usage — pure HTTP redirect following
 
+const ALLOWED_ORIGINS = ['adzuna.co.uk', 'adzuna.com']
+
 export async function POST(req) {
   const { url } = await req.json()
   if (!url) return Response.json({ resolved: null })
+
+  try {
+    const parsed = new URL(url)
+    if (!ALLOWED_ORIGINS.some(o => parsed.hostname.endsWith(o))) {
+      return Response.json({ resolved: null })
+    }
+  } catch {
+    return Response.json({ resolved: null })
+  }
 
   try {
     // Follow redirects manually to capture the final URL

@@ -5,6 +5,10 @@ export async function POST(req) {
   const results = await Promise.allSettled(
     links.map(async ({ id, url }) => {
       try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return { id, url, status: 'error' }
+        }
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 8000)
         const res = await fetch(url, {

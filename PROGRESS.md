@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 12 complete — Marketing copy, source attribution cleanup, referral mechanics, analytics  
-**Last commit:** stage 12: marketing copy, source attribution cleanup, referral mechanics, analytics  
+**Stage:** 13 complete — Security audit, QA sweep, deploy hardening  
+**Last commit:** stage 13: security audit, auth gate fix, SSRF hardening  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,45 @@
 ---
 
 ## STAGE LOG
+
+### Stage 13 — Security audit, QA sweep, deploy hardening (2026-06-24)
+
+**Goal:** Full security and QA sweep before exposing to real users. No new features — find and fix holes only.
+
+**Audit scope (55 API routes reviewed):**
+
+**IDOR / object-level auth** — All data routes confirmed scoped to authenticated user's own data:
+- Admin: all routes use `getAdminUser()` (auth + email check). ✅
+- Employer shortlist: full ownership chain (`user.id → employer_profile.id → role.employer_id`). ✅
+- Employer intro + role: ownership chain verified at every hop. ✅
+- Candidate intros (GET + POST): accept/decline gated to own matches. ✅
+- Profile/save, profile/tier, profile/memory, data-export, account-delete, dismiss, wishlist: all scoped to `user.id`. ✅
+- CV routes, negotiation-prep, contractor routes, search/live, referral routes: auth-gated and scoped. ✅
+
+**G1 PII invariant** — `candidateEmail` only in shortlist response when `candidate_opted_in AND employer_opted_in` both true; `companyName` in candidate intros only on mutual. Enforced at API layer, not just UI. ✅
+
+**Secrets** — `SUPABASE_SERVICE_ROLE_KEY` never `NEXT_PUBLIC_`; `.env.local` gitignored; `ANTHROPIC_API_KEY` / `STRIPE_SECRET_KEY` server-only. Only `NEXT_PUBLIC_` vars are Supabase URL + anon key (safe) + app URL. ✅
+
+**Cost guards** — All AI routes use `MODELS.haiku` or `MODELS.sonnet` from `lib/anthropic.js` (no Opus). Truncation guards present on all AI prompts. ✅
+
+**Stripe webhook** — Signature verified via `stripe.webhooks.constructEvent` before any processing. ✅
+
+**Fixes made:**
+1. **`app/api/interview-prep/route.js`** — Added missing `if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })` after auth check. Without this, unauthenticated requests triggered Sonnet + web_search. Also reduced `max_tokens` from 4096 → 2000.
+2. **`app/api/resolve-url/route.js`** — Added `ALLOWED_ORIGINS` check: only adzuna.co.uk / adzuna.com URLs are resolved. Prevents using the route as a generic SSRF proxy.
+3. **`app/api/check-links/route.js`** — Added URL scheme validation: non-http/https URLs (file://, data://, etc.) return early with `{ status: 'error' }`.
+
+**Acceptable (not fixed — low risk or intentional):**
+- Cron CRON_SECRET `&&` pattern: fail-open if env unset, confirmed set in prod. Dev convenience.
+- `/api/salary-estimate`: no auth, no Claude API usage (Adzuna + static).
+- `/api/onboard/parse-cv`: no auth by design (onboarding UX, pre-login); Haiku, max_tokens 500.
+- `/api/network-meter`: intentionally public (marketing page aggregate counts only).
+
+**§15 self-test:** Build ✅, routes respond ✅, no secrets in client bundle ✅, cost guards present ✅, data safe ✅, G1–G4 invariants intact ✅.
+
+**Build:** Zero errors. **Deployed:** https://marker-silk.vercel.app
+
+---
 
 ### Stage 12 — Marketing copy, source attribution cleanup, referral mechanics, analytics (2026-06-24)
 

@@ -19,6 +19,7 @@ export async function POST(req) {
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   )
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   let profileCvRaw = ''
   let candidateContext = 'Candidate profile not available.'
@@ -156,7 +157,7 @@ Execute this in full. Use web search to research the company, role, and intervie
       },
       body: JSON.stringify({
         model: MODELS.sonnet,
-        max_tokens: 4096,
+        max_tokens: 2000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content }]
       })
