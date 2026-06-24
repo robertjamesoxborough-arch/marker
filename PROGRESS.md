@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 5 complete — G3 live (stateless AI, loop guard, Memory Card)  
-**Last commit:** stage 5: G3 — stateless AI, loop guard, Memory Card  
+**Stage:** 6 complete — candidate tools wired to tracked roles + verified-stats guardrail  
+**Last commit:** stage 6: candidate tools wired to tracked roles, verified-stats guardrail  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,32 @@
 ---
 
 ## STAGE LOG
+
+### Stage 6 — Candidate tools: verified-stats guardrail + tracked-role wiring (2026-06-24)
+
+**Goal:** Wire all candidate AI tools to the tracked pipeline role + structured profile. Hard rule: no hallucinated metrics, ever.
+
+**Changes made:**
+1. **`lib/verified-stats.js`** (NEW) — CJS module. `checkVerifiedStats(aiText, cvRaw, achievements)` — extracts numbers/percentages/years/currency from AI output; flags any not present (normalised) in the verified pool (cvRaw + career_history achievements). `buildVerifiedPool` normalises and joins sources. `extractVerifiableNumbers` — YEAR_RE 1960–2029, METRIC_RE currency+percentage+3-digit+ numbers. Bare numbers <100 not extracted to avoid false positives.
+2. **`lib/verified-stats.test.js`** (NEW) — 20 assertions: numbers in CV safe; hallucinated flagged; achievements pool; edge cases (null/empty); guardrail invariant (mixed verified+hallucinated). All 20 PASS.
+3. **`app/api/cv/generate/route.js`** (MODIFIED) — Added `checkVerifiedStats` import; career_history select now includes `achievements`; `STAT_GUARDRAIL` constant in prompt (hard rule, non-negotiable); `SYSTEM_CACHED` system prompt hardened; post-generation check (standard+deep only): `checkVerifiedStats(raw, cvRaw, achievements)` → `flaggedMetrics` returned in response JSON.
+4. **`app/api/cv/cover-letter/route.js`** (MODIFIED) — Added `buildAiContext` + parallel `Promise.all` for profile/career_history/wishlists. `candidateContext` injected into `SYSTEM_CACHED`.
+5. **`app/api/cv/questions/route.js`** (MODIFIED) — Added `buildAiContext`; best-effort parallel profile fetch in try/catch; `candidateContext` injected into prompt; updated rule: "Tailor questions to the candidate's background — do not ask about experience they clearly have".
+6. **`app/api/salary-estimate/route.js`** (MODIFIED) — Accepts `profileSeniority` param; `effectiveTitle = profileSeniority ? \`${profileSeniority} ${roleTitle}\` : roleTitle`; all three uses (getSeniorityBounds, Adzuna query, staticEstimate) now use effectiveTitle.
+7. **`app/api/negotiation-prep/route.js`** (NEW) — Negotiation rehearsal route. Auth + parallel profile fetch. Takes: roleTitle, company, offerAmount, targetAmount, notes, jdText. Uses `buildAiContext`. `MODELS.sonnet`, max_tokens: 3000. Returns 6-section pack: offer analysis, counter-offer strategy, word-for-word scripts (verbal/email/pushback), BATNA, objections+responses, timing. Tracks usage as 'negotiation_prep'.
+8. **`app/app/page.js` — PrepTab** (MODIFIED) — Added `profile` prop; mode toggle ('prep'/'negotiate') shown when offer-stage jobs exist; salary auto-fetch on job selection (passes `profileSeniority`); salary display below job selector; negotiate mode inputs (offerAmount, targetAmount, negoNotes); `generate()` branches on mode → calls `/api/negotiation-prep` or `/api/interview-prep`.
+9. **`app/app/page.js` — DirectCvPanel** (NEW component) — Calls `/api/cv/generate` directly (not copy-to-clipboard). Picks pipeline role + effort level. Shows result in textarea. Green "VERIFIED" banner when `flaggedMetrics.length === 0`; yellow warning banner listing flagged numbers when any are found. Copy-to-clipboard button.
+10. **`app/app/page.js` — CvTab** (MODIFIED) — Added `{ id: 'generate', label: 'AI Generate' }` to section toggle (perm+both modes only). Renders `<DirectCvPanel allJobs={allJobs} profile={profile} />` when section === 'generate'. PrepTab render site updated: `<PrepTab jobs={jobs} profile={profile} />`.
+
+**Self-tests (all PASS):**
+- ✅ Verified-stats guardrail: `node lib/verified-stats.test.js` — 20/20 PASS. Hallucinated numbers flagged; CV numbers safe; achievements pool checked; edge cases handled.
+- ✅ Tracked role data: All tools (cv/generate, cover-letter, questions, interview-prep, negotiation-prep) pull `roleTitle`/`company`/`jdRaw` from the selected pipeline item and `buildAiContext` from DB profile.
+- ✅ `npm run build` — clean, zero errors (91 pages, `/api/negotiation-prep` in build output).
+
+**Deferred to Stage 7:**
+- G4 tracking-spine work: default pipeline landing, auto-capture from JD paste, match scores in pipeline cards.
+
+---
 
 ### Stage 5 — G3: "We never forget you" — stateless AI + Memory Card (2026-06-24)
 

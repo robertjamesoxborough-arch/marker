@@ -6,6 +6,7 @@ import { NextResponse, after } from 'next/server'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
+import { checkVerifiedStats } from '../../../../lib/verified-stats'
 
 
 export async function POST(request) {
@@ -24,7 +25,7 @@ export async function POST(request) {
   )
   const [profileRes, historyRes, wishlistRes] = await Promise.all([
     service.from('profiles').select('hard_filters_json, target_roles, seniority, industries, max_office_days, salary_floor, postcode, track').eq('user_id', user.id).single(),
-    service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
+    service.from('career_history').select('role_title, company, start_date, end_date, achievements').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
     service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
   ])
   const profile = profileRes.data
@@ -54,6 +55,8 @@ export async function POST(request) {
   let prompt
   let maxTokens
 
+  const STAT_GUARDRAIL = `VERIFIED-STATS RULE (hard): Every metric, number, percentage, date, and monetary figure you write MUST appear verbatim in the BASE CV. Never invent, estimate, or extrapolate any statistic. If a number is not in the CV, do not include it. This is a non-negotiable rule.`
+
   if (effort === 'quick') {
     prompt = `Compare the CV against the job description and return ONLY valid JSON.
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
@@ -77,6 +80,8 @@ Rules:
   } else if (effort === 'standard') {
     prompt = `Rewrite the CV below to better match the target role. Improve the profile summary, and update the most relevant experience bullets to mirror the JD's language and keywords. Keep the structure and all other content unchanged.
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
+${STAT_GUARDRAIL}
+
 BASE CV:
 ${cvRaw.slice(0, 5000)}
 
@@ -86,7 +91,7 @@ ${jd.slice(0, 3000)}${answersSection}
 
 Rules:
 - Mark each changed section with [UPDATED] at the start
-- Do not add fictional experience or metrics
+- Do not add any metric, number, or percentage not already in the BASE CV
 - Keep the same formatting style
 - Return the full CV text, not just the changed sections`
     maxTokens = 2000
@@ -94,6 +99,8 @@ Rules:
     // deep
     prompt = `Perform a full tailoring of the CV below for the target role.
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
+${STAT_GUARDRAIL}
+
 BASE CV:
 ${cvRaw.slice(0, 5000)}
 
@@ -102,7 +109,7 @@ JOB DESCRIPTION:
 ${jd.slice(0, 3000)}${answersSection}
 
 Step 1 — ATS simulation: list matched keywords, missing keywords, and an honest match score.
-Step 2 — Full rewrite: rewrite the profile, core skills section, and all experience bullets to maximise ATS match and human readability. Do not invent experience.
+Step 2 — Full rewrite: rewrite the profile, core skills section, and all experience bullets to maximise ATS match and human readability. Do not invent any metrics not in the BASE CV.
 Step 3 — Sift assessment: 2-3 sentences on strengths, concerns, and estimated interview invite probability.
 
 Format:
@@ -120,7 +127,9 @@ Match score: X/100
   }
 
   const candidateContext = buildAiContext(profile, careerHistory, wishlists)
-  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates — accuracy, specificity, and professional tone are essential. Never invent experience, credentials, or metrics. Return exactly what is asked in the format specified.
+  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates — accuracy, specificity, and professional tone are essential.
+
+HARD RULE: Never invent, add, or extrapolate any metric, statistic, number, percentage, date, or monetary figure not explicitly present in the candidate's base CV. Hallucinated CV stats are the #1 trust failure in AI writing — it is your job to prevent them. Only use facts that appear in the source material below.
 
 CANDIDATE PROFILE:
 ${candidateContext}`
@@ -150,7 +159,11 @@ ${candidateContext}`
       }
     }
 
-    return NextResponse.json({ type: 'cv', text: raw })
+    // Post-generation verified-stats check (standard + deep only)
+    const achievements = careerHistory.map(h => h.achievements).filter(Boolean)
+    const { flagged: flaggedMetrics } = checkVerifiedStats(raw, cvRaw, achievements)
+
+    return NextResponse.json({ type: 'cv', text: raw, flaggedMetrics })
   } catch (e) {
     return NextResponse.json({ error: e?.message || 'Generation failed' }, { status: 500 })
   }

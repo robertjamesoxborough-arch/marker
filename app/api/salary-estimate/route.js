@@ -1,4 +1,5 @@
 // Salary estimation — Adzuna histogram (free) + static seniority floor check
+// Accepts optional profileSeniority to ground the estimate in the user's actual seniority.
 // No Claude usage. Results persisted in IndexedDB — only fetched once per job.
 
 const SENIORITY_FLOORS = [
@@ -30,17 +31,21 @@ function staticEstimate(roleTitle) {
 }
 
 export async function POST(req) {
-  const { roleTitle, company } = await req.json()
+  const { roleTitle, company, profileSeniority } = await req.json()
   if (!roleTitle) return Response.json({ salary: null })
+
+  // If the user's profile seniority is provided, use it to override the role-title based lookup
+  // so estimates are grounded in the candidate's actual level, not just the job title
+  const effectiveTitle = profileSeniority ? `${profileSeniority} ${roleTitle}` : roleTitle
 
   const adzunaId = process.env.ADZUNA_APP_ID
   const adzunaKey = process.env.ADZUNA_APP_KEY
-  const bounds = getSeniorityBounds(roleTitle)
+  const bounds = getSeniorityBounds(effectiveTitle)
 
   if (adzunaId && adzunaKey) {
     try {
       // Use specific query — include seniority keyword to tighten the histogram
-      const query = encodeURIComponent(roleTitle)
+      const query = encodeURIComponent(effectiveTitle)
       const url = `https://api.adzuna.com/v1/api/jobs/gb/histogram?app_id=${adzunaId}&app_key=${adzunaKey}&what=${query}&content-type=application/json`
       const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
       if (res.ok) {
@@ -78,5 +83,5 @@ export async function POST(req) {
     } catch {}
   }
 
-  return Response.json({ salary: staticEstimate(roleTitle) })
+  return Response.json({ salary: staticEstimate(effectiveTitle) })
 }

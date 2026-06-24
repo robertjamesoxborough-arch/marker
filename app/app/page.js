@@ -564,11 +564,12 @@ const INTERVIEW_STAGES = [
   { id: 'ceo',            label: 'CEO / exec',        sub: 'Strategic, vision-level' },
 ]
 
-function PrepTab({ jobs }) {
+function PrepTab({ jobs, profile }) {
   const activeJobs = jobs
     .filter(j => ['applied', 'interviewing', 'offer'].includes(j.status))
     .sort((a, b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0))
   const [selectedJobId, setSelectedJobId] = useState(activeJobs[0]?.id || '')
+  const [mode, setMode]                   = useState('prep')
   const [stage, setStage]                 = useState('hiring_manager')
   const [interviewer, setInterviewer]     = useState('')
   const [jdText, setJdText]               = useState('')
@@ -578,8 +579,21 @@ function PrepTab({ jobs }) {
   const [result, setResult]               = useState('')
   const [error, setError]                 = useState('')
   const [copied, setCopied]               = useState(false)
+  const [salary, setSalary]               = useState(null)
+  const [offerAmount, setOfferAmount]     = useState('')
+  const [targetAmount, setTargetAmount]   = useState('')
+  const [negoNotes, setNegoNotes]         = useState('')
 
   const selectedJob = jobs.find(j => j.id === selectedJobId) || null
+
+  useEffect(() => {
+    if (!selectedJob?.roleTitle) { setSalary(null); return }
+    setSalary(null)
+    const body = { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '' }
+    if (profile?.seniority) body.profileSeniority = profile.seniority
+    fetch('/api/salary-estimate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(r => r.ok ? r.json() : null).then(d => { if (d?.salary) setSalary(d.salary) }).catch(() => {})
+  }, [selectedJobId])
 
   function handleCvFile(e) {
     const file = e.target.files?.[0]
@@ -604,15 +618,26 @@ function PrepTab({ jobs }) {
     setResult('')
     setError('')
     try {
-      const res = await fetch('/api/interview-prep', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job: selectedJob, stage, interviewer: interviewer.trim(), jdText: jdText.trim(), cvBase64: cvBase64 || undefined }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Generation failed'); return }
-      track('interview_prep_generated', { stage })
-      setResult(data.prep || '')
+      if (mode === 'negotiate') {
+        const res = await fetch('/api/negotiation-prep', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roleTitle: selectedJob.roleTitle, company: selectedJob.company, offerAmount: offerAmount.trim(), targetAmount: targetAmount.trim(), notes: negoNotes.trim(), jdText: (selectedJob.jd || '').slice(0, 2000) }),
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error || 'Generation failed'); return }
+        setResult(data.prep || '')
+      } else {
+        const res = await fetch('/api/interview-prep', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job: selectedJob, stage, interviewer: interviewer.trim(), jdText: jdText.trim(), cvBase64: cvBase64 || undefined }),
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error || 'Generation failed'); return }
+        track('interview_prep_generated', { stage })
+        setResult(data.prep || '')
+      }
     } catch {
       setError('Request failed — try again.')
     } finally {
@@ -634,26 +659,52 @@ function PrepTab({ jobs }) {
     )
   }
 
+  const offerJobs = activeJobs.filter(j => j.status === 'offer')
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-      {/* Tab purpose header */}
-      <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--marker-border)', marginBottom: 16 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>Prep for your interview</div>
-        <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Pick a role you've applied for and get a full prep pack — company background, likely questions, and STAR story starters tailored to the JD.</div>
+      {/* Tab purpose header + mode toggle */}
+      <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--marker-border)', marginBottom: 0 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>
+          {mode === 'negotiate' ? 'Negotiate your offer' : 'Prep for your interview'}
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
+          {mode === 'negotiate'
+            ? 'Scripts, counter-offer strategy, and BATNA for your offer-stage role — grounded in your profile and market data.'
+            : 'Pick a role you\'ve applied for and get a full prep pack — company background, likely questions, and STAR story starters tailored to the JD.'}
+        </div>
+        {offerJobs.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            {[{ id: 'prep', label: 'Interview prep' }, { id: 'negotiate', label: 'Negotiate offer' }].map(m => (
+              <button key={m.id} onClick={() => { setMode(m.id); setResult(''); setError('') }}
+                style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${mode === m.id ? 'var(--marker-black)' : 'var(--marker-border)'}`, background: mode === m.id ? 'var(--marker-black)' : 'transparent', color: mode === m.id ? 'var(--marker-cream)' : 'var(--marker-text)', fontSize: 12, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-    <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ padding: '16px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* Job selector */}
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Role</label>
-        <select value={selectedJobId} onChange={e => setSelectedJobId(e.target.value)} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}>
-          {activeJobs.map(j => <option key={j.id} value={j.id}>{j.company} — {j.roleTitle || 'Untitled'}</option>)}
+        <select value={selectedJobId} onChange={e => { setSelectedJobId(e.target.value); setResult(''); setError('') }}
+          style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}>
+          {(mode === 'negotiate' ? offerJobs : activeJobs).map(j => <option key={j.id} value={j.id}>{j.company} — {j.roleTitle || 'Untitled'}</option>)}
         </select>
+        {salary && (
+          <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+            Market rate for this role: <span style={{ color: 'var(--marker-black)', fontWeight: 700 }}>{salary.source === 'adzuna' ? `£${salary.min}k–£${salary.max}k` : `~£${salary.min}k–£${salary.max}k (est)`}</span>
+            <span style={{ marginLeft: 6, color: 'var(--marker-border)' }}>· {salary.source === 'adzuna' ? 'Adzuna data' : 'Static estimate'}</span>
+          </div>
+        )}
       </div>
 
-      {/* Stage selector */}
+      {/* Interview prep inputs */}
+      {mode === 'prep' && (<>
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Interview stage</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
@@ -665,20 +716,14 @@ function PrepTab({ jobs }) {
           ))}
         </div>
       </div>
-
-      {/* Interviewer */}
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Interviewer name / title <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional)</span></label>
         <input value={interviewer} onChange={e => setInterviewer(e.target.value)} placeholder="e.g. Sarah Chen, VP Product" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
       </div>
-
-      {/* JD paste */}
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Job description <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(paste for best results)</span></label>
         <textarea value={jdText} onChange={e => setJdText(e.target.value)} placeholder="Paste the JD here — Claude will research the company live via web search regardless…" rows={4} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.5 }} />
       </div>
-
-      {/* CV upload */}
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>CV you submitted <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional — PDF only, for targeted STAR answers)</span></label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>
@@ -687,18 +732,35 @@ function PrepTab({ jobs }) {
           <input type="file" accept=".pdf" onChange={handleCvFile} style={{ display: 'none' }} />
         </label>
       </div>
+      </>)}
+
+      {/* Negotiation inputs */}
+      {mode === 'negotiate' && (<>
+      <div>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Offer received <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional)</span></label>
+        <input value={offerAmount} onChange={e => setOfferAmount(e.target.value)} placeholder="e.g. £85,000 + 10% bonus" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Your target <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional)</span></label>
+        <input value={targetAmount} onChange={e => setTargetAmount(e.target.value)} placeholder="e.g. £95,000 + equity" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Notes <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(competing offers, walk-away, must-haves)</span></label>
+        <textarea value={negoNotes} onChange={e => setNegoNotes(e.target.value)} placeholder="e.g. Competing offer at £90k. Must have fully remote. Walk-away under £80k." rows={3} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.5 }} />
+      </div>
+      </>)}
 
       <button
         onClick={generate}
         disabled={generating || !selectedJob}
         style={{ background: !selectedJob ? 'var(--marker-border)' : 'var(--marker-black)', color: !selectedJob ? 'var(--marker-mid)' : 'var(--marker-cream)', border: 'none', padding: '12px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: !selectedJob ? 'default' : 'pointer' }}
       >
-        {generating ? 'Generating…' : 'Generate prep pack'}
+        {generating ? 'Generating…' : mode === 'negotiate' ? 'Generate negotiation pack' : 'Generate prep pack'}
       </button>
 
       {generating && (
         <div style={{ padding: '16px 0 4px' }}>
-          <ProgressBar duration={50} steps={STEPS_PREP} slowAt={32} slowMsg="Web search adds time here — Claude's looking up the actual company, not guessing from training data." />
+          <ProgressBar duration={mode === 'negotiate' ? 15 : 50} steps={STEPS_PREP} slowAt={mode === 'negotiate' ? 10 : 32} slowMsg={mode === 'negotiate' ? 'Preparing your negotiation scripts and market analysis…' : "Web search adds time here — Claude's looking up the actual company, not guessing from training data."} />
         </div>
       )}
 
@@ -707,7 +769,7 @@ function PrepTab({ jobs }) {
       {result && (
         <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, overflow: 'hidden' }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Prep pack</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{mode === 'negotiate' ? 'Negotiation pack' : 'Prep pack'}</div>
             <button onClick={copy} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: copied ? 'var(--marker-lime)' : 'var(--marker-border)', color: 'var(--marker-black)', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', letterSpacing: '0.04em' }}>
               {copied ? 'COPIED ✓' : 'COPY'}
             </button>
@@ -718,7 +780,7 @@ function PrepTab({ jobs }) {
         </div>
       )}
 
-      <div className="legal-line">Live web research included. Takes 30-60 seconds. Uses your Anthropic API key.</div>
+      <div className="legal-line">{mode === 'negotiate' ? 'AI negotiation coaching. Market data from Adzuna. Verify figures independently.' : 'Live web research included. Takes 30-60 seconds. Uses your Anthropic API key.'}</div>
     </div>
     </div>
   )
@@ -1507,6 +1569,110 @@ Return the CV text only — no preamble, no explanation.`
   )
 }
 
+function DirectCvPanel({ allJobs, profile }) {
+  const eligibleJobs = (allJobs || []).filter(j => j.status && !['saved', 'rejected', 'withdrawn'].includes(j.status))
+  const [selectedJobId, setSelectedJobId] = useState(eligibleJobs[0]?.id || '')
+  const [effort, setEffort] = useState('standard')
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const selectedJob = eligibleJobs.find(j => j.id === selectedJobId) || eligibleJobs[0]
+
+  async function generate() {
+    if (!selectedJob?.roleTitle || !selectedJob?.jdRaw) {
+      setError('Selected role has no job description stored. Add it from the pipeline.')
+      return
+    }
+    setLoading(true); setError(''); setResult(null)
+    try {
+      const res = await fetch('/api/cv/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd: selectedJob.jdRaw, effort }),
+      })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setResult(data)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (eligibleJobs.length === 0) {
+    return (
+      <div style={{ padding: 24, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', textAlign: 'center' }}>
+        No tracked roles yet. Add roles to your pipeline to generate tailored CVs.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflowY: 'auto' }}>
+      <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
+        Generate a tailored CV sent directly to the API — output displayed here with verified-stats check.
+      </div>
+
+      {/* Role picker */}
+      <div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--marker-mid)', marginBottom: 5 }}>ROLE</div>
+        <select value={selectedJobId} onChange={e => setSelectedJobId(e.target.value)}
+          style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-text)' }}>
+          {eligibleJobs.map(j => (
+            <option key={j.id} value={j.id}>{j.roleTitle}{j.company ? ` — ${j.company}` : ''} ({j.status})</option>
+          ))}
+        </select>
+        {selectedJob && !selectedJob.jdRaw && (
+          <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#d97706' }}>No JD stored for this role — paste it from the pipeline card first.</div>
+        )}
+      </div>
+
+      {/* Effort */}
+      <div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--marker-mid)', marginBottom: 5 }}>DEPTH</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[{ id: 'quick', label: 'Gap analysis' }, { id: 'standard', label: 'Tailored CV' }, { id: 'deep', label: 'Full rewrite' }].map(e => (
+            <button key={e.id} onClick={() => setEffort(e.id)}
+              style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${effort === e.id ? 'var(--marker-black)' : 'var(--marker-border)'}`, background: effort === e.id ? 'var(--marker-black)' : 'transparent', color: effort === e.id ? 'var(--marker-cream)' : 'var(--marker-text)', fontSize: 12, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
+              {e.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={generate} disabled={loading || !selectedJob?.jdRaw}
+        style={{ padding: '11px', borderRadius: 8, background: loading ? 'var(--marker-mid)' : 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}>
+        {loading ? 'Generating…' : 'Generate'}
+      </button>
+
+      {error && <div style={{ padding: 10, borderRadius: 8, background: '#fef2f2', border: '1px solid #fca5a5', fontFamily: 'var(--font-body)', fontSize: 13, color: '#dc2626' }}>{error}</div>}
+
+      {result && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {result.flaggedMetrics && result.flaggedMetrics.length > 0 && (
+            <div style={{ padding: '10px 12px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fcd34d', fontFamily: 'var(--font-body)', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
+              <strong>Verified-stats warning:</strong> The following numbers were not found in your stored CV — review before using: <strong>{result.flaggedMetrics.join(', ')}</strong>
+            </div>
+          )}
+          {result.flaggedMetrics && result.flaggedMetrics.length === 0 && (
+            <div style={{ padding: '8px 12px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #86efac', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#166534', letterSpacing: '0.06em' }}>
+              VERIFIED — all metrics trace to your stored CV
+            </div>
+          )}
+          <textarea readOnly value={result.type === 'keywords' ? JSON.stringify(result.data, null, 2) : result.text}
+            style={{ width: '100%', minHeight: 320, padding: 12, borderRadius: 8, border: '1px solid var(--marker-border)', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-text)', background: 'var(--marker-cream-2)', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
+          <button onClick={() => navigator.clipboard.writeText(result.type === 'keywords' ? JSON.stringify(result.data, null, 2) : result.text)}
+            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'transparent', fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', color: 'var(--marker-text)', alignSelf: 'flex-start' }}>
+            Copy to clipboard
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onSwitchToEngine }) {
   const cvRaw = profile?.hard_filters_json?.cvRaw || ''
   const hfj   = profile?.hard_filters_json || {}
@@ -1548,7 +1714,7 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
       <div style={{ display: 'flex', gap: 6, padding: '12px 16px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)' }}>
         {[
           ...(searchMode !== 'perm' ? [{ id: 'contractor_cv', label: 'Contractor CV' }] : []),
-          ...(searchMode !== 'contractor' ? [{ id: 'cv', label: 'Tailor CV' }, { id: 'cover', label: 'Cover Letter' }] : []),
+          ...(searchMode !== 'contractor' ? [{ id: 'cv', label: 'Tailor CV' }, { id: 'cover', label: 'Cover Letter' }, { id: 'generate', label: 'AI Generate' }] : []),
           { id: 'recruiters', label: 'Recruiters' },
         ].map(s => (
           <button key={s.id} onClick={() => setSection(s.id)}
@@ -1589,6 +1755,9 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
           onClearPrefill={null}
           onSwitchToEngine={onSwitchToEngine}
         />
+      )}
+      {section === 'generate' && (
+        <DirectCvPanel allJobs={allJobs} profile={profile} />
       )}
     </div>
   )
@@ -5012,7 +5181,7 @@ export default function AppPage() {
                     Full prep pack for any role at <strong>Applied</strong> stage or beyond — company briefing, likely questions, and STAR frameworks tailored to the JD. Add your interviewer's name for targeted prep.
                   </TourBanner>
                 )}
-                <PrepTab jobs={jobs} />
+                <PrepTab jobs={jobs} profile={profile} />
               </>
         )}
 
