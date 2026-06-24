@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { sendIntroRequest } from '../../../../lib/email'
 
 export async function POST(req) {
   const cookieStore = await cookies()
@@ -20,7 +21,7 @@ export async function POST(req) {
   // Verify employer has a profile
   const { data: ep } = await service
     .from('employer_profiles')
-    .select('id')
+    .select('id, company_name')
     .eq('user_id', user.id)
     .maybeSingle()
   if (!ep) return Response.json({ error: 'No employer profile' }, { status: 403 })
@@ -28,7 +29,7 @@ export async function POST(req) {
   // Get the match
   const { data: match } = await service
     .from('candidate_employer_matches')
-    .select('id, employer_role_id, candidate_opted_in, employer_opted_in')
+    .select('id, user_id, employer_role_id, candidate_opted_in, employer_opted_in')
     .eq('id', matchId)
     .maybeSingle()
   if (!match) return Response.json({ error: 'Match not found' }, { status: 404 })
@@ -80,6 +81,14 @@ export async function POST(req) {
     event_type: 'intro_sent',
     meta_json: { requested_by: 'employer', role_title: role.title },
   })
+
+  // Fire-and-forget: notify candidate
+  ;(async () => {
+    try {
+      const { data: candidateUser } = await service.from('users').select('email').eq('id', match.user_id).maybeSingle()
+      if (candidateUser?.email) await sendIntroRequest(candidateUser.email, role.title)
+    } catch {}
+  })()
 
   return Response.json({ success: true, introRequestId: introReq.id, status: 'pending' })
 }

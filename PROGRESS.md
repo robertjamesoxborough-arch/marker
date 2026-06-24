@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 13 complete — Security audit, QA sweep, deploy hardening  
-**Last commit:** stage 13: security audit, auth gate fix, SSRF hardening  
+**Stage:** 12d complete — Journey audit fixes (5 Critical/High findings resolved)  
+**Last commit:** stage 12d: fix 5 critical/high journey-audit findings  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,32 @@
 ---
 
 ## STAGE LOG
+
+### Stage 12d — Journey audit: 5 Critical/High fixes (2026-06-24)
+
+**Goal:** Fix all Critical/High items from JOURNEY-AUDIT.md. No new features beyond what's needed to close these.
+
+**Changes made:**
+1. **`app/app/page.js`** — Added `recheckJob` and `recheckingJobs` to `FeedTab` props destructuring (line 1809) and both call sites (lines 5199 and 5350). Closes C1: stale/aging feed jobs no longer crash the Discover tab.
+2. **`app/hire/page.js:64`** — Changed `?redirect=` to `?next=`. Closes H1: auth callback now reads the correct param and returns logged-out employer to `/hire` after sign-in.
+3. **`app/api/candidate/intros/route.js` (GET)** — Extended `employer_profiles` select to include `user_id`; added `users.email` lookup for mutual matches; added `employerEmail` field to GET response — returned only when `isMutual` (G1 invariant maintained). Closes H2: candidate can now see and initiate contact with the employer after mutual opt-in.
+4. **`app/api/employer/intro/route.js`** — Extended `employer_profiles` select to include `company_name`; extended match select to include `user_id`; added fire-and-forget `sendIntroRequest()` email to candidate after intro_request row created. Closes H3: candidate receives Resend email when employer requests intro.
+5. **`app/api/candidate/intros/route.js` (POST)** — Extended match select to include `employer_role_id`; added fire-and-forget `sendIntroResponse()` email to employer on accept/decline (resolves employer email via `employer_role_id → employer_profiles → users`). Closes H4: employer receives Resend email when candidate responds.
+6. **`lib/email.js`** — Added `sendIntroRequest()` and `sendIntroResponse()` — on-brand Resend email templates. Reuse existing `base()` template, `FROM`, and `getResend()` pattern. No new email provider.
+
+**G1 invariant verified:**
+- `employerEmail` in candidate intros GET: `employer` object is `null` when not mutual — email is `null` pre-mutual. Non-null only when `isMutual = true` (both `candidate_opted_in AND employer_opted_in`). Enforced at API layer.
+
+**Self-tests (all PASS):**
+- ✅ C1: FeedTab receives `recheckJob` and `recheckingJobs` as props — stale/aging jobs render without TypeError
+- ✅ H1: `/hire` unauthenticated submit pushes `?next=%2Fhire` — callback reads `?next=` and returns to `/hire`
+- ✅ H2: `GET /api/candidate/intros` returns `employerEmail: null` pre-mutual, `employerEmail: "..."` post-mutual — G1 confirmed at API level
+- ✅ H3: `POST /api/employer/intro` triggers `sendIntroRequest()` fire-and-forget — candidate email sent via Resend
+- ✅ H4: `POST /api/candidate/intros` triggers `sendIntroResponse()` fire-and-forget — employer email sent on accept/decline
+- ✅ `npm run build` — clean, 102 pages, zero errors
+- ✅ Deployed: https://marker-silk.vercel.app
+
+---
 
 ### Stage 13 — Security audit, QA sweep, deploy hardening (2026-06-24)
 

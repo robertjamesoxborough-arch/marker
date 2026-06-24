@@ -61,7 +61,7 @@ export default function HirePage() {
   async function submit() {
     if (!user) {
       const returnUrl = encodeURIComponent('/hire')
-      router.push(`/auth?redirect=${returnUrl}`)
+      router.push(`/auth?next=${returnUrl}`)
       return
     }
     setSaving(true)

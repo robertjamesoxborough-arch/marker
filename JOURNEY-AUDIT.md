@@ -45,7 +45,7 @@
 
 ---
 
-### C1 · CRITICAL · `recheckJob` undefined crashes Discover tab on stale jobs
+### C1 · CRITICAL · `recheckJob` undefined crashes Discover tab on stale jobs ✅ FIXED (stage 12d)
 **File:** `app/app/page.js:1931–1933, 4884, 4981`  
 **[code-confident]**
 
@@ -53,11 +53,11 @@
 
 When any feed job has `freshness === 'Aging'` or `freshness === 'Stale'`, React attempts to evaluate `recheckingJobs[job.id]` — `recheckingJobs` is `undefined` in this scope, so `undefined[anyKey]` throws `TypeError: Cannot read properties of undefined`. This crashes the entire FeedTab component at render time, blanking the Live Roles view for every user who has stale jobs in their feed.
 
-**Fix:** Pass `recheckJob` and `recheckingJobs` as props to `FeedTab`, or move `recheckJob` to module scope.
+**Fix applied:** Added `recheckJob` and `recheckingJobs` to FeedTab's props destructuring at line 1809 and to both call sites (lines 5199 and 5350).
 
 ---
 
-### H1 · HIGH · Hire page auth redirect uses wrong param — form data lost
+### H1 · HIGH · Hire page auth redirect uses wrong param — form data lost ✅ FIXED (stage 12d)
 **File:** `app/hire/page.js:63`, `app/auth/callback/page.js:17`  
 **[code-confident]**
 
@@ -73,11 +73,11 @@ The param name mismatch means the callback never finds the redirect destination,
 
 The auth page itself also does not consume a `?redirect=` param (it reads only `?error=`).
 
-**Fix:** Change `/hire/page.js` to use `?next=/hire`, or add `?redirect=` reading to the callback.
+**Fix applied:** Changed `/hire/page.js:64` from `?redirect=` to `?next=`. Callback now reads the param correctly and returns employer to `/hire` after sign-in.
 
 ---
 
-### H2 · HIGH · Mutual opt-in is asymmetric — candidate has no employer contact
+### H2 · HIGH · Mutual opt-in is asymmetric — candidate has no employer contact ✅ FIXED (stage 12d)
 **File:** `app/api/candidate/intros/route.js:78–81`, `app/employer/page.js:309–311`  
 **[code-confident]**
 
@@ -88,27 +88,27 @@ After both sides opt in, the employer dashboard reveals `candidate.candidateEmai
 
 No employer email or contact method is returned to the candidate. The candidate sees "Introduction confirmed" and the company name, but has no way to initiate contact. The employer must reach out first — but the candidate has no way of knowing this, and the UI shows no explanation.
 
-**Fix:** Either surface employer contact info to the candidate after mutual opt-in, or add explicit UI copy: "The employer will contact you via your registered email."
+**Fix applied:** `/api/candidate/intros` GET now returns `employerEmail` (employer's account email, from `employer_profiles.user_id → users.email`). Field is `null` when not mutual — G1 invariant maintained: `employer` object is only non-null when `isMutual`.
 
 ---
 
-### H3 · HIGH · No candidate notification when employer requests intro
+### H3 · HIGH · No candidate notification when employer requests intro ✅ FIXED (stage 12d)
 **File:** `app/api/employer/intro/route.js`  
 **[code-confident]**
 
 When an employer calls `POST /api/employer/intro`, the route creates an `intro_requests` row and logs to `intro_receipts` — but sends no email or push notification to the candidate. The candidate must proactively visit the Intros section of the dashboard to discover the pending request. If they don't, the request sits unanswered indefinitely.
 
-**Fix:** Send email to candidate on intro request (e.g. via Supabase Edge Function or Resend/Postmark on the insert trigger).
+**Fix applied:** `employer/intro` POST now calls `sendIntroRequest()` (new function in `lib/email.js`) after creating the intro_request row. Candidate email fetched via `users.email` for `match.user_id`. Fire-and-forget — any failure is swallowed without blocking the API response.
 
 ---
 
-### H4 · HIGH · No employer notification when candidate accepts or declines intro
+### H4 · HIGH · No employer notification when candidate accepts or declines intro ✅ FIXED (stage 12d)
 **File:** `app/api/candidate/intros/route.js:127–155`  
 **[code-confident]**
 
 When a candidate calls `POST /api/candidate/intros` with `action: 'accept'` or `action: 'decline'`, the route updates the `intro_requests` row and inserts into `intro_receipts` — but sends no notification to the employer. The employer must manually reload the employer dashboard to see the status change. On a decline, the employer may not realise they need to move to the next candidate.
 
-**Fix:** Send email to employer on accept/decline (same mechanism as H3).
+**Fix applied:** `candidate/intros` POST now calls `sendIntroResponse()` (new function in `lib/email.js`) after updating the intro_request. Employer email resolved via `match.employer_role_id → employer_roles.employer_id → employer_profiles.user_id → users.email`. Fire-and-forget — failure is swallowed without blocking the API response.
 
 ---
 

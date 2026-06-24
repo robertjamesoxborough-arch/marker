@@ -1806,7 +1806,7 @@ const SOURCE_LABELS = {
   gov_search:   'Civil Service',
 }
 
-function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, defaultSubTab, onRefreshFeed }) {
+function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, defaultSubTab, onRefreshFeed, recheckJob, recheckingJobs }) {
   const [subTab,         setSubTab]         = useState(defaultSubTab || 'find')
   const [discoverView,   setDiscoverView]   = useState('companies')
   const [search,         setSearch]         = useState('')
@@ -5196,7 +5196,7 @@ export default function AppPage() {
               <FocusPipelineView jobs={jobs} updateJob={updateJob} deleteJob={deleteJob} />
             )}
             {focusTab === 'Find' && (
-              <FeedTab jobs={jobs} addJob={addJob} feedJobs={feedJobs} feedLoading={feedLoading} profile={profile} defaultSubTab="find" onRefreshFeed={refreshFeed} />
+              <FeedTab jobs={jobs} addJob={addJob} feedJobs={feedJobs} feedLoading={feedLoading} profile={profile} defaultSubTab="find" onRefreshFeed={refreshFeed} recheckJob={recheckJob} recheckingJobs={recheckingJobs} />
             )}
           </>
         )}
@@ -5347,7 +5347,7 @@ export default function AppPage() {
         })()}
 
         {/* ── Discover tab ── */}
-        {tab === 'Discover' && <FeedTab jobs={jobs} addJob={addJob} feedJobs={feedJobs} feedLoading={feedLoading} profile={profile} defaultSubTab="find" onRefreshFeed={refreshFeed} />}
+        {tab === 'Discover' && <FeedTab jobs={jobs} addJob={addJob} feedJobs={feedJobs} feedLoading={feedLoading} profile={profile} defaultSubTab="find" onRefreshFeed={refreshFeed} recheckJob={recheckJob} recheckingJobs={recheckingJobs} />}
 
         {/* ── WLB tab ── */}
         {tab === 'WLB' && (

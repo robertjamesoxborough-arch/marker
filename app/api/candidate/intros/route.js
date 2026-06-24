@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { sendIntroResponse } from '../../../../lib/email'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -48,12 +49,19 @@ export async function GET() {
       .filter(Boolean)
   )]
   const { data: employers } = mutualEmployerIds.length
-    ? await service.from('employer_profiles').select('id, company_name').in('id', mutualEmployerIds)
+    ? await service.from('employer_profiles').select('id, company_name, user_id').in('id', mutualEmployerIds)
+    : { data: [] }
+
+  // Fetch employer contact emails for mutual matches (G1: only exposed when isMutual)
+  const employerUserIds = (employers || []).map(e => e.user_id).filter(Boolean)
+  const { data: employerUsers } = employerUserIds.length
+    ? await service.from('users').select('id, email').in('id', employerUserIds)
     : { data: [] }
 
   const matchMap = Object.fromEntries(matches.map(m => [m.id, m]))
   const roleMap = Object.fromEntries((roles || []).map(r => [r.id, r]))
   const employerMap = Object.fromEntries((employers || []).map(e => [e.id, e]))
+  const employerUserMap = Object.fromEntries((employerUsers || []).map(u => [u.id, u]))
   const mutualMatchIds = new Set(mutualMatches.map(m => m.id))
 
   const intros = requests.map(req => {
@@ -76,8 +84,9 @@ export async function GET() {
         ? `£${role.salary_min}k${role.salary_max ? `–£${role.salary_max}k` : '+'}`
         : null,
       matchScore: match?.match_score ?? null,
-      // Company revealed only after mutual opt-in
+      // Company name + employer contact only revealed after BOTH sides have opted in (G1)
       companyName: employer?.company_name || null,
+      employerEmail: employer ? (employerUserMap[employer.user_id]?.email || null) : null,
       isMutual,
     }
   })
@@ -113,7 +122,7 @@ export async function POST(req) {
   // Verify this match belongs to the authenticated candidate (G1 invariant — auth check)
   const { data: match } = await service
     .from('candidate_employer_matches')
-    .select('id, user_id, employer_opted_in')
+    .select('id, user_id, employer_role_id, employer_opted_in')
     .eq('id', introReq.match_id)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -151,6 +160,18 @@ export async function POST(req) {
     event_type: eventType,
     meta_json: { responded_by: 'candidate', mutual: isMutual },
   })
+
+  // Fire-and-forget: notify employer of accept/decline
+  ;(async () => {
+    try {
+      const { data: role } = await service.from('employer_roles').select('title, employer_id').eq('id', match.employer_role_id).maybeSingle()
+      if (!role) return
+      const { data: ep } = await service.from('employer_profiles').select('user_id').eq('id', role.employer_id).maybeSingle()
+      if (!ep) return
+      const { data: empUser } = await service.from('users').select('email').eq('id', ep.user_id).maybeSingle()
+      if (empUser?.email) await sendIntroResponse(empUser.email, role.title, action)
+    } catch {}
+  })()
 
   return Response.json({ success: true, status: newStatus, mutual: isMutual })
 }
