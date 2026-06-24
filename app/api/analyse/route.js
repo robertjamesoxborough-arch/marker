@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
+import { scoreMatch } from '../../../lib/match-engine'
 
 
 function buildCandidateString(profile) {
@@ -49,12 +50,22 @@ export async function POST(req) {
   let profile = null
   if (user) {
     const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const { data } = await service.from('profiles').select('target_roles, seniority, industries, max_office_days, postcode, hard_filters_json, track, tracks').eq('user_id', user.id).single()
+    const { data } = await service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track, tracks').eq('user_id', user.id).single()
     profile = data
   }
 
   const { jobLink, roleTitle, company, jdText } = await req.json()
   if (!jobLink && !jdText) return Response.json({ error: 'No job link or description provided' }, { status: 400 })
+
+  // Deterministic score — always runs first, zero AI cost
+  const deterministicScore = scoreMatch(profile, {
+    role_title: roleTitle || '',
+    company: company || '',
+    location: '',
+    salary: '',
+    freshness: null,
+    raw_json: {},
+  })
 
   const CANDIDATE = buildCandidateString(profile)
 
@@ -138,7 +149,7 @@ ${JSON_SCHEMA}`
       '',
       'Analyse this role against the candidate profile. Focus on role fit only.',
     ].filter(l => l !== undefined).join('\n')
-    return runClaude(apiKey, SYSTEM, userMsg, user?.id)
+    return runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore)
   }
 
   // Strategy 2: Direct page fetch with JSON-LD extraction
@@ -225,7 +236,7 @@ ${JSON_SCHEMA}`
         'Analyse this role against the candidate profile. Focus on role fit only — never comment on job availability.',
       ].filter(l => l !== undefined).join('\n')
 
-      const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id)
+      const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore)
       if (publishedDate) {
         try { const body = await result.json(); return Response.json({ ...body, created: publishedDate }) }
         catch { return result }
@@ -254,7 +265,7 @@ RULES — follow exactly:
 ${SCORING}
 ${JSON_SCHEMA}`
 
-    const result = await runClaudeWithSearch(apiKey, searchPrompt)
+    const result = await runClaudeWithSearch(apiKey, searchPrompt, deterministicScore)
     try {
       const body = await result.json()
       return Response.json({ ...body, _usedWebSearch: true })
@@ -264,7 +275,7 @@ ${JSON_SCHEMA}`
   return Response.json({ error: 'No job link or description provided' }, { status: 400 })
 }
 
-async function runClaude(apiKey, systemPrompt, userPrompt, userId) {
+async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministicScore) {
   const MODEL = MODELS.haiku
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -285,19 +296,18 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId) {
     const aiData = await aiRes.json()
     if (userId && aiData.usage) {
       after(() => trackAiUsage({ userId, model: MODEL, action: 'analyse', usage: aiData.usage }))
-
     }
     const text = aiData.content?.map(c => c.text || '').join('') || ''
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) return Response.json({ error: 'Could not parse response' }, { status: 500 })
-    return Response.json(JSON.parse(jsonMatch[0]))
+    if (!jsonMatch) return Response.json({ error: 'Could not parse response', deterministicScore }, { status: 500 })
+    return Response.json({ ...JSON.parse(jsonMatch[0]), deterministicScore })
   } catch (err) {
-    return Response.json({ error: 'Analysis failed: ' + err.message }, { status: 500 })
+    return Response.json({ error: 'Analysis failed: ' + err.message, deterministicScore }, { status: 500 })
   }
 }
 
-async function runClaudeWithSearch(apiKey, prompt) {
+async function runClaudeWithSearch(apiKey, prompt, deterministicScore) {
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -318,7 +328,7 @@ async function runClaudeWithSearch(apiKey, prompt) {
     const text = aiData.content?.filter(c => c.type === 'text').map(c => c.text).join('') || ''
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) return Response.json({ error: 'Could not parse response' }, { status: 500 })
+    if (!jsonMatch) return Response.json({ error: 'Could not parse response', deterministicScore }, { status: 500 })
     const result = JSON.parse(jsonMatch[0])
     // Hard filter — strip any hallucinated availability language
     const filledPatterns = /filled|no longer available|unavailable|closed|already taken|not accepting|expired|position taken/i
@@ -332,8 +342,8 @@ async function runClaudeWithSearch(apiKey, prompt) {
       result.score = 5
       result.signalReason = 'Could not retrieve job content — paste the JD below for an accurate score'
     }
-    return Response.json(result)
+    return Response.json({ ...result, deterministicScore })
   } catch (err) {
-    return Response.json({ error: 'Analysis failed: ' + err.message }, { status: 500 })
+    return Response.json({ error: 'Analysis failed: ' + err.message, deterministicScore }, { status: 500 })
   }
 }

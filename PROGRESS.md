@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 2 complete — schema spine, employer tables, freshness columns  
-**Last commit:** stage 2: schema spine, employer tables, freshness columns  
+**Stage:** 3 complete — deterministic explainable match engine  
+**Last commit:** stage 3: deterministic explainable match engine  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,30 @@
 ---
 
 ## STAGE LOG
+
+### Stage 3 — Deterministic explainable match engine (2026-06-24)
+
+**Goal:** Build the core IP — a deterministic, zero-AI scorer that gives an overall score + inspectable sub-scores for every named dimension.
+
+**Changes made:**
+1. **`lib/match-engine.js`** (NEW) — `scoreMatch(profile, job)` CJS module. Six dimensions:
+   - **roleFit (30%)** — Jaccard word-overlap between job title and `target_roles` + `cvKeywords`
+   - **seniorityFit (20%)** — Tier mapping (0=intern → 5=C-suite); word-boundary regex prevents false matches (e.g. "partnerships" ≠ "partner")
+   - **locationFit (20%)** — Parses office-day count from location/raw_json; compares to `max_office_days`; handles Remote/Hybrid/city signals
+   - **compFit (15%)** — Parses salary string (range, shorthand £Nk); compares mid to `salary_floor`
+   - **freshness (10%)** — Reads `freshness` field (Fresh/Aging/Stale/Expired); falls back to computing from `cached_at`/`first_seen_at`
+   - **cultureWlb (5%)** — Keyword detection against `hard_filters_json.benefits` + `tracks`; flags startup/always-on culture concerns
+   - Returns `{ score: 0–10, dimensions: { roleFit, seniorityFit, locationFit, compFit, freshness, cultureWlb } }` — every dimension is `{ score, reason }` in plain English
+2. **`lib/match-engine.test.js`** (NEW) — 23 fixture assertions across 6 groups; proves determinism with 10-run identity check
+3. **`app/api/analyse/route.js`** (REFACTORED) — deterministic engine now runs FIRST (zero AI cost); result returned as `deterministicScore` on every response path; existing AI narrative layer preserved as-is on top; added `salary_floor` to profile select
+
+**Verification:**
+- ✅ `node lib/match-engine.test.js` — 23 PASS, 0 FAIL
+- ✅ Determinism proven — 10 identical runs produce identical output
+- ✅ `npm run build` — clean, zero errors
+- ✅ Zero AI/fetch/Anthropic calls in `lib/match-engine.js` (grep confirmed — only false positive is English word "require" in a reason string)
+
+---
 
 ### Stage 2 — Schema spine (2026-06-24)
 
@@ -118,7 +142,7 @@
 | G1 — "The marketplace is real, or we say it isn't." | 🟡 Partial | `source_type` CHECK constraint on `jobs_cache`, `pipeline_items`, `employer_roles` (schema enforces invariant at DB level); `employer_profiles`, `intro_requests`, `intro_receipts` tables | Live Network Meter component, real-intro UI flow, employer onboarding |
 | G2 — "Every job is fresh, or it's flagged." | 🟡 Partial | `first_seen_at`, `last_verified_at`, `freshness` columns on `jobs_cache` and `employer_roles` | Freshness cron (compute & write freshness field), Freshness Pulse UI badge, one-tap re-check |
 | G3 — "We never forget you." | ⬜ Not started | Profile IS in Supabase (structured); `candidate_employer_matches` schema ready | Loop guard, context reconstruction per AI call, Memory Card UI, "pick up where you left off", bounded context |
-| G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer) | Default landing = pipeline board (currently Today tab); auto-capture from feed; match engine |
+| G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer); **deterministic scorer built** — every score inspectable, zero AI cost | Default landing = pipeline board (currently Today tab); auto-capture from feed; scores surfaced in pipeline UI |
 
 ---
 
@@ -173,16 +197,16 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 3 — Match engine + job freshness cron**
+**Stage 4 — Job feed + freshness (G2)**
 
-Stage 2 is complete. Stage 3 wires the first live behaviours against the new schema.
+Stage 3 is complete. Stage 4 makes the freshness schema live end-to-end — cron writes to it, UI reads from it.
 
 Tasks:
-1. **Match engine** (`/api/matches/run`) — score `candidate_employer_matches` using AI against `employer_roles` (G4 spine)
-2. **Freshness cron** (`/api/cron/freshness`) — compute Fresh/Aging/Stale/Expired on `jobs_cache` and `employer_roles`; write back `freshness` field
-3. **Freshness Pulse UI** — badge on job cards surfacing the freshness field
-4. **Live Network Meter** — employer count on landing page from `employer_profiles`
+1. **Freshness cron** (`/api/cron/freshness`) — compute Fresh/Aging/Stale/Expired from `first_seen_at`/`last_verified_at` on `jobs_cache`; write back `freshness` field; add to `vercel.json`
+2. **Freshness Pulse UI** — badge component on job cards (Fresh dot / Aging / Stale / Expired chip); consume `freshness` field from feed response
+3. **One-tap re-check** — "Still open?" button on pipeline items that triggers a link-check and updates `last_verified_at`
+4. **Hard location/seniority pre-filter** in feed routes — exclude wrong-country / wrong-band from default results
 
-**Pre-flight checklist for Stage 3:**
+**Pre-flight checklist for Stage 4:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan
