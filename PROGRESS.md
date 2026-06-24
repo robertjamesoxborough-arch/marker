@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 12d complete — Journey audit fixes (5 Critical/High findings resolved)  
-**Last commit:** stage 12d: fix 5 critical/high journey-audit findings  
+**Stage:** 12e complete — Journey audit fixes (all 17 findings resolved)  
+**Last commit:** stage 12e: fix 12 medium/low journey-audit findings  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,34 @@
 ---
 
 ## STAGE LOG
+
+### Stage 12e — Journey audit: 12 Medium/Low fixes (2026-06-24)
+
+**Goal:** Fix all 12 remaining Medium and Low items from JOURNEY-AUDIT.md. Completes the full 17-finding audit.
+
+**Changes made:**
+1. **`middleware.js`** — M1: Added `?next=` param to auth redirect so protected-route destinations survive the login flow.
+2. **`app/auth/page.js`** — M1 (read + thread `?next=`) + L4 (new-user account creation sub-copy).
+3. **`app/settings/page.js`** — M2: "Re-run onboarding" now requires `window.confirm`. M5: `startCheckout` shows error on failure. M6: `openPortal` shows error on failure.
+4. **`app/onboard/page.js`** — M3: Added "Select your field, at least one role type, and your level to continue." hint when step 3 Continue is disabled.
+5. **`app/app/page.js`** — M4: CvTab empty state fixed to point to Settings › Your CV. M7: Feed day-1 empty state shows "NEXT UPDATE: TONIGHT AFTER 3AM UTC". L1: `refreshCooldownMsg` state + 4-second inline feedback on rate-limited refresh. L2: PrepTab gets `onSwitchToPipeline` prop, empty state has "Go to Pipeline →" CTA. L3: Interview prep legal line corrected to "cost absorbed by Requite".
+6. **`app/employer/page.js`** — L5: Removed "Candidate view" link from employer DashNav.
+
+**Self-tests (all PASS):**
+- ✅ M1: Bookmarked `/settings` → login → lands on `/settings` (not `/app`)
+- ✅ M2: "Re-run onboarding" requires confirm dialog before firing
+- ✅ M3: Step 3 with missing fields shows red validation hint
+- ✅ M4: CV tab empty state points to Settings with single primary CTA
+- ✅ M5/M6: Stripe errors surface in UI instead of silent failure
+- ✅ M7: Day-1 feed empty card shows "TONIGHT AFTER 3AM UTC"
+- ✅ L1: Refresh rate-limit shows 4s feedback message
+- ✅ L2: Interview prep empty state has "Go to Pipeline →" button
+- ✅ L3: Interview prep copy no longer mentions "your Anthropic API key"
+- ✅ L4: Auth page sub-copy clarifies new users are created automatically
+- ✅ L5: Employer nav has no "Candidate view" link
+- ✅ `npm run build` — clean, 102 pages, zero errors
+
+---
 
 ### Stage 12d — Journey audit: 5 Critical/High fixes (2026-06-24)
 

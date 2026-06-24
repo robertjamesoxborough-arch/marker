@@ -360,7 +360,6 @@ function DashNav({ companyName }) {
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <Link href="/hire" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>+ Post role</Link>
-        <Link href="/app" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Candidate view</Link>
         <Link href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Why trust us</Link>
       </div>
     </div>

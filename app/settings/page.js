@@ -114,6 +114,7 @@ export default function SettingsPage() {
 
   async function startCheckout(plan) {
     setUpgrading(plan)
+    setError('')
     try {
       const r = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -122,16 +123,25 @@ export default function SettingsPage() {
       })
       const data = await r.json()
       if (data.url) window.location.href = data.url
-    } catch { setUpgrading(null) }
+      else throw new Error(data.error || 'No checkout URL returned')
+    } catch {
+      setUpgrading(null)
+      setError('Checkout failed — try again or contact support@requite.io.')
+    }
   }
 
   async function openPortal() {
     setPortalLoading(true)
+    setError('')
     try {
       const r = await fetch('/api/stripe/portal', { method: 'POST' })
       const data = await r.json()
       if (data.url) window.location.href = data.url
-    } catch { setPortalLoading(false) }
+      else throw new Error(data.error || 'No portal URL returned')
+    } catch {
+      setPortalLoading(false)
+      setError('Could not open billing portal — try again or contact support@requite.io.')
+    }
   }
 
   useEffect(() => {
@@ -475,7 +485,7 @@ export default function SettingsPage() {
         {/* Reset / onboarding */}
         <div style={{ borderBottom: '1px solid var(--marker-border)', paddingBottom: 24, marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 14 }}>Reset</div>
-          <a href="/api/dev/reset-onboard" style={{ display: 'inline-block', fontSize: 13, color: '#B91C1C', border: '1px solid #FCA5A5', padding: '8px 14px', borderRadius: 8, textDecoration: 'none' }}>Re-run onboarding</a>
+          <button onClick={() => { if (window.confirm('Reset your onboarding settings? Your pipeline data will be preserved.')) window.location.href = '/api/dev/reset-onboard' }} style={{ display: 'inline-block', fontSize: 13, color: '#B91C1C', border: '1px solid #FCA5A5', padding: '8px 14px', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Re-run onboarding</button>
           <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 6 }}>Clears your track selection and runs the onboarding flow again. Your pipeline data is preserved.</div>
         </div>
 

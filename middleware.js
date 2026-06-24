@@ -31,6 +31,7 @@ export async function middleware(request) {
   if (requiresAuth && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
+    url.searchParams.set('next', pathname)
     return NextResponse.redirect(url)
   }
 

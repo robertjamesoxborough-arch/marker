@@ -565,7 +565,7 @@ const INTERVIEW_STAGES = [
   { id: 'ceo',            label: 'CEO / exec',        sub: 'Strategic, vision-level' },
 ]
 
-function PrepTab({ jobs, profile }) {
+function PrepTab({ jobs, profile, onSwitchToPipeline }) {
   const activeJobs = jobs
     .filter(j => ['applied', 'interviewing', 'offer'].includes(j.status))
     .sort((a, b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0))
@@ -656,6 +656,9 @@ function PrepTab({ jobs, profile }) {
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.08em' }}>NO APPLIED ROLES</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)' }}>Mark a role as Applied first</div>
         <div style={{ fontSize: 14, color: 'var(--marker-mid)', textAlign: 'center', maxWidth: 280, lineHeight: 1.6 }}>Interview prep is available for roles at the Applied, Interviewing, or Offer stage in your pipeline.</div>
+        {onSwitchToPipeline && (
+          <button onClick={onSwitchToPipeline} style={{ marginTop: 4, background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '9px 18px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>Go to Pipeline →</button>
+        )}
       </div>
     )
   }
@@ -781,7 +784,7 @@ function PrepTab({ jobs, profile }) {
         </div>
       )}
 
-      <div className="legal-line">{mode === 'negotiate' ? 'AI negotiation coaching. Market data from Adzuna. Verify figures independently.' : 'Live web research included. Takes 30-60 seconds. Uses your Anthropic API key.'}</div>
+      <div className="legal-line">{mode === 'negotiate' ? 'AI negotiation coaching. Market data from Adzuna. Verify figures independently.' : 'Live web research via Claude — cost absorbed by Requite. Takes 30–60 seconds.'}</div>
     </div>
     </div>
   )
@@ -1687,11 +1690,10 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.08em' }}>NO PROFILE YET</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)', textAlign: 'center' }}>Build your profile first</div>
         <div style={{ fontSize: 13, color: 'var(--marker-mid)', textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
-          Go to the <strong>Today</strong> tab and answer 3 quick questions — or paste your full CV in Settings.
+          Paste your CV in <strong>Settings › Your CV</strong> to unlock tailored CV prompts. Takes 30 seconds.
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button onClick={onSwitchToEngine} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '9px 18px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>Go to Engine →</button>
-          <a href="/settings" style={{ background: 'transparent', border: '1px solid var(--marker-border)', color: 'var(--marker-text)', padding: '9px 18px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', textDecoration: 'none', display: 'inline-block' }}>Paste CV in Settings</a>
+          <a href="/settings" style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '9px 18px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', textDecoration: 'none', display: 'inline-block', fontWeight: 500 }}>Paste CV in Settings →</a>
         </div>
       </div>
     )
@@ -1818,13 +1820,18 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
   const [linkedinOpen,    setLinkedinOpen]    = useState(false)
   const [linkedinCopied,  setLinkedinCopied]  = useState(null)
   const [refreshing,      setRefreshing]      = useState(false)
+  const [refreshCooldownMsg, setRefreshCooldownMsg] = useState(false)
   const [showWebTour,      dismissWebTour]      = useTutorial('feed_web')
   const [showWishlistTour, dismissWishlistTour] = useTutorial('feed_wishlist')
 
   async function handleRefresh() {
     try {
       const last = parseInt(localStorage.getItem('mkr_feed_refresh') || '0', 10)
-      if (Date.now() - last < 60 * 60 * 1000) return
+      if (Date.now() - last < 60 * 60 * 1000) {
+        setRefreshCooldownMsg(true)
+        setTimeout(() => setRefreshCooldownMsg(false), 4000)
+        return
+      }
     } catch {}
     setRefreshing(true)
     try {
@@ -2072,6 +2079,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
                 style={{ background: 'none', border: 'none', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', cursor: refreshing ? 'default' : 'pointer', letterSpacing: '0.04em', padding: 0 }}>
                 {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
               </button>
+              {refreshCooldownMsg && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Refreshed &lt;1h ago — check back later</span>}
             </div>
           </div>
           {feedLoading ? (
@@ -2098,6 +2106,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
                   <div style={{ background: 'var(--marker-lime)', borderRadius: 12, padding: '14px 16px' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 5 }}>Your feed updates overnight</div>
                     <div style={{ fontSize: 13, color: 'var(--marker-black)', lineHeight: 1.6 }}>Adzuna scans thousands of job boards every night and surfaces roles that match your profile. New listings will appear here tomorrow.</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-black)', opacity: 0.5, marginTop: 8, letterSpacing: '0.04em' }}>NEXT UPDATE: TONIGHT AFTER 3AM UTC</div>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--marker-mid)', fontWeight: 500 }}>In the meantime:</div>
                   <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, cursor: 'pointer' }}>
@@ -5384,7 +5393,7 @@ export default function AppPage() {
                     Full prep pack for any role at <strong>Applied</strong> stage or beyond — company briefing, likely questions, and STAR frameworks tailored to the JD. Add your interviewer's name for targeted prep.
                   </TourBanner>
                 )}
-                <PrepTab jobs={jobs} profile={profile} />
+                <PrepTab jobs={jobs} profile={profile} onSwitchToPipeline={() => setTab('Pipeline')} />
               </>
         )}
 

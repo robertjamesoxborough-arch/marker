@@ -948,6 +948,9 @@ export default function OnboardPage() {
         {saveError && (
           <div style={{ maxWidth: 540, margin: '0 auto 8px', fontSize: 12, color: '#c0392b', fontFamily: 'var(--font-mono)' }}>{saveError}</div>
         )}
+        {step === 3 && !canContinue && (
+          <div style={{ maxWidth: 540, margin: '0 auto 6px', fontSize: 11, color: '#B91C1C', fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>Select your field, at least one role type, and your level to continue.</div>
+        )}
         <div style={{ maxWidth: 540, margin: '0 auto', display: 'flex', gap: 10 }}>
           {step > 1 && (
             <button onClick={() => setStep(s => s - 1)} className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>

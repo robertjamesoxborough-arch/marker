@@ -9,6 +9,8 @@ function AuthForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlError = searchParams.get('error')
+  const rawNext = searchParams.get('next') || ''
+  const next = rawNext.startsWith('/') ? rawNext : '/app'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [sent, setSent] = useState(false)
@@ -30,7 +32,7 @@ function AuthForm() {
         setError(error.message)
         setLoading(false)
       } else {
-        router.replace('/app')
+        router.replace(next)
       }
       return
     }
@@ -38,7 +40,7 @@ function AuthForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${next !== '/app' ? `?next=${encodeURIComponent(next)}` : ''}`,
       },
     })
 
@@ -120,8 +122,10 @@ function AuthForm() {
               color: 'var(--color-text-mid)',
               fontSize: '15px',
               margin: '0 0 32px 0',
+              lineHeight: '1.6',
             }}>
               Enter your email and we will send you a sign-in link.
+              <span style={{ display: 'block', fontSize: '13px', marginTop: 6 }}>No account yet? Just enter your email — we&apos;ll create yours automatically.</span>
             </p>
 
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-body)', marginBottom: '8px' }}>

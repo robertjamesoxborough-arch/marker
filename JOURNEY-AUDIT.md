@@ -114,7 +114,7 @@ When a candidate calls `POST /api/candidate/intros` with `action: 'accept'` or `
 
 ### M1 · MEDIUM · Middleware auth redirect has no `?next=` param — destination lost
 **File:** `middleware.js:33–34`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 The middleware protects `/app`, `/onboard`, `/settings`, `/admin`, `/employer`. When an unauthenticated user hits a protected path directly (e.g. they bookmark `/settings`), the middleware redirects to:
 ```js
@@ -123,51 +123,49 @@ url.pathname = '/auth'
 ```
 After login, the auth callback defaults to `/app`. Users navigating directly to `/settings` end up on `/app` and must navigate manually. (The auth page itself doesn't read a redirect param either — so even if middleware passed `?next=`, the auth page wouldn't use it.)
 
-**Fix:** Add `url.searchParams.set('next', pathname)` to the middleware redirect, then ensure the auth page or callback reads and passes it through.
+**Fix applied:** `middleware.js` now sets `url.searchParams.set('next', pathname)`. `app/auth/page.js` reads `?next=`, validates it starts with `/`, threads it into magic link `emailRedirectTo` and password `router.replace()`. Destination preserved end-to-end.
 
 ---
 
 ### M2 · MEDIUM · "Re-run onboarding" is a destructive `<a>` link with no confirmation
 **File:** `app/settings/page.js:478`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 ```jsx
 <a href="/api/dev/reset-onboard">Re-run onboarding</a>
 ```
 A plain anchor tag performs the GET request on click with no confirmation dialog. One mis-click clears the user's onboarding track and redirects them to `/onboard`. The user's pipeline is preserved (per the route's implementation) but their track/preferences are reset. This is surprising destructive behaviour from a settings page link.
 
-**Fix:** Replace with a `<button>` + `onClick` handler that calls `window.confirm('Reset your onboarding settings?')` before making the request.
+**Fix applied:** Replaced with a `<button>` + `onClick` that calls `window.confirm('Reset your onboarding settings? Your pipeline data will be preserved.')` before redirecting.
 
 ---
 
 ### M3 · MEDIUM · Onboarding step 3 blocked with no validation message
 **File:** `app/onboard/page.js:383–387`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 Step 3 requires `field`, at least one `targetRole`, and at least one `seniority`. If any are missing, `canContinue` is false and the Continue button stays grey/disabled — but there is no inline error or instruction telling the user which fields are required. New users staring at a disabled Continue button have no idea what's missing.
 
-**Fix:** Add a validation message below the Continue button when it's disabled: e.g. "Select your field, at least one role type, and your level to continue."
+**Fix applied:** Added validation hint above the Continue button in the sticky nav: "Select your field, at least one role type, and your level to continue." — visible only when `step === 3 && !canContinue`.
 
 ---
 
 ### M4 · MEDIUM · CV tab empty state sends users to wrong place
 **File:** `app/app/page.js:1690`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 `CvTab` shows this when no CV is stored:
 > "Go to the **Today** tab and answer 3 quick questions"
 
 But the Today tab (score/engine flow) doesn't have a CV entry step. CV is stored either (a) during onboarding step 2, or (b) via Settings > Your CV. The "answer 3 quick questions" description matches a Today tab quick-profile flow that may not actually exist or doesn't store CV text.
 
-The button `onSwitchToEngine` (line 1693) does switch to the Today tab — but if Today tab has no CV entry, the user is sent nowhere useful.
-
-**Fix:** Change the instruction to "Paste your CV in **Settings > Your CV** to unlock tailored prompts." and link to `/settings`.
+**Fix applied:** Copy changed to "Paste your CV in **Settings › Your CV** to unlock tailored CV prompts. Takes 30 seconds." Primary CTA is now "Paste CV in Settings →" linking to `/settings`. "Go to Engine →" button removed.
 
 ---
 
 ### M5 · MEDIUM · Stripe checkout silent failure — no error shown
 **File:** `app/settings/page.js:118–125`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 ```js
 async function startCheckout(plan) {
@@ -181,35 +179,35 @@ async function startCheckout(plan) {
 ```
 If the checkout API call fails (network error, Stripe down, auth issue), the catch block silently resets the upgrading state. The "Upgrade" button reactivates with zero feedback. The user has no idea the payment setup failed.
 
-**Fix:** Add `setError('Checkout failed — try again or contact support.')` in the catch block.
+**Fix applied:** `startCheckout` now calls `setError('Checkout failed — try again or contact support@requite.io.')` on failure. Error is cleared at the top of each attempt.
 
 ---
 
 ### M6 · MEDIUM · Stripe portal silent failure
 **File:** `app/settings/page.js:128–135`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 Same pattern as M5. `openPortal()` catch block does only `setPortalLoading(false)` with no error message. Paying customers who can't access their billing portal see nothing wrong.
 
-**Fix:** Same — surface an error message on failure.
+**Fix applied:** `openPortal` now calls `setError('Could not open billing portal — try again or contact support@requite.io.')` on failure.
 
 ---
 
 ### M7 · MEDIUM · Discover feed empty on day 1 with no in-app action
 **File:** `app/app/page.js:2096–2118`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 Brand-new users who complete onboarding immediately visit Discover > Live Roles and find nothing — the Adzuna cron runs nightly. The empty state (line 2098) correctly explains this, but the suggested actions ("Add target companies ↑" / "WLB guide →") are the only options. There's no task or prompt to come back tomorrow, no estimated time, and no "notify me when roles are ready" option.
 
 This is not broken but it's the first thing a new user sees after onboarding: an empty list. The impact on day-1 impression and retention is meaningful.
 
-**Note:** Acceptable given current architecture; flagging as Medium because it's the first post-onboarding experience.
+**Fix applied:** Added `NEXT UPDATE: TONIGHT AFTER 3AM UTC` timing note inside the lime empty-state card, directly below the explanatory text.
 
 ---
 
 ### L1 · LOW · Refresh button silently rate-limits with no feedback
 **File:** `app/app/page.js:1824–1836`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 `handleRefresh()` checks localStorage and silently returns if the feed was refreshed within the last hour:
 ```js
@@ -217,53 +215,53 @@ if (Date.now() - last < 60 * 60 * 1000) return
 ```
 The "↻ REFRESH" button does nothing, with no tooltip, toast, or message explaining the rate limit. Users clicking it repeatedly see no response.
 
-**Fix:** Show a one-line message: "Feed refreshed less than an hour ago — check back later."
+**Fix applied:** Added `refreshCooldownMsg` state. When rate-limited, shows "Refreshed <1h ago — check back later" inline next to the refresh button for 4 seconds, then auto-dismisses.
 
 ---
 
 ### L2 · LOW · Interview prep empty state has no CTA to the pipeline
 **File:** `app/app/page.js:653–660`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 When `activeJobs.length === 0`, PrepTab shows:
 > "Mark a role as Applied first. Interview prep is available for roles at the Applied, Interviewing, or Offer stage."
 
 Good explanation — but no link or button to go to the Pipeline tab and change a role's status. Dead end.
 
-**Fix:** Add a "Go to Pipeline →" button that calls `onSwitchToEngine` (or the equivalent tab-switch callback).
+**Fix applied:** Added `onSwitchToPipeline` prop to `PrepTab`. Empty state now includes "Go to Pipeline →" button that calls `() => setTab('Pipeline')` via the prop.
 
 ---
 
 ### L3 · LOW · Interview prep legal line is factually incorrect
 **File:** `app/app/page.js:784`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 ```
 "Live web research included. Takes 30-60 seconds. Uses your Anthropic API key."
 ```
 The app uses its own Anthropic API key (from `ANTHROPIC_API_KEY` env), not the user's. This is a copy error that misrepresents the pricing model and could cause confusion.
 
-**Fix:** Replace with "Live web research via Claude — cost absorbed by Requite."
+**Fix applied:** Replaced with "Live web research via Claude — cost absorbed by Requite. Takes 30–60 seconds."
 
 ---
 
 ### L4 · LOW · Auth page copy doesn't indicate new users can create an account here
 **File:** `app/auth/page.js:116–125`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 The auth page heading says "Sign in" and copy says "Enter your email and we will send you a magic link." The landing CTA is "Start free — score a role in 60 seconds." New users arriving from that CTA see "Sign in" and may not realise this is also where they create their account (Supabase OTP creates the user on first use).
 
-**Fix:** Add sub-copy: "No account yet? Just enter your email — we'll create yours automatically."
+**Fix applied:** Added sub-copy below the description: "No account yet? Just enter your email — we'll create yours automatically."
 
 ---
 
 ### L5 · LOW · Employer "Candidate view" link may confuse employer-only users
 **File:** `app/employer/page.js:363`  
-**[code-confident]**
+**[code-confident]** ✅ **RESOLVED — stage 12e**
 
 The employer dashboard nav has `<Link href="/app">Candidate view</Link>`. Employers who have not completed candidate onboarding will be redirected to `/onboard` instead of seeing a meaningful candidate view. Employer-only users who click it may be confused by being dropped into candidate onboarding.
 
-**Fix:** Either remove the link from employer nav, or gate it: only show if the user has a candidate profile.
+**Fix applied:** Removed the "Candidate view" link from the employer DashNav entirely. Employer nav now only contains "+ Post role" and "Why trust us".
 
 ---
 
@@ -284,14 +282,14 @@ The employer dashboard nav has `<Link href="/app">Candidate view</Link>`. Employ
 
 | State | Handled? | Notes |
 |-------|----------|-------|
-| New user day-1, empty Discover feed | ✓ Handled | But no next-day nudge (M7) |
-| No pipeline roles → CV tab | ✓ Handled | Wrong instruction (M4) |
-| No applied roles → Interview tab | ✓ Handled | No CTA to pipeline (L2) |
+| New user day-1, empty Discover feed | ✓ Handled | Timing note added (M7 ✅) |
+| No pipeline roles → CV tab | ✓ Handled | Settings CTA fixed (M4 ✅) |
+| No applied roles → Interview tab | ✓ Handled | Pipeline CTA added (L2 ✅) |
 | Employer no roles yet | ✓ Handled | Good empty state |
 | Employer roles but no candidates | ✓ Handled | G1 "tell you plainly" message |
 | Feed has stale/aging jobs | ✗ Crashes | recheckJob undefined (C1) |
-| Stripe checkout fails | ✗ Silent | No user feedback (M5) |
-| Stripe portal fails | ✗ Silent | No user feedback (M6) |
+| Stripe checkout fails | ✓ Error shown | setError on failure (M5 ✅) |
+| Stripe portal fails | ✓ Error shown | setError on failure (M6 ✅) |
 | Magic link sign-in fails (bad token) | ✓ Handled | Redirects to /auth?error=… |
 | Already onboarded → /onboard | ✓ Handled | Redirects to /app |
 
@@ -307,8 +305,8 @@ The employer dashboard nav has `<Link href="/app">Candidate view</Link>`. Employ
 | CV parse fails | ✓ | cvParseError shown inline |
 | Analyse/score API fails | ✓ | scoreError shown per card |
 | Hire form API fails | ✓ | setError shown |
-| Stripe checkout fails | ✗ | Silent (M5) |
-| Stripe portal fails | ✗ | Silent (M6) |
+| Stripe checkout fails | ✓ | Error shown (M5 ✅) |
+| Stripe portal fails | ✓ | Error shown (M6 ✅) |
 | Recheck job (stale) | ✗ | Crashes FeedTab (C1) |
 | Intro request fails | ✓ | Error surfaced (employer/intro) |
 
@@ -328,12 +326,10 @@ All findings above are code-confident (traced from source) unless noted below:
 
 ## FINDINGS COUNT
 
-| Severity | Count |
-|----------|-------|
-| Critical | 1 |
-| High | 4 |
-| Medium | 7 |
-| Low | 5 |
-| **Total** | **17** |
-
-**Critical + High: 5**
+| Severity | Count | Resolved |
+|----------|-------|---------|
+| Critical | 1 | 1 (stage 12d) |
+| High | 4 | 4 (stage 12d) |
+| Medium | 7 | 7 (stage 12e) |
+| Low | 5 | 5 (stage 12e) |
+| **Total** | **17** | **17 — all resolved** |
