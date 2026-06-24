@@ -12,18 +12,18 @@ const SIZES = ['1–10', '11–50', '51–200', '201–500', '501–2000', '2000
 const HOW_STEPS = [
   {
     n: '01',
-    title: 'Tell us the role.',
-    body: 'Describe what you need in plain language. We build the brief.',
+    title: 'Describe the role.',
+    body: 'In plain language — we\'ll turn it into a brief.',
   },
   {
     n: '02',
-    title: 'See your shortlist.',
-    body: 'Real candidates from our pool, scored against your role, anonymised until you both say yes. No noise, no ghosts.',
+    title: 'Review your shortlist.',
+    body: 'Real candidates from our pool, scored against your role and anonymised until you both say yes.',
   },
   {
     n: '03',
     title: 'Pay only when you hire.',
-    body: '8% of first-year base, three-month leaver guarantee. That\'s it.',
+    body: '8% of first-year base, with a three-month leaver guarantee.',
   },
 ]
 
@@ -135,12 +135,12 @@ export default function HirePage() {
 
       {/* Hero */}
       <section style={{ padding: '72px 64px 48px', maxWidth: 1100, margin: '0 auto' }}>
-        <div className="kicker holo-text" style={{ marginBottom: 16 }}>For lean teams who can&apos;t stomach another 25% agency invoice.</div>
+        <div className="kicker holo-text" style={{ marginBottom: 16 }}>For teams who want to hire well without an agency retainer.</div>
         <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 6vw, 80px)', marginBottom: 20, maxWidth: 760 }}>
-          <span className="chrome-text">Hire the people who actually want the job.</span>
+          <span className="chrome-text">A short list of people who fit &mdash; and want it.</span>
         </h1>
         <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 600, lineHeight: 1.65, marginBottom: 28 }}>
-          {BRAND_NAME} gives you a short list of pre-screened candidates who genuinely fit your role and genuinely want it — not a scraped pile of maybes. You pay 8% only when you hire, with a three-month guarantee. And we&apos;ll always tell you what&apos;s done by AI and what&apos;s done by a human.
+          Tell {BRAND_NAME} about the role and you&apos;ll get a ranked short list of candidates from our pool, scored against what you need and genuinely interested in the work. Everyone stays anonymous until you both choose to connect. You pay 8% of first-year salary only when you hire, with a three-month guarantee &mdash; and we&apos;ll always be clear about what&apos;s done by software and what&apos;s done by a person.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
           {['No subscription. No fee unless you hire.', 'Anonymised until mutual opt-in', 'Real candidates — no fake "200 matches"'].map(f => (
@@ -167,7 +167,17 @@ export default function HirePage() {
           ))}
         </div>
         <p style={{ marginTop: 24, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em', lineHeight: 1.6 }}>
-          If we don&apos;t have the right people in your niche yet, we&apos;ll tell you — and tell you when we do. We&apos;d rather lose your time than waste it.
+          If we don&apos;t have the right people in your field yet, we&apos;ll tell you plainly &mdash; and let you know when we do. We&apos;d rather be honest than waste your time.
+        </p>
+      </section>
+
+      <div className="holo-hairline" />
+
+      {/* Credibility band */}
+      <section style={{ padding: '32px 64px', background: 'var(--marker-cream-2)', display: 'flex', justifyContent: 'center' }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--marker-mid)', textAlign: 'center', maxWidth: 640, lineHeight: 1.65, margin: 0 }}>
+          <strong style={{ color: 'var(--marker-text)' }}>Built for lean teams.</strong>{' '}
+          No long contract, no platform fee, no pressure. You try it on a real role, and it either earns the hire or it doesn&apos;t.
         </p>
       </section>
 

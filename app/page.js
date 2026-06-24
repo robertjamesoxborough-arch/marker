@@ -32,16 +32,16 @@ function AIDisclaimer({ light }) {
 
 const PROMISES = [
   {
+    title: 'Everything in one place.',
+    body: "Discover roles, score them, track your whole pipeline, tailor your CV, prep interviews, rehearse negotiations — start to finish, on one board. No spreadsheet, no fifteen open tabs.",
+  },
+  {
+    title: 'A score you can actually read.',
+    body: "Every role gets scored across six things you care about — salary, seniority fit, location, office days, freshness, culture signals — and you can see the reasoning behind each one. Not a mystery rating you're meant to take on faith.",
+  },
+  {
     title: 'It remembers you.',
-    body: "Your profile, your preferences, your whole pipeline — they live in your account, not in a chatbot's short-term memory. Close the tab, come back in a month, everything's exactly where you left it. See it all on your Memory Card.",
-  },
-  {
-    title: 'It tells you why.',
-    body: 'Every role gets a score across six things you actually care about — salary, seniority fit, location, office days, freshness, and the rest — and it shows you the reasoning. No mystery five-star ratings. No "trust us, it\'s a great match."',
-  },
-  {
-    title: "It's all in one place.",
-    body: "Discover, score, track, tailor your CV, prep your interview, rehearse the negotiation — one board, start to finish. The thing you'd otherwise be running in a spreadsheet and three browser tabs.",
+    body: "Your profile, preferences and pipeline live in your account, not in a chatbot's memory. Close the tab, come back next month — it's all exactly where you left it. You can see everything it knows on your Memory Card, and edit any of it.",
   },
 ]
 
@@ -62,7 +62,7 @@ const balancedRows = [
   { co: 'GitLab',        wlb: '4.2', leave: '4mo',  office: '0d', score: '8.6' },
 ]
 
-const FALLBACK_TAGLINE = "Requite scores every role against what actually matters to you, keeps your whole search in one place, and remembers you tomorrow. No spray-and-pray. No chatbot amnesia. No £30 a month to find out a job closed last week."
+const FALLBACK_TAGLINE = "Requite scores each role against what actually matters to you — salary, seniority, location, office days, and more — and shows you why. Then it keeps your whole search in one place: discover roles, track them, tailor your CV, prep the interview. And it remembers everything, so you never start from scratch."
 const MOBILE_TAGLINE = "Score roles against what matters. No noise, no amnesia, no wasted evenings."
 
 export default async function Home() {
@@ -104,10 +104,10 @@ export default async function Home() {
             letterSpacing: '-0.015em', lineHeight: 1.4, marginBottom: 20,
             display: 'inline-block',
           }}>
-            For people who&apos;ve done this before and would like it to be less of a circus.
+            For people who&apos;ve job-hunted before and would like it to take less of their life.
           </div>
           <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 8vw, 120px)', marginBottom: 24, textWrap: 'balance' }}>
-            <span className="chrome-text">The job hunt, minus the nonsense.</span>
+            <span className="chrome-text">Score every job before you waste time on it.</span>
           </h1>
           <p className={`body ${styles.heroBody} ${styles.heroBodyDesktop}`}>
             {activeTagline?.tagline_text || FALLBACK_TAGLINE}
@@ -121,6 +121,9 @@ export default async function Home() {
             <a href="#promises" className="btn btn-ghost" style={{ fontSize: 14, padding: '13px 20px' }}>See how it works →</a>
             <span className={styles.heroNote}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</span>
           </div>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--marker-mid)', marginTop: 20, lineHeight: 1.5 }}>
+            No spray-and-pray, no monthly fee to find out a job closed last week.
+          </p>
         </div>
 
         {/* Floating score card */}
@@ -159,8 +162,8 @@ export default async function Home() {
       {/* ── FRESHNESS STRIP ── */}
       <section style={{ padding: '32px 64px', background: 'var(--marker-black)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 20px)', color: 'var(--marker-cream)', textAlign: 'center', maxWidth: 820, lineHeight: 1.55, margin: 0 }}>
-          Every job carries a &ldquo;last checked&rdquo; stamp. Stale ones get flagged. Closed ones get binned.{' '}
-          <span style={{ color: 'var(--marker-lime)', fontWeight: 500 }}>You&apos;ll never again polish a cover letter for a role that died nine days ago.</span>
+          Every job shows when it was last checked. Stale ones get flagged, closed ones get removed &mdash; so you&apos;re only ever spending effort on roles that are actually open.{' '}
+          <span style={{ color: 'var(--marker-lime)', fontWeight: 500 }}>(No more polishing a cover letter for something that died last week.)</span>
         </p>
       </section>
 
@@ -336,7 +339,7 @@ export default async function Home() {
         <div style={{ maxWidth: 600, textAlign: 'center' }}>
           <div className="kicker" style={{ marginBottom: 16 }}>Know someone who should be using this?</div>
           <p style={{ fontSize: 17, color: 'var(--marker-text)', lineHeight: 1.65, marginBottom: 28 }}>
-            Send them your link. If they land a role through {BRAND_NAME}, you both get a thank-you that isn&apos;t just words.
+            Share your link. If they land a role through {BRAND_NAME}, there&apos;s a thank-you in it for both of you.
           </p>
           <TrackCTA href="/app" event="referral_cta_clicked" props={{ location: 'landing' }} className="btn btn-ghost" style={{ fontSize: 14 }}>
             Get your link →
@@ -352,11 +355,8 @@ export default async function Home() {
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div className="kicker" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>Hiring, not job-hunting?</div>
           <h2 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: 'var(--marker-cream)', marginBottom: 20, textWrap: 'balance' }}>
-            Requite introduces you to people who actually fit and actually want it.
+            Requite introduces you to candidates who fit your role and genuinely want it &mdash; pre-screened, no CV spam &mdash; and you only pay when you actually hire.
           </h2>
-          <p style={{ fontSize: 16, color: 'rgba(250,247,242,0.6)', lineHeight: 1.7, marginBottom: 28, maxWidth: 560 }}>
-            Pre-screened, genuinely interested, no CV spam. You pay only when you hire. (And we&apos;re honest about what&apos;s automated and what isn&apos;t.)
-          </p>
           <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 15, display: 'inline-flex' }}>For employers →</Link>
         </div>
       </section>
@@ -369,7 +369,7 @@ export default async function Home() {
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
           <div className="kicker" style={{ color: 'rgba(250,247,242,0.35)', marginBottom: 20 }}>Your next move</div>
           <h2 className="display-xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)', marginBottom: 28, textWrap: 'balance' }}>
-            <span className="chrome-text">The job hunt, minus the nonsense.</span>
+            <span className="chrome-text">Score every job before you waste time on it.</span>
           </h2>
           <div className="iris-divider" style={{ margin: '0 auto 28px', maxWidth: 240 }} />
           <p className={styles.ctaSub}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</p>
