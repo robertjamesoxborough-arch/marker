@@ -105,7 +105,7 @@ export default async function Home() {
       <TaglineTracker taglineId={activeTagline?.id ?? null} />
 
       {/* ── HERO ── */}
-      <section className={styles.hero}>
+      <section className={`${styles.hero} aurora-bg`}>
         <div style={{ maxWidth: 1100 }}>
           <div className="holo-text" style={{
             fontFamily: 'var(--font-body)', fontSize: 'clamp(17px, 2vw, 22px)', fontWeight: 500,
@@ -358,18 +358,16 @@ export default async function Home() {
       {/* Holo divider, pricing → cta */}
       <div className="holo-hairline" />
 
-      {/* ── CTA, lifestyle image background, rotates daily ── */}
-      <section className={styles.ctaSection}>
-        <RotatingLifestyle />
-        {/* Dark overlay */}
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.80)' }} />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="display-xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)', color: 'var(--marker-cream)', marginBottom: 24, textWrap: 'balance' }}>
-            The job hunt, marked.
+      {/* ── CTA ── */}
+      <section className={`${styles.ctaSection} aurora-bg`}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+          <div className="kicker" style={{ color: 'rgba(250,247,242,0.35)', marginBottom: 20 }}>Your next move</div>
+          <h2 className="display-xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)', marginBottom: 28, textWrap: 'balance' }}>
+            <span className="chrome-text">The job hunt, marked.</span>
           </h2>
-          <div className="holo-hairline" style={{ margin: '0 auto 24px', maxWidth: 320 }} />
-          <p className={styles.ctaSub}>Seven days free. No card. Cancel by closing the tab.</p>
-          <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'bottom_cta' }} className="btn btn-lime" style={{ fontSize: 16, padding: '16px 28px', fontWeight: 600 }}>Start free, 7 days →</TrackCTA>
+          <div className="iris-divider" style={{ margin: '0 auto 28px', maxWidth: 240 }} />
+          <p className={styles.ctaSub}>Seven days free. No card. Cancel any time.</p>
+          <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'bottom_cta' }} className={`btn btn-lime btn-iris-sheen ${styles.ctaBtn}`} style={{ fontSize: 16, padding: '16px 28px', fontWeight: 600 }}>Start free, 7 days →</TrackCTA>
         </div>
       </section>
 

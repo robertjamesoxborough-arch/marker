@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 7 complete — G4 tracking spine live, rainbow-chrome design pass, mobile audit (SHIP CHECKPOINT)  
-**Last commit:** stage 7: G4 tracking spine, rainbow-chrome design pass, mobile audit  
+**Stage:** 7.5 complete — visual polish: CTA redesign, lifestyle photo variants, hero aurora glow  
+**Last commit:** stage 7.5: visual polish, real assets, fix banner layouts  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,26 @@
 ---
 
 ## STAGE LOG
+
+### Stage 7.5 — Visual polish: banner layouts, real lifestyle assets, aurora hero (2026-06-24)
+
+**Goal:** Fix slapdash text-on-background-image pattern on the landing page. Use clean photo variants of lifestyle assets. Apply chrome tokens with restraint to make the CTA feel premium, not templated.
+
+**Changes made:**
+1. **`app/page.js` — CTA section redesign** — Removed `RotatingLifestyle` background image + 80% dark overlay (the main offender: text was floating directly on a dark image with no structure). Replaced with clean `aurora-bg` dark section with ambient spectral glow. Applied `chrome-text` to "The job hunt, marked." headline (the only chrome moment in this section). `iris-divider` replaces the plain `holo-hairline`. CTA button gains `btn-iris-sheen` sheen-on-hover. Added "Your next move" kicker in muted cream for typographic hierarchy.
+2. **`app/page.js` — Hero section aurora** — Added `aurora-bg` class to the hero section. The teal/indigo/violet/rose aurora glow animates behind the cream background at very low opacity — barely perceptible, reads as premium ambient light rather than decoration.
+3. **`lib/lifestyle.js` — Photo variants** — Switched all 5 lifestyle image refs from `ls-XX.png` to `ls-XX-photo.png`. The `.png` originals have text baked in (site tagline overlaid by the image creator). The `-photo.png` variants are clean photographs. This makes the `ambientHero` strip show clean imagery.
+4. **`app/marketing.module.css` — ambientHero gradient** — Updated `::after` pseudo-element from a cream-left gradient hack (was: `to right, cream 0%, transparent 40%` — covering the baked-in text) to a clean bottom vignette (`to bottom, transparent 70%, cream 100%`). Blends cleanly into the next section.
+5. **`app/marketing.module.css` — ctaSection tightening** — Updated `border-top` to `rgba(255,255,255,0.06)` (subtle rather than solid `var(--marker-border)` on a dark section). Added `isolation: isolate` for correct aurora stacking. `ctaSub` font tightened with `letter-spacing: -0.01em`. Added `ctaBtn` class.
+
+**Self-test: PASS**
+- `npm run build` — clean, 91 pages, zero errors
+
+**Deferred to Stage 8:**
+- Recruiter-side features (RecruiterPanel / employer portal)
+- Stage 8 brief: start with the public recruiter/employer intake flow
+
+---
 
 ### Stage 7 — G4 tracking spine, rainbow-chrome design pass, mobile audit (SHIP CHECKPOINT) (2026-06-24)
 

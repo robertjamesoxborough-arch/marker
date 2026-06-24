@@ -120,8 +120,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  /* Fade left edge to mask any baked-in text on lifestyle images */
-  background: linear-gradient(to right, var(--marker-cream) 0%, transparent 40%);
+  background: linear-gradient(to bottom, transparent 70%, var(--marker-cream) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -288,15 +287,22 @@
 /* ── CTA ── */
 .ctaSection {
   padding: 160px 64px;
-  border-top: 1px solid var(--marker-border);
+  border-top: 1px solid rgba(255,255,255,0.06);
   background: var(--marker-black);
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 .ctaSub {
   font-size: 18px;
-  color: rgba(250,247,242,0.65);
-  margin-bottom: 32px;
+  color: rgba(250,247,242,0.6);
+  margin-bottom: 36px;
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+}
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ── FOOTER ── */
