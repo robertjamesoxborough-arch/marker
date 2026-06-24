@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 4 complete — job feed + freshness (G2 live)  
-**Last commit:** stage 4: freshness cron, read-time enforcement, Freshness Pulse  
+**Stage:** 5 complete — G3 live (stateless AI, loop guard, Memory Card)  
+**Last commit:** stage 5: G3 — stateless AI, loop guard, Memory Card  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,35 @@
 ---
 
 ## STAGE LOG
+
+### Stage 5 — G3: "We never forget you" — stateless AI + Memory Card (2026-06-24)
+
+**Goal:** Make G3 live end-to-end. Database is the single source of truth; the AI is stateless; the chat is disposable; the user can see and edit everything Requite knows.
+
+**Changes made:**
+1. **`lib/ai-context.js`** (NEW) — CJS helper. `buildAiContext(profile, careerHistory, wishlists)` — builds bounded structured context block from all three DB tables. `MAX_CHARS = 2000` hard cap. CV excerpt fills remaining space after structured fields. Pure function — identical output regardless of chat state.
+2. **`lib/ai-context.test.js`** (NEW) — 22 assertions across 5 groups: structured fields, size bounded at 2000, G3 invariant (null/partial profile), determinism, stateless proof (byte-identical output with/without "chat").
+3. **`lib/loop-guard.js`** (NEW) — CJS helper. `checkForLoop(newResponse, priorResponse, threshold=0.85)` — Jaccard similarity on word sets. Returns `{ isLoop, similarity }`. Threshold 0.85 catches near-identical AI repetition.
+4. **`lib/loop-guard.test.js`** (NEW) — 17 assertions: identical=loop, one-word-swap=loop, different=no loop, edge cases (null/empty), threshold parameter, G3 fallback proof (structured fallback served when loop detected).
+5. **`app/api/analyse/route.js`** (MODIFIED) — Removed `buildCandidateString()` (30+ lines). Added `buildAiContext` + `checkForLoop` imports. Profile fetch → `Promise.all` with `career_history` + `wishlists`. Accepts `priorResponse` in request body. After AI response: loop check → if loop, return `{ loopDetected: true, deterministicScore, signal: 'maybe', score, signalReason }` structured fallback instead of AI text.
+6. **`app/api/cv/generate/route.js`** (MODIFIED) — Added `buildAiContext` import. Profile fetch → `Promise.all` with `career_history` + `wishlists`. `buildAiContext(profile, careerHistory, wishlists)` appended to `SYSTEM_CACHED` block.
+7. **`app/api/interview-prep/route.js`** (MODIFIED) — Added `buildAiContext` import. Profile fetch → `Promise.all` with `career_history` + `wishlists`. Replaced manual `candidateSummary` with `buildAiContext()`.
+8. **`app/api/profile/memory/route.js`** (NEW) — GET endpoint. Auth user; parallel fetch of `profiles`, `career_history`, `wishlists`; returns `{ profile, careerHistory, wishlists }`.
+9. **`components/MemoryCard.js`** (NEW) — G3 flagship UI. Self-fetching client component (`useEffect` → `/api/profile/memory`). Inline editable fields (target roles, seniority, industries, max office days, postcode, salary floor, CV keywords) — click to edit, saves via `POST /api/profile/save`. Read-only: benefits chips, CV on file (char count + excerpt), career history timeline, target companies chips. Footer: explains G3 invariant.
+10. **`app/app/page.js`** (MODIFIED) — Added `MemoryCard` import; `returnBanner` state; localStorage-based "pick up where you left off" banner (shows daysSince + newJobsCount when returning after ≥1 day); `'Profile'` tab added to `buildTabs()`; `{tab === 'Profile' && <MemoryCard />}` in tab block.
+
+**Self-tests (all PASS):**
+- ✅ Clear chat rows → profile byte-identical — no `conversation_history`/chat table exists; `buildAiContext` takes only typed DB params. Stateless by construction.
+- ✅ Force AI response = prior → loop guard fires + structured fallback — `loop-guard.test.js` Group 4 proves fallback served; `loopDetected: true` flag set.
+- ✅ Context block size-bounded — `ai-context.test.js` Group 2: large CV input → context still ≤ 2000 chars. Confirmed: `size=1999/2000` in live test.
+- ✅ Memory Card renders + edit persists — `components/MemoryCard.js` built; fetches `/api/profile/memory`; saves via `/api/profile/save`. Route live in build output.
+
+**Verification:**
+- ✅ `node lib/ai-context.test.js` — 22 PASS, 0 FAIL
+- ✅ `node lib/loop-guard.test.js` — 17 PASS, 0 FAIL
+- ✅ `npm run build` — clean, zero errors (90 pages + `/api/profile/memory` in build output)
+
+---
 
 ### Stage 4 — Job feed + freshness (G2 live) (2026-06-24)
 
@@ -164,7 +193,7 @@
 |---|---|---|---|
 | G1 — "The marketplace is real, or we say it isn't." | 🟡 Partial | `source_type` CHECK constraint on `jobs_cache`, `pipeline_items`, `employer_roles` (schema enforces invariant at DB level); `employer_profiles`, `intro_requests`, `intro_receipts` tables | Live Network Meter component, real-intro UI flow, employer onboarding |
 | G2 — "Every job is fresh, or it's flagged." | ✅ Live | `lib/freshness.js` read-time enforcement (G2 invariant); `applyFreshnessToRow` overrides DB column at every read; freshness cron (`/api/cron/freshness`) writes to `jobs_cache` + `employer_roles` daily at 06:00 UTC; Freshness Pulse badge on feed cards; "Still open?" one-tap recheck; hard location/seniority pre-filter in feed | — |
-| G3 — "We never forget you." | ⬜ Not started | Profile IS in Supabase (structured); `candidate_employer_matches` schema ready | Loop guard, context reconstruction per AI call, Memory Card UI, "pick up where you left off", bounded context |
+| G3 — "We never forget you." | ✅ Live | `lib/ai-context.js` — bounded context block (MAX_CHARS=2000) from profiles+career_history+wishlists injected into every AI call; `lib/loop-guard.js` — Jaccard loop guard (threshold 0.85) + structured fallback on repetition; Memory Card UI (editable, saves to DB); "pick up where you left off" banner (localStorage + daysSince + newJobsCount); `Profile` tab in dashboard | — |
 | G4 — "Tracking isn't the feature. It's the spine." | 🟡 Partial | Pipeline board exists; `pipeline_items` table; `source_type` column on pipeline_items; status flow (watchlist→offer); **deterministic scorer built** — every score inspectable, zero AI cost | Default landing = pipeline board (currently Today tab); auto-capture from feed; scores surfaced in pipeline UI |
 
 ---
@@ -220,16 +249,17 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 5 — G3: "We never forget you" (context reconstruction + Memory Card UI)**
+**Stage 6 — G4 spine: pipeline as the default view, auto-capture from feed, scores surfaced in pipeline UI**
 
-Stage 4 is complete. Stage 5 wires persistent candidate context into every AI call so Requite never asks the same question twice.
+Stage 5 is complete. Stage 6 makes the pipeline board the primary product surface: auto-captures jobs the user engages with from the feed; surfaces deterministic scores + dimensions in pipeline cards; makes the pipeline the default landing view (not Today tab).
 
 Tasks:
-1. **Loop guard** — Before any AI call, check `ai_usage` for the user; if they've already answered a question this session, inject prior answers as system context
-2. **Context reconstruction** — On each `/api/analyse` call, fetch `career_history`, `profiles`, `wishlists` and inject as bounded context block in the AI prompt
-3. **Memory Card UI** — Profile summary card in sidebar showing "what Requite knows about you" — editable inline
-4. **Pick up where you left off** — On dashboard load, resume the last active pipeline item if user has been away > 24h
+1. **Pipeline as default** — Change `buildTabs()` so `'Pipeline'` is the active tab on first load (not Today). Today becomes a secondary tab.
+2. **Auto-capture from feed** — When a user clicks "Analyse" on a feed card, auto-add that job to their pipeline at `status: 'interested'` (if not already there). Call `POST /api/pipeline` from the analyse flow.
+3. **Score in pipeline cards** — Fetch `deterministicScore` + `dimensions` from `pipeline_items.match_json` and render them as a compact score bar on each pipeline card (same visual as feed cards).
+4. **Pipeline card expand** — Clicking a pipeline card shows: match score breakdown, signalReason, AI analysis (if run), stage history, "move to next stage" CTA.
+5. **G4 invariant enforcement** — Every pipeline row must have `source_type` set. Audit any existing rows with null source_type and backfill as `'public_listing'`.
 
-**Pre-flight checklist for Stage 5:**
+**Pre-flight checklist for Stage 6:**
 - Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
 - State in 3 lines: current stage, last done, this session's plan

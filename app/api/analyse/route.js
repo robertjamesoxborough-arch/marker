@@ -5,35 +5,8 @@ import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { scoreMatch } from '../../../lib/match-engine'
-
-
-function buildCandidateString(profile) {
-  if (!profile) return 'Candidate profile not available.'
-  const roles = (profile.target_roles || []).join(', ') || 'various roles'
-  const seniority = profile.seniority || ''
-  const industries = (profile.industries || []).join(', ') || 'various industries'
-  const maxDays = profile.max_office_days != null ? `Max ${profile.max_office_days} office days/week.` : ''
-  const postcode = profile.postcode ? `Based near ${profile.postcode}.` : ''
-  const cvSnippet = profile.hard_filters_json?.cvRaw?.slice(0, 1200) || ''
-  const keywords = (profile.hard_filters_json?.cvKeywords || []).join(', ')
-  const benefits = (profile.hard_filters_json?.benefits || [])
-  const BENEFIT_LABELS = {
-    enhanced_parental_leave: 'enhanced parental leave', term_time: 'term-time working',
-    four_day_week: '4-day week', fully_remote: 'fully remote', hybrid: 'hybrid',
-    share_options: 'share options', private_health: 'private health insurance',
-  }
-  const benefitList = benefits.map(b => BENEFIT_LABELS[b] || b).filter(Boolean)
-  return [
-    seniority ? `Seniority: ${seniority}.` : '',
-    `Target roles: ${roles}.`,
-    `Industries of interest: ${industries}.`,
-    maxDays,
-    postcode,
-    keywords ? `Key skills/keywords: ${keywords}.` : '',
-    benefitList.length > 0 ? `Nice-to-have benefits: ${benefitList.join(', ')}.` : '',
-    cvSnippet ? `CV excerpt:\n${cvSnippet}` : '',
-  ].filter(Boolean).join(' ')
-}
+import { buildAiContext } from '../../../lib/ai-context'
+import { checkForLoop } from '../../../lib/loop-guard'
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -48,13 +21,21 @@ export async function POST(req) {
   const { data: { user } } = await supabase.auth.getUser()
 
   let profile = null
+  let careerHistory = []
+  let wishlists = []
   if (user) {
     const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const { data } = await service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track, tracks').eq('user_id', user.id).single()
-    profile = data
+    const [profileRes, historyRes, wishlistRes] = await Promise.all([
+      service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track, tracks').eq('user_id', user.id).single(),
+      service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
+      service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
+    ])
+    profile = profileRes.data
+    careerHistory = historyRes.data || []
+    wishlists = wishlistRes.data || []
   }
 
-  const { jobLink, roleTitle, company, jdText } = await req.json()
+  const { jobLink, roleTitle, company, jdText, priorResponse } = await req.json()
   if (!jobLink && !jdText) return Response.json({ error: 'No job link or description provided' }, { status: 400 })
 
   // Deterministic score — always runs first, zero AI cost
@@ -67,7 +48,7 @@ export async function POST(req) {
     raw_json: {},
   })
 
-  const CANDIDATE = buildCandidateString(profile)
+  const CANDIDATE = buildAiContext(profile, careerHistory, wishlists)
 
   const maxOfficeDays = profile?.max_office_days ?? null
   const excludeSalesQuotas = profile?.hard_filters_json?.excludeSalesQuotas || false
@@ -149,7 +130,7 @@ ${JSON_SCHEMA}`
       '',
       'Analyse this role against the candidate profile. Focus on role fit only.',
     ].filter(l => l !== undefined).join('\n')
-    return runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore)
+    return runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
   }
 
   // Strategy 2: Direct page fetch with JSON-LD extraction
@@ -236,7 +217,7 @@ ${JSON_SCHEMA}`
         'Analyse this role against the candidate profile. Focus on role fit only — never comment on job availability.',
       ].filter(l => l !== undefined).join('\n')
 
-      const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore)
+      const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
       if (publishedDate) {
         try { const body = await result.json(); return Response.json({ ...body, created: publishedDate }) }
         catch { return result }
@@ -275,7 +256,7 @@ ${JSON_SCHEMA}`
   return Response.json({ error: 'No job link or description provided' }, { status: 400 })
 }
 
-async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministicScore) {
+async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministicScore, priorResponse) {
   const MODEL = MODELS.haiku
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -298,6 +279,15 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministic
       after(() => trackAiUsage({ userId, model: MODEL, action: 'analyse', usage: aiData.usage }))
     }
     const text = aiData.content?.map(c => c.text || '').join('') || ''
+
+    // G3 loop guard — discard AI output and serve DB-structured fallback if near-duplicate
+    if (priorResponse && typeof priorResponse === 'string') {
+      const { isLoop } = checkForLoop(text, priorResponse)
+      if (isLoop) {
+        return Response.json({ loopDetected: true, deterministicScore, signal: 'maybe', score: deterministicScore?.score || 5, signalReason: 'Analysis could not complete — please paste the JD directly for a fresh score.' })
+      }
+    }
+
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return Response.json({ error: 'Could not parse response', deterministicScore }, { status: 500 })

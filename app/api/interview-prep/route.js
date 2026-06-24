@@ -5,6 +5,7 @@ import { after } from 'next/server'
 
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
+import { buildAiContext } from '../../../lib/ai-context'
 
 
 export async function POST(req) {
@@ -20,22 +21,22 @@ export async function POST(req) {
   const { data: { user } } = await supabase.auth.getUser()
 
   let profileCvRaw = ''
-  let candidateSummary = 'Candidate profile not available.'
+  let candidateContext = 'Candidate profile not available.'
   let candidateName = null
   if (user) {
     const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const { data: profile } = await service.from('profiles').select('target_roles, seniority, industries, postcode, hard_filters_json, name').eq('user_id', user.id).single()
+    const [profileRes, historyRes, wishlistRes] = await Promise.all([
+      service.from('profiles').select('target_roles, seniority, industries, postcode, max_office_days, salary_floor, hard_filters_json, track, name').eq('user_id', user.id).single(),
+      service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
+      service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
+    ])
+    const profile    = profileRes.data
+    const careerHist = historyRes.data  || []
+    const wishlists  = wishlistRes.data || []
     if (profile) {
-      profileCvRaw = profile.hard_filters_json?.cvRaw || ''
-      const roles = (profile.target_roles || []).join(', ')
-      const industries = (profile.industries || []).join(', ')
-      candidateSummary = [
-        roles ? `Target roles: ${roles}.` : '',
-        profile.seniority ? `Seniority: ${profile.seniority}.` : '',
-        industries ? `Industries: ${industries}.` : '',
-        profile.postcode ? `Location: ${profile.postcode}.` : '',
-      ].filter(Boolean).join(' ')
-      candidateName = profile.name || null
+      profileCvRaw    = profile.hard_filters_json?.cvRaw || ''
+      candidateContext = buildAiContext(profile, careerHist, wishlists)
+      candidateName   = profile.name || null
     }
   }
 
@@ -45,8 +46,8 @@ export async function POST(req) {
   if (!job || !stage) return Response.json({ error: 'Missing job or stage' }, { status: 400 })
 
   const CANDIDATE = profileCvRaw
-    ? `CV on file (use as primary source):\n${profileCvRaw.slice(0, 2000)}\n\nProfile summary: ${candidateSummary}`
-    : candidateSummary
+    ? `CV on file (use as primary source):\n${profileCvRaw.slice(0, 2000)}\n\nProfile: ${candidateContext}`
+    : candidateContext
 
   const STAGE_CONTEXT = {
     'screening': 'Initial screening call, typically 20-30 minutes with HR or talent team. Focus on: culture fit, basic role alignment, salary expectations, notice period, logistics.',

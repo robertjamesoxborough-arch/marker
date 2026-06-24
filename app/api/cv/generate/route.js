@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse, after } from 'next/server'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
+import { buildAiContext } from '../../../../lib/ai-context'
 
 
 export async function POST(request) {
@@ -21,11 +22,14 @@ export async function POST(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
-  const { data: profile } = await service
-    .from('profiles')
-    .select('hard_filters_json, target_roles, seniority, track')
-    .eq('user_id', user.id)
-    .single()
+  const [profileRes, historyRes, wishlistRes] = await Promise.all([
+    service.from('profiles').select('hard_filters_json, target_roles, seniority, industries, max_office_days, salary_floor, postcode, track').eq('user_id', user.id).single(),
+    service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
+    service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
+  ])
+  const profile = profileRes.data
+  const careerHistory = historyRes.data || []
+  const wishlists     = wishlistRes.data || []
 
   const cvRaw = profile?.hard_filters_json?.cvRaw || ''
   if (!cvRaw) return NextResponse.json({ error: 'No CV stored. Complete onboarding to upload your CV.' }, { status: 400 })
@@ -115,7 +119,11 @@ Match score: X/100
     maxTokens = 3000
   }
 
-  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates — accuracy, specificity, and professional tone are essential. Never invent experience, credentials, or metrics. Return exactly what is asked in the format specified.`
+  const candidateContext = buildAiContext(profile, careerHistory, wishlists)
+  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates — accuracy, specificity, and professional tone are essential. Never invent experience, credentials, or metrics. Return exactly what is asked in the format specified.
+
+CANDIDATE PROFILE:
+${candidateContext}`
 
   try {
     const model = MODELS.haiku

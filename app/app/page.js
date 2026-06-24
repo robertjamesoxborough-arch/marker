@@ -6,6 +6,7 @@ import { track } from '@vercel/analytics'
 import { loadJobs, saveJobs, updateJobInDb, deleteJobFromDb, getProfile } from '../../lib/db'
 import { createClient } from '../../lib/supabase/client'
 import FreshnessPulse from '../../components/FreshnessPulse'
+import MemoryCard from '../../components/MemoryCard'
 import s from './dashboard.module.css'
 
 // ── Shared primitives ──────────────────────────────────────────────
@@ -4338,6 +4339,7 @@ function buildTabs(profile, plan = 'trial') {
     tabs.push('CV')
   }
   if (searchMode !== 'perm') tabs.push('Contractor')
+  tabs.push('Profile')
   return tabs
 }
 
@@ -4523,6 +4525,7 @@ export default function AppPage() {
   const [feedJobs, setFeedJobs] = useState([])
   const [feedLoading, setFeedLoading] = useState(true)
   const [recheckingJobs, setRecheckingJobs] = useState({})
+  const [returnBanner, setReturnBanner] = useState(null) // { daysSince, newJobsCount }
   const [cvPrefill, setCvPrefill] = useState(null)
   const [trialEndsAt, setTrialEndsAt] = useState(null)
   const [trialDismissed, setTrialDismissed] = useState(false)
@@ -4588,7 +4591,24 @@ export default function AppPage() {
     }).catch(() => {
       loadJobs().then(d => { setJobs(Array.isArray(d) ? d : []); setLoaded(true) }).catch(() => setLoaded(true))
     })
-    fetch('/api/feed-cache').then(r => r.ok ? r.json() : []).then(d => { setFeedJobs(Array.isArray(d) ? d : []); setFeedLoading(false) }).catch(() => setFeedLoading(false))
+    fetch('/api/feed-cache').then(r => r.ok ? r.json() : []).then(d => {
+      const jobs = Array.isArray(d) ? d : []
+      setFeedJobs(jobs)
+      setFeedLoading(false)
+      // "Pick up where you left off" — show return banner if > 24h since last visit
+      try {
+        const lastVisit = localStorage.getItem('mkr_last_visit')
+        const now = Date.now()
+        if (lastVisit) {
+          const daysSince = Math.floor((now - parseInt(lastVisit, 10)) / 86400000)
+          if (daysSince >= 1) {
+            const newJobsCount = jobs.filter(j => j.foundAt && new Date(j.foundAt).getTime() > parseInt(lastVisit, 10)).length
+            setReturnBanner({ daysSince, newJobsCount })
+          }
+        }
+        localStorage.setItem('mkr_last_visit', String(now))
+      } catch {}
+    }).catch(() => setFeedLoading(false))
   }, [])
 
   const refreshFeed = useCallback(async () => {
@@ -4785,6 +4805,21 @@ export default function AppPage() {
           </div>
         )
       })()}
+
+      {/* ── "Pick up where you left off" return banner (G3) ── */}
+      {returnBanner && (
+        <div style={{ background: 'var(--marker-cream-2)', borderBottom: '1px solid var(--marker-border)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--marker-text)', lineHeight: 1.4 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--marker-mid)', marginRight: 6 }}>Welcome back ·</span>
+            {returnBanner.daysSince === 1 ? 'You were last here yesterday.' : `You were last here ${returnBanner.daysSince} days ago.`}
+            {returnBanner.newJobsCount > 0 && ` ${returnBanner.newJobsCount} new job${returnBanner.newJobsCount === 1 ? '' : 's'} in your feed since then.`}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            <button onClick={() => { setTab('Discover'); setReturnBanner(null) }} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '5px 10px', borderRadius: 5, cursor: 'pointer' }}>View feed →</button>
+            <button onClick={() => setReturnBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--marker-mid)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Journey bar — persists across all tabs ── */}
       {!focusMode && loaded && (
@@ -4987,6 +5022,9 @@ export default function AppPage() {
             ? <PlanGate feature="Contractor routes" requiredPlan="contractor" currentPlan={plan} />
             : <ContractorTab profile={profile} jobs={jobs} addJob={addJob} />
         )}
+
+        {/* ── Profile / Memory Card tab (G3) ── */}
+        {tab === 'Profile' && <MemoryCard />}
 
         </>)} {/* end standard mode */}
 
