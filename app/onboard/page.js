@@ -362,6 +362,13 @@ export default function OnboardPage() {
         }).catch(() => {})
       }
       track('onboard_complete', { field, track: derivedTrack })
+      try {
+        const ref = localStorage.getItem('marker_ref')
+        if (ref) {
+          fetch('/api/referral/capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref }) }).catch(() => {})
+          localStorage.removeItem('marker_ref')
+        }
+      } catch {}
       router.replace('/app')
     } catch (e) {
       setSaveError(e?.message || 'Something went wrong — please try again.')

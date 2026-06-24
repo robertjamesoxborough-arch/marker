@@ -30,28 +30,27 @@ function AIDisclaimer({ light }) {
   )
 }
 
-function ReviewDataLine({ light }) {
-  return (
-    <div className="legal-line" style={{ color: light ? '#6B6B6B' : 'var(--marker-mid)' }}>
-      Balanced Roles data sourced from public employee reviews (Glassdoor, Trustpilot ≥ 500 reviews), Working Families benchmark, and employer policy pages. Aggregated, not individually verified.
-    </div>
-  )
-}
-
-function OGLLine() {
-  return (
-    <div className="legal-line">
-      Gov.uk Jobs data contains public sector information licensed under the Open Government Licence v3.0.
-    </div>
-  )
-}
+const PROMISES = [
+  {
+    title: 'It remembers you.',
+    body: "Your profile, your preferences, your whole pipeline — they live in your account, not in a chatbot's short-term memory. Close the tab, come back in a month, everything's exactly where you left it. See it all on your Memory Card.",
+  },
+  {
+    title: 'It tells you why.',
+    body: 'Every role gets a score across six things you actually care about — salary, seniority fit, location, office days, freshness, and the rest — and it shows you the reasoning. No mystery five-star ratings. No "trust us, it\'s a great match."',
+  },
+  {
+    title: "It's all in one place.",
+    body: "Discover, score, track, tailor your CV, prep your interview, rehearse the negotiation — one board, start to finish. The thing you'd otherwise be running in a spreadsheet and three browser tabs.",
+  },
+]
 
 const scoreRows = [
   ['Role fit', '9.4'],
   ['Office days', '1 / wk'],
   ['Salary v market', '+8%'],
   ['Parental leave', 'found · 6mo'],
-  ['Glassdoor WLB', '4.1'],
+  ['WLB score', '4.1'],
   ['Culture', '8.6'],
 ]
 
@@ -63,15 +62,8 @@ const balancedRows = [
   { co: 'GitLab',        wlb: '4.2', leave: '4mo',  office: '0d', score: '8.6' },
 ]
 
-const steps = [
-  { n: '01', title: 'Pick a track.', body: 'Balanced Roles, Standard, Parent, Returner, Career-changer. Each one comes with a different wishlist, different filters, and different language in your CV.', chip: 'Balanced Roles · default' },
-  { n: '02', title: 'Mark what fits.', body: 'Every role is scored 1–10 across eight things you care about. Salary v market. Office days. Parental leave (verified, not guessed). Glassdoor WLB.', chip: '8-factor score' },
-  { n: '03', title: "Apply, or don't.", body: "If a role scores well, go after it properly. If it doesn't, move on. No second-guessing. No evenings wasted on something that was never going to be right.", chip: 'Only apply when it fits' },
-]
-
-
-const FALLBACK_TAGLINE = "You already know what a good job looks like for you. The hard part is finding one fast enough. Marker scores every role against what actually matters: office flexibility, salary, parental leave, company culture. Spot the right one in 30 seconds. Skip everything else."
-const MOBILE_TAGLINE = "Know which roles fit before you apply. Office days, salary, parental leave, all confirmed. 30 seconds per role."
+const FALLBACK_TAGLINE = "Requite scores every role against what actually matters to you, keeps your whole search in one place, and remembers you tomorrow. No spray-and-pray. No chatbot amnesia. No £30 a month to find out a job closed last week."
+const MOBILE_TAGLINE = "Score roles against what matters. No noise, no amnesia, no wasted evenings."
 
 export default async function Home() {
   let activeTagline = null
@@ -86,11 +78,9 @@ export default async function Home() {
 
       {/* ── NAV ── */}
       <div className={styles.nav}>
-
         <Logo size={26} />
         <nav className={styles.navLinks}>
-          <a href="#how">How it works</a>
-          <a href="#how">Tracks</a>
+          <a href="#promises">How it works</a>
           <a href="#pricing">Pricing</a>
           <Link href="/notes">Notes</Link>
           <Link href="/trust" style={{ color: 'var(--marker-mid)' }}>Why trust us</Link>
@@ -114,11 +104,10 @@ export default async function Home() {
             letterSpacing: '-0.015em', lineHeight: 1.4, marginBottom: 20,
             display: 'inline-block',
           }}>
-            For experienced people who&apos;d quite like their evenings back
+            For people who&apos;ve done this before and would like it to be less of a circus.
           </div>
           <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 8vw, 120px)', marginBottom: 24, textWrap: 'balance' }}>
-            <span className="chrome-text">Mark your moves.</span><br />
-            <span style={{ color: 'var(--marker-mid)' }}>Skip the rest.</span>
+            <span className="chrome-text">The job hunt, minus the nonsense.</span>
           </h1>
           <p className={`body ${styles.heroBody} ${styles.heroBodyDesktop}`}>
             {activeTagline?.tagline_text || FALLBACK_TAGLINE}
@@ -127,26 +116,10 @@ export default async function Home() {
             {MOBILE_TAGLINE}
           </p>
 
-          {/* Feature highlights, the above-fold value prop */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 32 }}>
-            {[
-              { label: 'Know if a role fits before you apply', sub: '30 seconds' },
-              { label: 'Office days & WLB, properly verified', sub: 'not guessed' },
-              { label: 'Parental leave confirmed for every role', sub: 'not assumed' },
-              { label: 'Spend effort only on roles that count', sub: 'skip the rest' },
-            ].map(({ label, sub }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '7px 12px' }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--marker-lime)', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-text)', fontWeight: 500 }}>{label}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>{sub}</span>
-              </div>
-            ))}
-          </div>
-
           <div className={styles.heroActions}>
-            <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'hero' }} className="btn btn-lime" style={{ fontSize: 16, padding: '14px 26px', fontWeight: 600 }}>Start free, 7 days →</TrackCTA>
-            <a href="#how" className="btn btn-ghost" style={{ fontSize: 14, padding: '13px 20px' }}>See how it works</a>
-            <span className={styles.heroNote}>No card. No "talk to sales". 60 seconds to your first score.</span>
+            <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'hero' }} className="btn btn-lime" style={{ fontSize: 16, padding: '14px 26px', fontWeight: 600 }}>Start free — score a role in 60 seconds</TrackCTA>
+            <a href="#promises" className="btn btn-ghost" style={{ fontSize: 14, padding: '13px 20px' }}>See how it works →</a>
+            <span className={styles.heroNote}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</span>
           </div>
         </div>
 
@@ -170,7 +143,7 @@ export default async function Home() {
           <div style={{ display: 'flex', gap: 6, marginTop: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 6 }}>
               <span className="chip chip-lime" style={{ fontSize: 9 }}>APPLY</span>
-              <span className="chip" style={{ fontSize: 9 }}>WORTH MARKING</span>
+              <span className="chip" style={{ fontSize: 9 }}>WORTH IT</span>
             </div>
             <AdzunaBadge />
           </div>
@@ -180,19 +153,19 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Holo divider, hero → proof */}
+      {/* Holo divider, hero → freshness */}
       <div className="holo-hairline" />
 
-      {/* ── SOCIAL PROOF STRIP ── */}
-      <section className={styles.proofStrip}>
-        <div className={styles.proofInner}>
-          <div className="kicker" style={{ whiteSpace: 'nowrap' }}>Pulls from</div>
-          {['Greenhouse', 'Adzuna', 'Gov.uk', 'Working Families', 'Public reviews'].map(s => (
-            <div key={s} className={styles.proofItem}>{s}</div>
-          ))}
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', whiteSpace: 'nowrap' }}>+ 4 more</div>
-        </div>
+      {/* ── FRESHNESS STRIP ── */}
+      <section style={{ padding: '32px 64px', background: 'var(--marker-black)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 20px)', color: 'var(--marker-cream)', textAlign: 'center', maxWidth: 820, lineHeight: 1.55, margin: 0 }}>
+          Every job carries a &ldquo;last checked&rdquo; stamp. Stale ones get flagged. Closed ones get binned.{' '}
+          <span style={{ color: 'var(--marker-lime)', fontWeight: 500 }}>You&apos;ll never again polish a cover letter for a role that died nine days ago.</span>
+        </p>
       </section>
+
+      {/* Holo divider, freshness → ambient */}
+      <div className="holo-hairline" />
 
       {/* ── AMBIENT LIFESTYLE STRIP, rotates daily ── */}
       <section className={styles.ambientHero}>
@@ -210,7 +183,7 @@ export default async function Home() {
             Experienced job hunting<br />plays by different rules.
           </h2>
           <p style={{ fontSize: 16, color: 'var(--marker-mid)', lineHeight: 1.7, maxWidth: 400 }}>
-            At this stage, you know exactly what you will not compromise on. The problem is that most job boards are not built for people who have standards. Marker is.
+            At this stage, you know exactly what you will not compromise on. The problem is that most job boards are not built for people who have standards.
           </p>
         </div>
         <div className={styles.statsCards}>
@@ -226,16 +199,16 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Holo divider, stats → how */}
+      {/* Holo divider, stats → promises */}
       <div className="holo-hairline" />
 
-      {/* ── HOW IT WORKS ── */}
-      <section id="how" className={styles.howSection}>
+      {/* ── THREE PROMISES ── */}
+      <section id="promises" className={styles.howSection}>
         <div className={styles.howHeader}>
           <div>
             <div className="kicker holo-text" style={{ marginBottom: 16 }}>How it works</div>
             <h2 className="display-lg" style={{ fontSize: 'clamp(40px, 5vw, 64px)', color: 'var(--marker-black)', maxWidth: 720 }}>
-              Three things, done well.<br />
+              Three things, done properly.<br />
               <span style={{ color: 'var(--marker-mid)' }}>Nothing else.</span>
             </h2>
           </div>
@@ -244,16 +217,18 @@ export default async function Home() {
           </div>
         </div>
         <div className={styles.stepsGrid}>
-          {steps.map(s => (
-            <div key={s.n} className={`card ${styles.stepCard}`}>
-              <div className="kicker holo-text">{s.n}</div>
-              <div className="display-md" style={{ fontSize: 'clamp(24px, 3vw, 32px)', color: 'var(--marker-black)' }}>{s.title}</div>
-              <div className="body" style={{ fontSize: 15 }}>{s.body}</div>
-              <div style={{ marginTop: 'auto' }}>
-                <span className="chip" style={{ textTransform: 'none', letterSpacing: 0, fontFamily: 'var(--font-body)', fontSize: 11 }}>{s.chip}</span>
-              </div>
+          {PROMISES.map((p, i) => (
+            <div key={p.title} className={`card ${styles.stepCard}`}>
+              <div className="kicker holo-text">{String(i + 1).padStart(2, '0')}</div>
+              <div className="display-md" style={{ fontSize: 'clamp(24px, 3vw, 32px)', color: 'var(--marker-black)' }}>{p.title}</div>
+              <div className="body" style={{ fontSize: 15 }}>{p.body}</div>
             </div>
           ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 40 }}>
+          <Link href="/trust" style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--marker-text)', textDecoration: 'underline', textUnderlineOffset: 4 }}>
+            We can back every word of that. Here&apos;s exactly how →
+          </Link>
         </div>
       </section>
 
@@ -262,14 +237,14 @@ export default async function Home() {
       <section className={styles.productShowcase}>
         <Image
           src="/brand/product-showcase.png"
-          alt="Marker, the AI copilot for experienced job hunters"
+          alt={`${BRAND_NAME} — AI copilot for experienced job hunters`}
           width={2400}
           height={1200}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       </section>
 
-      {/* Holo divider, how → personas */}
+      {/* Holo divider, showcase → personas */}
       <div className="holo-hairline" />
 
       {/* ── WHO IT'S FOR ── */}
@@ -287,7 +262,7 @@ export default async function Home() {
             </div>
             <div className={styles.personaText}>
               <div className={styles.personaRole}>Head of Product · 8 years in</div>
-              <div className={styles.personaLine}>Looking for the next step, not just a lateral move. Done with roles where "flexible" means Fridays at home if you ask nicely.</div>
+              <div className={styles.personaLine}>Looking for the next step, not just a lateral move. Done with roles where &ldquo;flexible&rdquo; means Fridays at home if you ask nicely.</div>
             </div>
           </div>
           <div className={styles.personaCard}>
@@ -323,7 +298,7 @@ export default async function Home() {
               Companies where work-life balance is a fact, not a slide.
             </h2>
             <p style={{ fontSize: 16, color: 'var(--marker-cream)', opacity: 0.7, marginBottom: 32, lineHeight: 1.6, maxWidth: 480 }}>
-              Anchored to public data: Glassdoor WLB ratings, Working Families benchmark, verified parental leave policies. We don't take companies' word for it. We check.
+              Anchored to verified public data. We don&apos;t take companies&apos; word for it. We check.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {['Public sector', 'Education / EdTech', 'Large stable corporates', 'Remote-first w/ culture'].map(t => (
@@ -341,11 +316,7 @@ export default async function Home() {
                 <div style={{ background: 'var(--marker-lime)', color: 'var(--marker-black)', fontFamily: 'var(--font-display)', fontWeight: 500, textAlign: 'center', padding: '4px 0', borderRadius: 4 }}>{r.score}</div>
               </div>
             ))}
-            <div className="legal-line" style={{ color: '#6B6B6B', marginTop: 8 }}>
-              Citations: aggregated public employee reviews (≥ 500), Working Families benchmark, employer policy pages
-            </div>
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #2A2A2A', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <ReviewDataLine light />
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #2A2A2A' }}>
               <AIDisclaimer light />
             </div>
           </div>
@@ -357,63 +328,40 @@ export default async function Home() {
 
       <PricingSection />
 
-      {/* Holo divider, pricing → employer */}
+      {/* Holo divider, pricing → referral */}
       <div className="holo-hairline" />
 
-      {/* ── EMPLOYER SECTION ── */}
-      <section style={{ padding: '80px 64px', background: 'var(--marker-black)' }}>
-        <div className="employer-grid" style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div>
-            <div className="kicker" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>For hiring managers</div>
-            <h2 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: 'var(--marker-cream)', marginBottom: 20, textWrap: 'balance' }}>
-              Stop wading through AI-generated CVs.
-            </h2>
-            <p style={{ fontSize: 16, color: 'rgba(250,247,242,0.6)', lineHeight: 1.7, marginBottom: 28, maxWidth: 460 }}>
-              Requite matches your role against a pool of opted-in senior professionals — scored deterministically, not by an algorithm you can&apos;t inspect. You see who fits. They see you. Nobody&apos;s identity is revealed until both sides say yes.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
-              {[
-                ['8% success fee — pay only on hire', 'No retainer. No subscriptions. Risk-free.'],
-                ['Anonymised shortlist, instantly', 'Ranked by fit across role, seniority, location, comp.'],
-                ['Real warm intros — receipted', 'Every intro is timestamped. No "Jill doesn\'t exist" surprises.'],
-              ].map(([bold, sub]) => (
-                <div key={bold} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--marker-lime)', flexShrink: 0, marginTop: 7 }} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--marker-cream)' }}>{bold}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', marginTop: 2 }}>{sub}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 15, display: 'inline-flex' }}>Post a role →</Link>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { label: 'Role fit',     score: 9.1, color: 'var(--marker-lime)' },
-              { label: 'Seniority',    score: 8.5, color: '#a0c8ff' },
-              { label: 'Location',     score: 7.8, color: '#f0a8d0' },
-              { label: 'Comp fit',     score: 8.2, color: 'var(--marker-lime)' },
-              { label: 'Culture / WLB',score: 9.0, color: '#a0c8ff' },
-            ].map(d => (
-              <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', width: 100, flexShrink: 0 }}>{d.label}</div>
-                <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
-                  <div style={{ width: `${d.score * 10}%`, height: '100%', background: d.color, borderRadius: 2 }} />
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-cream)', width: 28, textAlign: 'right', flexShrink: 0 }}>{d.score}</div>
-              </div>
-            ))}
-            <div style={{ marginTop: 16, padding: '16px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Overall match</div>
-              <div className="display-lg" style={{ fontSize: 40, color: 'var(--marker-lime)' }}>8.5<span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>/10</span></div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em', marginTop: 4 }}>Candidate C01 · Senior Manager · London · max 2d/wk</div>
-            </div>
-          </div>
+      {/* ── REFERRAL ── */}
+      <section style={{ padding: '64px 64px', background: 'var(--marker-cream-2)', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ maxWidth: 600, textAlign: 'center' }}>
+          <div className="kicker" style={{ marginBottom: 16 }}>Know someone who should be using this?</div>
+          <p style={{ fontSize: 17, color: 'var(--marker-text)', lineHeight: 1.65, marginBottom: 28 }}>
+            Send them your link. If they land a role through {BRAND_NAME}, you both get a thank-you that isn&apos;t just words.
+          </p>
+          <TrackCTA href="/app" event="referral_cta_clicked" props={{ location: 'landing' }} className="btn btn-ghost" style={{ fontSize: 14 }}>
+            Get your link →
+          </TrackCTA>
         </div>
       </section>
 
-      {/* Holo divider, employer → cta */}
+      {/* Holo divider, referral → hiring */}
+      <div className="holo-hairline" />
+
+      {/* ── HIRING? STRIP ── */}
+      <section style={{ padding: '80px 64px', background: 'var(--marker-black)' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <div className="kicker" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>Hiring, not job-hunting?</div>
+          <h2 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: 'var(--marker-cream)', marginBottom: 20, textWrap: 'balance' }}>
+            Requite introduces you to people who actually fit and actually want it.
+          </h2>
+          <p style={{ fontSize: 16, color: 'rgba(250,247,242,0.6)', lineHeight: 1.7, marginBottom: 28, maxWidth: 560 }}>
+            Pre-screened, genuinely interested, no CV spam. You pay only when you hire. (And we&apos;re honest about what&apos;s automated and what isn&apos;t.)
+          </p>
+          <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 15, display: 'inline-flex' }}>For employers →</Link>
+        </div>
+      </section>
+
+      {/* Holo divider, hiring → cta */}
       <div className="holo-hairline" />
 
       {/* ── CTA ── */}
@@ -421,11 +369,11 @@ export default async function Home() {
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
           <div className="kicker" style={{ color: 'rgba(250,247,242,0.35)', marginBottom: 20 }}>Your next move</div>
           <h2 className="display-xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)', marginBottom: 28, textWrap: 'balance' }}>
-            <span className="chrome-text">The job hunt, marked.</span>
+            <span className="chrome-text">The job hunt, minus the nonsense.</span>
           </h2>
           <div className="iris-divider" style={{ margin: '0 auto 28px', maxWidth: 240 }} />
-          <p className={styles.ctaSub}>Seven days free. No card. Cancel any time.</p>
-          <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'bottom_cta' }} className={`btn btn-lime btn-iris-sheen ${styles.ctaBtn}`} style={{ fontSize: 16, padding: '16px 28px', fontWeight: 600 }}>Start free, 7 days →</TrackCTA>
+          <p className={styles.ctaSub}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</p>
+          <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'bottom_cta' }} className={`btn btn-lime btn-iris-sheen ${styles.ctaBtn}`} style={{ fontSize: 16, padding: '16px 28px', fontWeight: 600 }}>Start free — score a role in 60 seconds →</TrackCTA>
         </div>
       </section>
 
@@ -452,9 +400,8 @@ export default async function Home() {
         </div>
         <div className={styles.footerBottom}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, maxWidth: 720 }}>
-            <OGLLine />
-            <ReviewDataLine />
             <AIDisclaimer />
+            <div className="legal-line">Live UK roles, including listings via Adzuna. Independently sourced and scored — not affiliated with employers listed.</div>
           </div>
           <AdzunaBadge />
         </div>

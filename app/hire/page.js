@@ -3,10 +3,29 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
+import { track } from '@vercel/analytics'
 import { BRAND_NAME } from '../../lib/brand'
 import LiveNetworkMeter from '../../components/LiveNetworkMeter'
 
 const SIZES = ['1–10', '11–50', '51–200', '201–500', '501–2000', '2000+']
+
+const HOW_STEPS = [
+  {
+    n: '01',
+    title: 'Tell us the role.',
+    body: 'Describe what you need in plain language. We build the brief.',
+  },
+  {
+    n: '02',
+    title: 'See your shortlist.',
+    body: 'Real candidates from our pool, scored against your role, anonymised until you both say yes. No noise, no ghosts.',
+  },
+  {
+    n: '03',
+    title: 'Pay only when you hire.',
+    body: '8% of first-year base, three-month leaver guarantee. That\'s it.',
+  },
+]
 
 export default function HirePage() {
   const router = useRouter()
@@ -67,6 +86,7 @@ export default function HirePage() {
       if (!rRes.ok) throw new Error(rData.error || 'Failed to create role')
 
       setCreatedRoleId(rData.role?.id)
+      track('employer_role_posted', { sector: sector || 'unknown' })
       setDone(true)
     } catch (e) {
       setError(e.message)
@@ -86,12 +106,23 @@ export default function HirePage() {
           <div className="holo-dot" style={{ width: 48, height: 48, borderRadius: '50%', margin: '0 auto 24px' }} />
           <h1 style={H1} className="display-lg">Role posted.</h1>
           <p style={{ fontSize: 16, color: 'var(--marker-mid)', marginBottom: 32, lineHeight: 1.6 }}>
-            Your role is live in the Requite network. We&apos;re matching candidates now — anonymised shortlist ready in your dashboard.
+            Your role is live in the {BRAND_NAME} network. We&apos;re matching candidates now — anonymised shortlist ready in your dashboard.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/employer" className="btn btn-lime" style={{ fontWeight: 600, fontSize: 15 }}>View shortlist →</Link>
             <button onClick={() => { setDone(false); setTitle(''); setDescription(''); setLocation(''); setSalaryMin(''); setSalaryMax('') }}
               className="btn btn-ghost" style={{ fontSize: 14 }}>Post another role</button>
+          </div>
+          <div style={{ marginTop: 48, padding: '24px 0', borderTop: '1px solid var(--marker-border)' }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginBottom: 12 }}>
+              REFER ANOTHER HIRING TEAM
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 16 }}>
+              Refer another hiring team. When they make their first hire through {BRAND_NAME}, you both get a credit toward your next fee.
+            </p>
+            <a href="mailto:support@requite.io?subject=Refer%20a%20team" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+              Refer a team →
+            </a>
           </div>
         </div>
       </div>
@@ -104,15 +135,15 @@ export default function HirePage() {
 
       {/* Hero */}
       <section style={{ padding: '72px 64px 48px', maxWidth: 1100, margin: '0 auto' }}>
-        <div className="kicker holo-text" style={{ marginBottom: 16 }}>For hiring managers</div>
+        <div className="kicker holo-text" style={{ marginBottom: 16 }}>For lean teams who can&apos;t stomach another 25% agency invoice.</div>
         <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 6vw, 80px)', marginBottom: 20, maxWidth: 760 }}>
-          <span className="chrome-text">The shortlist that actually fits.</span>
+          <span className="chrome-text">Hire the people who actually want the job.</span>
         </h1>
-        <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 560, lineHeight: 1.65, marginBottom: 36 }}>
-          Post a role brief, get a ranked, anonymised shortlist of opted-in candidates matched by a deterministic engine — not a recruiter&apos;s hunch. Pay only when you hire.
+        <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 600, lineHeight: 1.65, marginBottom: 28 }}>
+          {BRAND_NAME} gives you a short list of pre-screened candidates who genuinely fit your role and genuinely want it — not a scraped pile of maybes. You pay 8% only when you hire, with a three-month guarantee. And we&apos;ll always tell you what&apos;s done by AI and what&apos;s done by a human.
         </p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
-          {['8% success fee — pay on hire only', 'Anonymised until mutual opt-in', 'Matched by skills + location + salary', 'Real candidates, no AI-generated CVs'].map(f => (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+          {['No subscription. No fee unless you hire.', 'Anonymised until mutual opt-in', 'Real candidates — no fake "200 matches"'].map(f => (
             <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '7px 12px' }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--marker-lime)', flexShrink: 0 }} />
               <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500 }}>{f}</span>
@@ -120,6 +151,24 @@ export default function HirePage() {
           ))}
         </div>
         <LiveNetworkMeter />
+      </section>
+
+      <div className="holo-hairline" />
+
+      {/* How it works */}
+      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 64px 48px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+          {HOW_STEPS.map(s => (
+            <div key={s.n} style={{ padding: '28px 24px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12 }}>
+              <div className="kicker holo-text" style={{ marginBottom: 12 }}>{s.n}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 10 }}>{s.title}</div>
+              <div style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.6 }}>{s.body}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ marginTop: 24, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em', lineHeight: 1.6 }}>
+          If we don&apos;t have the right people in your niche yet, we&apos;ll tell you — and tell you when we do. We&apos;d rather lose your time than waste it.
+        </p>
       </section>
 
       <div className="holo-hairline" />
@@ -219,7 +268,7 @@ export default function HirePage() {
               disabled={saving || !canSubmit}
               className="btn btn-lime btn-iris-sheen"
               style={{ marginTop: 8, padding: '14px 24px', fontSize: 15, fontWeight: 600, opacity: canSubmit ? 1 : 0.4 }}>
-              {saving ? 'Posting…' : 'Post this role →'}
+              {saving ? 'Posting…' : 'Post a role — see your shortlist →'}
             </button>
 
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', lineHeight: 1.6 }}>
@@ -239,6 +288,7 @@ function Nav() {
         {BRAND_NAME.toLowerCase()}<span className="holo-dot" style={{ display: 'inline-block', width: '0.3em', height: '0.3em', borderRadius: '50%', marginLeft: '0.05em', verticalAlign: 'super' }} />
       </Link>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <Link href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Why trust us</Link>
         <Link href="/employer" style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--marker-mid)' }}>Dashboard</Link>
         <Link href="/auth" className="btn btn-ghost" style={{ fontSize: 13, padding: '8px 16px' }}>Sign in</Link>
       </div>

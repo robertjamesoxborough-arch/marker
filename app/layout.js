@@ -27,19 +27,19 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata = {
   metadataBase: new URL('https://marker-silk.vercel.app'),
-  title: BRAND_NAME,
-  description: "For experienced people who'd quite like their evenings back. Score every role against what actually matters — salary, office days, parental leave, culture. Then go and live your life.",
+  title: `${BRAND_NAME} — recruitment you can actually trust`,
+  description: 'Requite — recruitment you can actually trust. Free for candidates, honest on both sides.',
   openGraph: {
-    title: BRAND_NAME,
-    description: "For experienced people who'd quite like their evenings back",
+    title: `${BRAND_NAME} — recruitment you can actually trust`,
+    description: 'Free for candidates, honest on both sides.',
     siteName: BRAND_NAME,
     type: 'website',
     images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: BRAND_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: BRAND_NAME,
-    description: "For experienced people who'd quite like their evenings back",
+    title: `${BRAND_NAME} — recruitment you can actually trust`,
+    description: 'Free for candidates, honest on both sides.',
     images: ['/opengraph-image'],
   },
 }

@@ -5,9 +5,9 @@
 
 ## CURRENT STATE
 
-**Stage:** 11 complete — Trust Panel, explainability UI, transparent limits, AI-vs-human disclosure  
-**Last commit:** stage 11: Trust Panel, explainability UI, transparent limits, AI-vs-human disclosure  
-**Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
+**Stage:** 12 complete — Marketing copy, source attribution cleanup, referral mechanics, analytics  
+**Last commit:** stage 12: marketing copy, source attribution cleanup, referral mechanics, analytics  
+**Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -15,6 +15,58 @@
 ---
 
 ## STAGE LOG
+
+### Stage 12 — Marketing copy, source attribution cleanup, referral mechanics, analytics (2026-06-24)
+
+**Goal:** Place approved marketing copy from REQUITE-MARKETING-COPY.md, strip Marker-era jargon and unnecessary source names, wire referral mechanics, verify analytics coverage.
+
+**Changes made:**
+1. **`app/page.js`** (FULL REWRITE) — Approved copy placed exactly as written. Hero: new kicker "For people who've done this before…", headline "The job hunt, minus the nonsense." (chrome), new subheadline with G2/G3 jabs. CTAs: "Start free — score a role in 60 seconds" + micro "No card. No 'talk to sales.' Cancel by closing the tab." New sections added: Freshness Strip ("Every job carries a 'last checked' stamp…" dark band), Three Promises (replacing old "How it works" steps — It remembers you / It tells you why / It's all in one place), Referral CTA section, Employer handoff strip ("Hiring, not job-hunting?"). Removed: `ReviewDataLine`, `OGLLine`, "Pulls from" source-list strip, old Marker-era copy. Source score card: "Glassdoor WLB" → "WLB score". Footer: clean Adzuna attribution line, removed Gov.uk/WF/Glassdoor legal lines. CTA updated to match hero copy.
+2. **`app/hire/page.js`** (REWRITE) — Approved employer copy placed. Kicker: "For lean teams who can't stomach another 25% agency invoice." Headline: "Hire the people who actually want the job." Sub: approved text with AI/human honesty line. How it works: 3-step section added (Tell us the role / See your shortlist / Pay only when you hire) with honest line underneath. CTA button: "Post a role — see your shortlist →". Employer referral copy in done-state. `track('employer_role_posted')` added.
+3. **`app/layout.js`** — Meta title/description updated: "Requite — recruitment you can actually trust. Free for candidates, honest on both sides."
+4. **`app/api/referral/link/route.js`** (NEW) — GET, auth required. Returns `{ link: 'https://.../?ref=<user_id>' }` for referral links.
+5. **`app/api/referral/capture/route.js`** (NEW) — POST `{ ref }`. Auth required. Dedupes by `referred_user_id`. Inserts to `referrals` table: `referrer_account_id`, `referred_user_id`, `status: 'pending'`, `commission_rate: 0.08`.
+6. **`components/RefCapture.js`** — Added `track('referral_link_used')` when a ref param is saved to localStorage.
+7. **`app/onboard/page.js`** — After `onboard_complete` track, reads `marker_ref` from localStorage → POST `/api/referral/capture` → removes from localStorage. Referral captured at first login with persistence.
+8. **`app/app/page.js`** — Added `track('role_scored')` to both `analyse()` functions (engine tab + Today tab) on successful analysis. Source filter label: `Greenhouse` → `Company board`. SOURCE_LABELS: `greenhouse/careers_page` → `Company board`.
+
+**Source attribution cleanup (COMPLETE):**
+- ❌ Removed: "Pulls from: Greenhouse, Adzuna, Gov.uk, Working Families, Public reviews, + 4 more"
+- ❌ Removed: `ReviewDataLine` (Glassdoor, Trustpilot, Working Families attribution legal line)
+- ❌ Removed: `OGLLine` (Gov.uk Open Government Licence line)
+- ✅ Kept: AdzunaBadge ("Jobs by Adzuna") on hero card and footer — legally required
+- ✅ Kept: Clean attribution line "Live UK roles, including listings via Adzuna" in footer
+- ✅ Dashboard: "Greenhouse" label → "Company board" in source filter and SOURCE_LABELS
+
+**Analytics coverage (all events firing):**
+| Event | Where | Status |
+|---|---|---|
+| `cta_clicked` | TrackCTA components (landing nav, hero, bottom CTA) | ✅ Existing |
+| `magic_link_sent` | `app/auth/page.js` | ✅ Existing (signup) |
+| `onboard_complete` | `app/onboard/page.js` | ✅ Existing |
+| `role_scored` | Both `analyse()` functions in dashboard | ✅ Added |
+| `job_scored` | Pipeline board onScore callback | ✅ Existing |
+| `employer_role_posted` | `app/hire/page.js` after success | ✅ Added |
+| `referral_link_used` | `components/RefCapture.js` | ✅ Added |
+| `referral_cta_clicked` | Landing referral section TrackCTA | ✅ Added |
+
+**Self-tests (all PASS):**
+- ✅ `npm run build` — clean, zero errors
+- ✅ Deployed: https://marker-silk.vercel.app
+- ✅ Landing hero: approved kicker/headline/sub/CTAs
+- ✅ Freshness strip present below hero
+- ✅ Three Promises section with /trust link
+- ✅ Employer handoff strip ("Hiring, not job-hunting?")
+- ✅ Source names (Greenhouse, Gov.uk, Working Families, Public reviews) removed from landing
+- ✅ AdzunaBadge preserved on hero card and footer
+- ✅ /hire approved employer copy with 3-step How It Works
+- ✅ Referral API routes: /api/referral/link + /api/referral/capture
+- ✅ Referral link used event tracked in RefCapture
+- ✅ Referral captured on onboard completion
+- ✅ role_scored event in both analyse() functions
+- ✅ employer_role_posted event in hire page
+
+---
 
 ### Stage 11 — Trust Panel, explainability UI, transparent limits, AI-vs-human disclosure (2026-06-24)
 

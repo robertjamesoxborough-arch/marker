@@ -834,9 +834,9 @@ function StatsTab({ jobs }) {
 
   // Source breakdown
   const SOURCE_BREAKDOWN = [
-    { key: 'greenhouse', label: 'Greenhouse' },
+    { key: 'greenhouse', label: 'Company board' },
     { key: 'adzuna',     label: 'Adzuna' },
-    { key: 'gov_search', label: 'Gov' },
+    { key: 'gov_search', label: 'Civil Service' },
   ]
 
   if (total === 0) {
@@ -1799,8 +1799,8 @@ const PARENTAL_FRIENDLY_EMPLOYERS = [
 ]
 
 const SOURCE_LABELS = {
-  greenhouse:   'Greenhouse',
-  careers_page: 'Greenhouse',
+  greenhouse:   'Company board',
+  careers_page: 'Company board',
   adzuna:       'Adzuna',
   gov:          'Civil Service',
   gov_search:   'Civil Service',
@@ -3147,6 +3147,7 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Analysis failed'); return }
       setResult(data)
+      track('role_scored', { signal: data.signal || 'none' })
       if (data.roleTitle && !roleInput) setRoleInput(data.roleTitle)
       if (data.company && !coInput) setCoInput(data.company)
     } catch {
@@ -3468,6 +3469,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       // Bug 4: auto-switch to JD paste on failure
       if (!res.ok || data.error) { setError(data.error || 'Analysis failed'); setShowJd(true); return }
       setResult(data)
+      track('role_scored', { signal: data.signal || 'none' })
       if (data.roleTitle && !roleInput) setRoleInput(data.roleTitle)
       if (data.company && !coInput) setCoInput(data.company)
       // G4: auto-capture every analysed URL to Watchlist — no manual step required
