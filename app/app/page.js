@@ -27,11 +27,12 @@ function AdzunaBadge() {
 function ScoreBadge({ score }) {
   const n = parseFloat(score) || 0
   const top = n >= 9
-  const bg = top ? undefined : n >= 7 ? 'var(--marker-lime)' : n >= 5 ? 'var(--marker-cream)' : 'var(--marker-border)'
-  const border = top ? 'transparent' : n >= 7 ? 'var(--marker-lime)' : 'var(--marker-border)'
+  const high = n >= 7 && n < 9
+  const bg = top ? undefined : high ? 'rgba(198,244,50,0.22)' : n >= 5 ? 'var(--marker-cream)' : 'var(--marker-border)'
+  const border = top ? 'transparent' : high ? 'rgba(198,244,50,0.7)' : 'var(--marker-border)'
   return (
     <div className={top ? 'holo-foil' : ''} style={{ background: bg, border: `1px solid ${border}`, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, padding: '2px 8px', borderRadius: 5, color: 'var(--marker-black)', flexShrink: 0 }}>
-      {n > 0 ? score : '–'}
+      {n > 0 ? <span className={high ? 'chrome-text' : ''}>{score}</span> : '–'}
     </div>
   )
 }
@@ -122,7 +123,7 @@ function PipelineCard({ job, onEditDetails, onDelete, onScore, onTailorCv, onSta
         {postedLabel && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', padding: '3px 0' }}>{postedLabel}</span>}
       </div>
 
-      {job.signal === 'dont_apply' && job.signalReason && (
+      {job.signalReason && (
         <div style={{ fontSize: 11, color: 'var(--marker-mid)', fontStyle: 'italic', lineHeight: 1.4, marginBottom: 8 }}>{job.signalReason}</div>
       )}
 
@@ -402,13 +403,13 @@ const STEPS_CT_RECRUITERS = [
 // ── Column definitions ────────────────────────────────────────────
 
 const COLUMNS = [
-  { id: 'considering',    label: 'Considering',  primary: true },
-  { id: 'to_apply',       label: 'To apply',     primary: true },
-  { id: 'applied',        label: 'Applied',      primary: true },
-  { id: 'interviewing',   label: 'Interviewing', primary: true },
-  { id: 'offer',          label: 'Offer',        primary: true },
+  { id: 'considering',    label: 'Considering',  primary: true  },
+  { id: 'to_apply',       label: 'To apply',     primary: true  },
+  { id: 'applied',        label: 'Applied',      primary: true  },
+  { id: 'interviewing',   label: 'Interviewing', primary: true  },
+  { id: 'offer',          label: 'Offer',        primary: true  },
+  { id: 'watchlist',      label: 'Watchlist',    primary: true  },
   { id: 'rejected',       label: 'Rejected',     primary: false },
-  { id: 'watchlist',      label: 'Watching',     primary: false },
   { id: 'no_jobs',        label: 'No openings',  primary: false },
 ]
 
@@ -3429,6 +3430,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
   const [result,       setResult]       = useState(null)
   const [error,        setError]        = useState('')
   const [added,        setAdded]        = useState(false)
+  const [autoAdded,    setAutoAdded]    = useState(false)
   const [showJd,       setShowJd]       = useState(false)
   const [salary,       setSalary]       = useState(null)
   const [salaryLoading,setSalaryLoading]= useState(false)
@@ -3452,7 +3454,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
 
   async function analyse() {
     if (!url.trim() && !jd.trim()) return
-    setAnalysing(true); setResult(null); setError(''); setAdded(false); setSalary(null); setSalaryLoading(false)
+    setAnalysing(true); setResult(null); setError(''); setAdded(false); setAutoAdded(false); setSalary(null); setSalaryLoading(false)
     try {
       const res = await fetch('/api/analyse', {
         method: 'POST',
@@ -3465,6 +3467,29 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       setResult(data)
       if (data.roleTitle && !roleInput) setRoleInput(data.roleTitle)
       if (data.company && !coInput) setCoInput(data.company)
+      // G4: auto-capture every analysed URL to Watchlist — no manual step required
+      if (url.trim() && !pipelineJobs.some(j => j.jobLink === url.trim() || j.link === url.trim())) {
+        addJob({
+          id: crypto.randomUUID(),
+          company: data.company || coInput.trim() || 'Unknown',
+          roleTitle: data.roleTitle || roleInput.trim() || 'Unknown',
+          jobLink: url.trim(),
+          link: url.trim(),
+          officeDays: data.officeDays ?? 2,
+          status: 'watchlist',
+          ranking: 1,
+          signal: data.signal || '',
+          signalReason: data.signalReason || '',
+          score: parseFloat(data.score) || 0,
+          scoreBreakdown: JSON.stringify({ factors: data.factors, officeDays: data.officeDays }),
+          factors: data.factors,
+          jd: jd.trim(),
+          source: 'analyse',
+          addedAt: new Date().toISOString(),
+        })
+        if (url.trim()) fetch('/api/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId: url.trim() }) }).catch(() => {})
+        setAutoAdded(true)
+      }
       // Bug 3: auto-fetch salary for score ≥ 5
       if (parseFloat(data.score) >= 5) {
         setSalaryLoading(true)
@@ -3653,9 +3678,9 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
                   View job ↗
                 </a>
               )}
-              <button onClick={addToPipeline} disabled={!canAdd}
-                style={{ flex: 2, padding: '11px', borderRadius: 10, border: 'none', background: added || alreadyAdded ? 'var(--marker-border)' : 'var(--marker-black)', color: added || alreadyAdded ? 'var(--marker-mid)' : 'var(--marker-cream)', fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: !canAdd ? 'default' : 'pointer' }}>
-                {added || alreadyAdded ? 'Added to pipeline ✓' : `+ Add to pipeline${result.signal === 'apply' ? ' — apply!' : ''}`}
+              <button onClick={!autoAdded ? addToPipeline : undefined} disabled={added || alreadyAdded}
+                style={{ flex: 2, padding: '11px', borderRadius: 10, border: 'none', background: autoAdded ? 'rgba(198,244,50,0.3)' : (added || alreadyAdded) ? 'var(--marker-border)' : 'var(--marker-black)', color: (added || alreadyAdded || autoAdded) ? 'var(--marker-black)' : 'var(--marker-cream)', fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: (added || alreadyAdded) ? 'default' : 'pointer' }}>
+                {autoAdded ? 'Watchlisted ✓ — see Pipeline tab' : (added || alreadyAdded) ? 'In pipeline ✓' : `+ Add to pipeline${result.signal === 'apply' ? ' — apply!' : ''}`}
               </button>
             </div>
             <div className="legal-line">AI-generated analysis. Review before making decisions. Web search used for company data — may not reflect current policies.</div>
@@ -4183,6 +4208,16 @@ function buildWhyBullets(job, profile) {
 }
 
 // ── Today Dashboard ──────────────────────────────────────────────────
+const DAILY_INSIGHTS = [
+  'Roles with 3+ dimensions scoring 7+ have a much higher interview rate than average. Prioritise those first.',
+  'Following up on applications older than 7 days doubles response rates. Most candidates never do it.',
+  'Senior roles close faster than they post. Apply to your 7+ scored roles within 48 hours of finding them.',
+  'Tailoring your CV opening paragraph to the JD keywords typically raises ATS match scores significantly.',
+  'The best hiring managers do read cover letters. Three focused paragraphs beat a generic one every time.',
+  'Roles posted Monday or Tuesday fill fastest — the hiring team is fresh off the weekly planning meeting.',
+  'Practising your answer to "walk me through your background" out loud cuts interview nerves by more than you expect.',
+]
+
 function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
   const [scorerOpen, setScorerOpen] = useState(false)
   const now = Date.now()
@@ -4453,6 +4488,54 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch }) {
         </div>
       )}
 
+      {/* ── Section 5: Watchlist — recently tracked (auto-captured) ── */}
+      {(() => {
+        const watchlisted = jobs.filter(j => j.status === 'watchlist').sort((a, b) => new Date(b.addedAt || 0) - new Date(a.addedAt || 0)).slice(0, 4)
+        if (watchlisted.length === 0) return null
+        return (
+          <div style={SEC}>
+            <div style={KICKER}>In your watchlist</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {watchlisted.map(job => {
+                const score = parseFloat(job.score) || 0
+                return (
+                  <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '10px 12px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+                    </div>
+                    <div style={{ display: 'flex', align: 'center', gap: 6, flexShrink: 0 }}>
+                      {score > 0 ? (
+                        <div className={score >= 9 ? 'holo-foil' : ''} style={{ background: score >= 9 ? undefined : score >= 7 ? 'rgba(198,244,50,0.22)' : score >= 5 ? 'var(--marker-cream)' : 'var(--marker-border)', border: `1px solid ${score >= 9 ? 'transparent' : score >= 7 ? 'rgba(198,244,50,0.7)' : 'var(--marker-border)'}`, fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, padding: '2px 7px', borderRadius: 5, color: 'var(--marker-black)' }}>
+                          {score >= 7 && score < 9 ? <span className="chrome-text">{job.score}</span> : job.score}
+                        </div>
+                      ) : (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4 }}>–</span>
+                      )}
+                      <button onClick={() => { updateJob && updateJob(job.id, { status: 'considering' }) }} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', letterSpacing: '0.04em' }}>Consider →</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <button onClick={() => onTabSwitch('Pipeline')} style={{ background: 'none', border: 'none', color: 'var(--marker-mid)', fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer', padding: '10px 0 0', display: 'block', letterSpacing: '0.04em' }}>
+              View full pipeline →
+            </button>
+          </div>
+        )
+      })()}
+
+      {/* ── Section 6: Daily insight ── */}
+      {(() => {
+        const insight = DAILY_INSIGHTS[new Date().getDay() % DAILY_INSIGHTS.length]
+        return (
+          <div style={{ ...SEC, background: 'var(--marker-black)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, color: 'rgba(255,255,255,0.4)' }}>Today's insight</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 1.6 }}>{insight}</div>
+          </div>
+        )
+      })()}
+
       {/* ── Score a role (secondary, collapsible) ── */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--marker-border)' }}>
         <button onClick={() => setScorerOpen(o => !o)}
@@ -4685,7 +4768,7 @@ export default function AppPage() {
   const router = useRouter()
   const [jobs, setJobs] = useState([])
   const [loaded, setLoaded] = useState(false)
-  const [tab, setTab] = useState('Today')
+  const [tab, setTab] = useState('Pipeline')
   const [colIdx, setColIdx] = useState(0) // default: "Worth applying?"
   const [showAdd, setShowAdd] = useState(false)
   const [editingJob, setEditingJob] = useState(null)
@@ -5024,9 +5107,23 @@ export default function AppPage() {
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>Your pipeline</div>
               <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Track every role you're considering. Move cards through stages as you progress, from first look to offer.</div>
             </div>
+            {/* Momentum strip */}
+            <div style={{ display: 'flex', background: 'var(--marker-black)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { label: 'Applied', count: jobs.filter(j => j.status === 'applied').length, color: 'var(--marker-lime)' },
+                { label: 'Interviewing', count: jobs.filter(j => j.status === 'interviewing').length, color: '#a0c8ff' },
+                { label: 'Offers', count: jobs.filter(j => j.status === 'offer').length, color: '#f0a8d0' },
+              ].map((item, i) => (
+                <div key={item.label} style={{ flex: 1, textAlign: 'center', padding: '12px 8px', borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: item.color, lineHeight: 1 }}>{item.count}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 5 }}>{item.label}</div>
+                </div>
+              ))}
+            </div>
+
             {showPipelineTour && (
               <TourBanner onDismiss={dismissPipelineTour}>
-                Roles land in <strong>Considering</strong> when you add them. Score each one on the Today tab — then move it right as you progress. Rejected roles are worth keeping so your stats stay accurate.
+                Roles land in <strong>Watchlist</strong> automatically when you analyse them. Move them to <strong>Considering</strong> when interested, then right through stages as you progress.
               </TourBanner>
             )}
 

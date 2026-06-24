@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 6 complete — candidate tools wired to tracked roles + verified-stats guardrail  
-**Last commit:** stage 6: candidate tools wired to tracked roles, verified-stats guardrail  
+**Stage:** 7 complete — G4 tracking spine live, rainbow-chrome design pass, mobile audit (SHIP CHECKPOINT)  
+**Last commit:** stage 7: G4 tracking spine, rainbow-chrome design pass, mobile audit  
 **Live URL:** https://marker-silk.vercel.app (Requite branding — post-Stage 1)  
 **Repo:** `~/Desktop/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
@@ -14,6 +14,45 @@
 ---
 
 ## STAGE LOG
+
+### Stage 7 — G4 tracking spine, rainbow-chrome design pass, mobile audit (SHIP CHECKPOINT) (2026-06-24)
+
+**Goal:** Complete G4 ("tracking isn't a feature, it's the spine") — pipeline as default landing, auto-capture from JD analysis, match scores in cards, momentum strip. Rainbow-chrome design pass with Calibre OS tokens. Mobile audit. Ship checkpoint reached.
+
+**Changes made:**
+1. **`app/app/page.js` — Default tab** — Changed `useState('Today')` → `useState('Pipeline')`. New-user redirect preserved: if no active pipeline items, redirects to `Discover`.
+2. **`app/app/page.js` — ScoreBadge** — Score ≥9: `holo-foil` (animated foil). Score 7–8.9: lime-tinted bg + `.chrome-text` iridescent gradient on the number. Score 5–6.9: cream. Score <5: border grey. One-line "why" (signalReason) shows on all pipeline cards.
+3. **`app/app/page.js` — COLUMNS array** — Watchlist column added as `primary: true` (always visible in tab bar). Placed after Offer in column order. Default column (index 0) remains Considering.
+4. **`app/app/page.js` — EngineTab auto-capture** — After every successful analyse call: if URL is new (not already in pipeline), `addJob()` called automatically with `status: 'watchlist'`, capturing `company`, `roleTitle`, `jobLink`, `score`, `scoreBreakdown`, `signalReason`, `jd`. Button updates to "Watchlisted ✓ — see Pipeline tab". No manual add step required.
+5. **`app/app/page.js` — Momentum strip** — Black-background 3-column strip in Pipeline tab header: Applied (lime) / Interviewing (blue) / Offers (pink). Shows live counts from Supabase-loaded jobs.
+6. **`app/app/page.js` — TodayDashboard watchlist section** — Section 5: shows jobs in `status === 'watchlist'` (up to 4, newest first) with score badge + "Consider →" button that promotes to `considering`. Links to full Pipeline tab.
+7. **`app/app/page.js` — Daily insight** — Section 6: `DAILY_INSIGHTS[dayOfWeek]` — 7 job-hunt tips, rotates daily. Black card, no API call.
+8. **`app/app/page.js` — Pipeline TourBanner** — Updated copy: "Roles land in Watchlist automatically when you analyse them."
+9. **`app/globals.css` — Mobile queries** — `@media (max-width: 640px)`: pipeline card action buttons min-height 38px; momentum strip counts size 20px on narrow screens.
+
+**G4 invariant verified:**
+- ✅ Default route after login = Pipeline board (pipeline board loads first; Discover fallback for zero-active-items new users)
+- ✅ Paste JD URL → auto-appears in Watchlist with score, no manual add (auto-capture in `EngineTab.analyse()`)
+- ✅ Pipeline survives logout/login — fully Supabase-backed via `pipeline_items` table; no localStorage. Confirmed: `loadJobs()` queries Supabase; `saveJobs()` upserts with `onConflict: 'id'`.
+- ✅ `npm run build` clean — 91 pages, zero errors, zero warnings on code.
+
+**Chrome design system:**
+- Score gauge: holo-foil (≥9) + chrome-text (7–8.9) — iridescent score numbers as hero moments
+- Landing page (`app/page.js`): existing `chrome-text` on "Mark your moves." headline + `holo-foil` on score card — adequate for ship checkpoint
+- Chrome tokens (`.chrome-text`, `.aurora-bg`, `.holo-foil`, `.iris-border`, `.iris-divider`) already in `app/globals.css`
+
+**Mobile:**
+- Dashboard: tab bar already has `overflow-x: auto` with 640px/400px breakpoints in `app/app/dashboard.module.css`
+- Pipeline cards: action button tap targets 38px minimum on mobile
+- Momentum strip: flex layout scales to narrow; count font-size reduced via CSS class
+
+**Deferred to Stage 8:**
+- Recruiter-side features (RecruiterPanel / employer portal)
+- Stage 8 brief: start with the public recruiter/employer intake flow
+
+---
+
+### Stage 6 — Candidate tools: verified-stats guardrail + tracked-role wiring (2026-06-24)
 
 ### Stage 6 — Candidate tools: verified-stats guardrail + tracked-role wiring (2026-06-24)
 

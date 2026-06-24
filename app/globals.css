@@ -327,3 +327,15 @@ button { font-family: var(--font-body); cursor: pointer; }
   background-size: 200% auto;
   animation: chrome-shift 7s ease infinite;
 }
+
+/* ── Mobile — pipeline & dashboard ── */
+@media (max-width: 640px) {
+  /* Pipeline cards: comfortable tap targets */
+  .pipeline-card-actions button {
+    min-height: 38px;
+  }
+  /* Momentum strip: compact on narrow */
+  .momentum-count {
+    font-size: 20px !important;
+  }
+}
