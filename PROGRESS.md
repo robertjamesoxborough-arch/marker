@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 12e complete — Journey audit fixes (all 17 findings resolved)  
-**Last commit:** stage 12e: fix 12 medium/low journey-audit findings  
+**Stage:** 12f complete — Em dash purge + wordiness flagged  
+**Last commit:** stage 12f: em dash purge, wordiness flagged  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,23 @@
 ---
 
 ## STAGE LOG
+
+### Stage 12f — Em dash purge + wordiness flagged (2026-06-25)
+
+**Goal:** Remove every em dash from all user-facing copy across the full app. Add explicit "no em dashes, British English" rule to all AI system prompts. Flag wordy sections (report only, no cuts).
+
+**Changes made:**
+- **48 files changed** across `app/`, `lib/`, `components/`
+- Pages fixed: landing, auth, hire, trust, onboard, settings, employer, dashboard (`app/app/page.js`), privacy, cookies, pricing, notes slug, opengraph
+- Guides fixed: score-tier, guides index, senior-job-hunt-playbook, linkedin-search-bible, wlb-employer-guide, parent-job-hunt-guide, 30-minute-role-check
+- Components fixed: CookieBanner, NavHamburger, LiveNetworkMeter, MemoryCard
+- AI routes updated: cv/generate, cv/cover-letter, interview-prep, negotiation-prep — all get explicit STYLE RULES (British English, no em dashes)
+- AI prompt strings also purged in: analyse, wishlist/generate, contractor/recruiters, perm/recruiters, contractor/roles, contractor/companies, feed-gov, feed-web, feed-tasklist, job-feed, onboard/parse-cv, cv/questions, search/live
+- lib/match-engine.js reason strings (user-visible score breakdowns) fully purged
+- lib/email.js subject lines and body text fully purged
+- Admin page and admin API routes also cleaned
+- trust/page.js: updated `row.human === '—'` condition to `row.human === 'n/a'` after data values migrated
+- **Zero em dashes remain in user-facing copy** (only 2 inline `//` code comments excluded by scope)
 
 ### Stage 12e — Journey audit: 12 Medium/Low fixes (2026-06-24)
 
