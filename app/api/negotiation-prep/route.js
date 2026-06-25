@@ -40,12 +40,14 @@ export async function POST(req) {
 
   const prompt = `You are an expert negotiation coach preparing ${displayName} to negotiate a job offer. Be direct, specific, and commercially practical. No generic advice.
 
+STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.
+
 CANDIDATE BACKGROUND:
 ${candidateContext}
 ${salaryFloor ? `Stated salary floor: ${salaryFloor}` : ''}
 
 ROLE: ${roleTitle} at ${company}
-${offerAmount ? `OFFER RECEIVED: ${offerAmount}` : 'No offer amount specified — coach on general negotiation approach.'}
+${offerAmount ? `OFFER RECEIVED: ${offerAmount}` : 'No offer amount specified; coach on general negotiation approach.'}
 ${targetAmount ? `CANDIDATE'S TARGET: ${targetAmount}` : ''}
 ${jdText ? `JOB DESCRIPTION:\n${jdText.slice(0, 2000)}` : ''}
 ${notes ? `ADDITIONAL CONTEXT: ${notes}` : ''}
@@ -56,44 +58,44 @@ Provide ALL of the following sections. Be specific to this candidate and role. N
 ${offerAmount
   ? `- Where does ${offerAmount} sit relative to market for ${roleTitle} at this seniority level in the UK?
 - Is this strong, fair, or below market? Give a direct verdict.
-- What does the total package look like beyond base (pension, equity, benefits) — what to probe for?`
+- What does the total package look like beyond base (pension, equity, benefits): what to probe for?`
   : `- What salary range should ${displayName} expect for ${roleTitle} at this level in the UK?
 - What's a realistic ask vs what would be overreaching?
 - What total package components to prioritise beyond base?`}
 
 ## 2. COUNTER-OFFER STRATEGY
 - Should ${displayName} counter? Yes/No with a direct reason.
-${offerAmount && targetAmount ? `- How to move from ${offerAmount} to ${targetAmount} — specific strategy, not generic advice.` : '- What to ask for and how to frame it.'}
+${offerAmount && targetAmount ? `- How to move from ${offerAmount} to ${targetAmount}: specific strategy, not generic advice.` : '- What to ask for and how to frame it.'}
 - Anchor technique: what number to open with and why.
 - What to ask for beyond salary (equity, signing bonus, review date, remote days, title).
 
 ## 3. OPENING SCRIPTS (word-for-word)
-Write 3 versions — one call/verbal script, one email, one for when they push back on the ask:
+Write 3 versions: one call/verbal script, one email, one for when they push back on the ask:
 
 **VERBAL (phone/video call):**
-[exact script — what to say, including the pause technique]
+[exact script: what to say, including the pause technique]
 
 **EMAIL:**
-[full email draft — subject line + body, confident and specific, not sycophantic]
+[full email draft: subject line + body, confident and specific, not sycophantic]
 
 **PUSHBACK RESPONSE:**
-[what to say when they say "we can't move on salary" — how to pivot to other components or hold firm]
+[what to say when they say "we can't move on salary": how to pivot to other components or hold firm]
 
-## 4. BATNA — Know Your Walk-Away
+## 4. BATNA: Know Your Walk-Away
 - What is ${displayName}'s walk-away point based on their stated salary floor?
-- What to say if they won't negotiate — how to accept gracefully OR decline professionally.
+- What to say if they won't negotiate: how to accept gracefully OR decline professionally.
 - How to keep the relationship warm if declining.
 
 ## 5. LIKELY OBJECTIONS + RESPONSES
 3-4 common pushbacks for this type of role and direct counter-responses:
 
 **Objection:** [likely thing they'll say]
-**Response:** [what to say — specific, confident, not defensive]
+**Response:** [what to say: specific, confident, not defensive]
 
 ## 6. TIMING AND PROCESS
-- When to negotiate (after verbal offer, before signing — the exact moment).
+- When to negotiate (after verbal offer, before signing: the exact moment).
 - How many rounds is normal for this type of role.
-- What to do if they give a deadline — how to buy time professionally.
+- What to do if they give a deadline: how to buy time professionally.
 
 Be direct throughout. This candidate needs a negotiation pack they can use tomorrow morning.`
 

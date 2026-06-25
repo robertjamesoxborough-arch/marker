@@ -149,7 +149,7 @@ function cronHealth(lastRun) {
 
 const ROADMAP = [
   {
-    phase: 'Week 1 — Foundation',
+    phase: 'Week 1: Foundation',
     targetDate: '2026-05-07',
     items: [
       { label: 'Scaffold + Vercel link',              done: true  },
@@ -165,7 +165,7 @@ const ROADMAP = [
     blockers: [],
   },
   {
-    phase: 'Week 2 — Onboarding + Tracks + Admin',
+    phase: 'Week 2: Onboarding + Tracks + Admin',
     targetDate: '2026-05-21',
     items: [
       { label: '8-step onboarding with CV upload',     done: true  },
@@ -185,7 +185,7 @@ const ROADMAP = [
     blockers: [],
   },
   {
-    phase: 'Week 3 — API economy + cost protection',
+    phase: 'Week 3: API economy + cost protection',
     targetDate: '2026-05-28',
     items: [
       { label: 'Greenhouse nightly cron',              done: true  },
@@ -199,7 +199,7 @@ const ROADMAP = [
       { label: 'Admin metrics + accounts panels',      done: true  },
       { label: 'Vercel Analytics + Speed Insights',    done: true  },
       { label: 'Full funnel event tracking',           done: true  },
-      { label: 'Resend email — welcome + trial lifecycle', done: true },
+      { label: 'Resend email: welcome + trial lifecycle', done: true },
       { label: 'tier_allowances table seeded',         done: true  },
       { label: 'Hard rate limits per tier',            done: false },
       { label: 'BYO-key flow with Supabase Vault',     done: false },
@@ -209,7 +209,7 @@ const ROADMAP = [
     blockers: [],
   },
   {
-    phase: 'Week 4 — Billing + Polish + Legal',
+    phase: 'Week 4: Billing + Polish + Legal',
     targetDate: '2026-06-07',
     items: [
       { label: 'Mobile responsive pass',               done: true  },
@@ -223,7 +223,7 @@ const ROADMAP = [
       { label: 'App footer (Privacy, Terms, Pricing)', done: true  },
       { label: 'Pricing page (/pricing)',              done: true  },
       { label: 'Subscription plan gate architecture',  done: true  },
-      { label: 'Free tier gates — architecture only',  done: true  },
+      { label: 'Free tier gates: architecture only',  done: true  },
       { label: 'Stripe Standby £4/mo',                 done: false },
       { label: 'Stripe Lite £12/mo',                   done: false },
       { label: 'Stripe Pro £24/mo',                    done: false },
@@ -231,15 +231,15 @@ const ROADMAP = [
       { label: 'Hard rate limit enforcement (post-Stripe)', done: false },
     ],
     blockers: [
-      { label: 'Stripe KYC — complete identity verification (2-5 days)', youDo: true },
+      { label: 'Stripe KYC: complete identity verification (2-5 days)', youDo: true },
       { label: 'Add Stripe keys to Vercel env vars', youDo: true },
       { label: 'Supabase Pro upgrade ($25/mo) before real users', youDo: true },
-      { label: 'Vercel Pro upgrade ($20/mo) — Hobby ToS excludes commercial use', youDo: true },
+      { label: 'Vercel Pro upgrade ($20/mo): Hobby ToS excludes commercial use', youDo: true },
       { label: 'ICO registration (ico.org.uk, ~£40/year, required in UK)', youDo: true },
     ],
   },
   {
-    phase: 'Phase 4 — UX, Tracks + Lead Magnets',
+    phase: 'Phase 4: UX, Tracks + Lead Magnets',
     targetDate: '2026-06-02',
     items: [
       { label: 'Generalised onboarding (perm/contractor/both)', done: true },
@@ -249,7 +249,7 @@ const ROADMAP = [
       { label: 'Feed UX: piped jobs hide instantly, Skip label', done: true },
       { label: 'Discover: Company Scan + Live Roles merged', done: true },
       { label: 'Settings: searchMode selector (Perm/Contractor/Both)', done: true },
-      { label: 'Plan-aware tab gating (passive — ready to flip on)', done: true },
+      { label: 'Plan-aware tab gating (passive; ready to flip on)', done: true },
       { label: 'Focus mode (Score/Track/Find)',             done: true },
       { label: 'Day 1 first-run guide',                    done: true },
       { label: 'WLB guide page with print/PDF support',    done: true },
@@ -263,7 +263,7 @@ const ROADMAP = [
     blockers: [],
   },
   {
-    phase: 'Week 5 — Private beta',
+    phase: 'Week 5: Private beta',
     targetDate: '2026-06-14',
     items: [
       { label: 'Recruit 50 beta users from LinkedIn',  done: false },
@@ -276,7 +276,7 @@ const ROADMAP = [
     ],
   },
   {
-    phase: 'Week 6 — Public launch 🚀',
+    phase: 'Week 6: Public launch 🚀',
     targetDate: '2026-06-28',
     items: [
       { label: 'Product Hunt launch (Tue–Thu)',        done: false },
@@ -301,7 +301,7 @@ function ActionItems({ status }) {
     if (pct === 100) return // phase done, skip its blockers
     phase.blockers.filter(b => b.youDo).forEach(b => {
       const envDone = b.envKey && status?.envCheck ? !!status.envCheck[b.envKey] : false
-      actionItems.push({ label: b.label, phase: phase.phase.split(' — ')[0], envKey: b.envKey, done: envDone })
+      actionItems.push({ label: b.label, phase: phase.phase.split(': ')[0], envKey: b.envKey, done: envDone })
     })
   })
 
@@ -339,8 +339,8 @@ function ActionItems({ status }) {
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-lime)', flexShrink: 0 }}>{overallPct}%</div>
         {activePhase && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.6)', flexShrink: 0, maxWidth: 140 }}>
-            {activePhase.phase.split(' — ')[0]}<br />
-            <span style={{ color: 'rgba(255,255,255,0.35)' }}>{activePhase.phase.split(' — ')[1]}</span>
+            {activePhase.phase.split(': ')[0]}<br />
+            <span style={{ color: 'rgba(255,255,255,0.35)' }}>{activePhase.phase.split(': ')[1]}</span>
           </div>
         )}
       </div>
@@ -380,7 +380,7 @@ function ActionItems({ status }) {
 
       {pending.length === 0 && resolved.length === 0 && (
         <div style={{ padding: '10px 16px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)' }}>
-          No build blockers on you right now — Claude has the next sprint.
+          No build blockers on you right now. Claude has the next sprint.
         </div>
       )}
 
@@ -738,7 +738,7 @@ export default function AdminPage() {
                   const r = await fetch('/api/admin/reset-onboard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
                   const json = await r.json().catch(() => ({}))
                   if (r.ok) {
-                    alert('Done — all accounts will see onboarding on next login.')
+                    alert('Done: all accounts will see onboarding on next login.')
                     fetch('/api/admin/accounts').then(r => r.ok ? r.json() : null).then(d => d && setAccounts(d?.accounts || []))
                   } else {
                     alert(`Failed: ${json.error || r.status}`)
@@ -754,7 +754,7 @@ export default function AdminPage() {
                   const r = await fetch('/api/admin/reset-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
                   const json = await r.json().catch(() => ({}))
                   if (r.ok) {
-                    alert(`Done — all trials reset to 7 days (ends ${new Date(json.trialEndsAt).toLocaleDateString('en-GB')}).`)
+                    alert(`Done: all trials reset to 7 days (ends ${new Date(json.trialEndsAt).toLocaleDateString('en-GB')}).`)
                     fetch('/api/admin/accounts').then(r => r.ok ? r.json() : null).then(d => d && setAccounts(d?.accounts || []))
                   } else {
                     alert(`Failed: ${json.error || r.status}`)
@@ -794,25 +794,25 @@ export default function AdminPage() {
                               {a.archived && <span style={{ marginLeft: 6, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', opacity: 0.6 }}>archived</span>}
                             </td>
                             <td style={{ padding: '9px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>
-                              {a.track ? TRACK_LABELS[a.track] || a.track : '—'}
+                              {a.track ? TRACK_LABELS[a.track] || a.track : 'n/a'}
                             </td>
                             <td style={{ padding: '9px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: trialColor }}>
                               {a.trialStatus === 'active'
                                 ? `Active · ${Math.ceil((new Date(a.trialEndsAt) - new Date()) / 86400000)}d left`
                                 : a.trialStatus === 'expired' ? 'Expired'
-                                : '—'}
+                                : 'n/a'}
                             </td>
                             <td style={{ padding: '9px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', whiteSpace: 'nowrap' }}>
-                              {a.signedUpAt ? new Date(a.signedUpAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
+                              {a.signedUpAt ? new Date(a.signedUpAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'n/a'}
                             </td>
                             <td style={{ padding: '9px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', whiteSpace: 'nowrap' }}>
-                              {a.lastSignIn ? new Date(a.lastSignIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
+                              {a.lastSignIn ? new Date(a.lastSignIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'n/a'}
                             </td>
                             <td style={{ padding: '9px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: a.aiSpendGbp > 0.5 ? '#c0392b' : 'var(--marker-mid)', whiteSpace: 'nowrap' }}>
-                              {a.aiSpendGbp > 0 ? `£${a.aiSpendGbp.toFixed(3)}` : '—'}
+                              {a.aiSpendGbp > 0 ? `£${a.aiSpendGbp.toFixed(3)}` : 'n/a'}
                             </td>
                             <td style={{ padding: '9px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>
-                              {a.refCode || '—'}
+                              {a.refCode || 'n/a'}
                             </td>
                             <td style={{ padding: '9px 10px', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
                               <button
@@ -855,7 +855,7 @@ export default function AdminPage() {
           <div style={{ padding: '60px 0', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.08em', marginBottom: 12 }}>COMING SOON</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Feature flags</div>
-            <div style={{ fontSize: 14, color: 'var(--marker-mid)' }}>Needs a feature_flags table — building in a future sprint.</div>
+            <div style={{ fontSize: 14, color: 'var(--marker-mid)' }}>Needs a feature_flags table; building in a future sprint.</div>
           </div>
         )}
 
@@ -879,7 +879,7 @@ export default function AdminPage() {
                       <div key={e.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: e.ok ? '#2D6A00' : '#c0392b', minWidth: 12 }}>{e.ok ? '✓' : '✗'}</span>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-text)' }}>{e.label}</span>
-                        {!e.ok && <span style={{ fontSize: 11, color: 'var(--marker-mid)' }}>— {e.fix}</span>}
+                        {!e.ok && <span style={{ fontSize: 11, color: 'var(--marker-mid)' }}>{e.fix}</span>}
                       </div>
                     ))}
                   </div>
@@ -997,7 +997,7 @@ export default function AdminPage() {
                   time: '8 min read',
                   status: 'live',
                   content: 'The score-tier system: 80+ = write it yourself (Tier 1), 60-79 = AI drafts, you personalise (Tier 2), 40-59 = AI handles it (Tier 3), below 40 = skip. Explains what to do at each tier, why effort allocation matters more than application volume, and what a good week looks like when you follow the system.',
-                  useFor: 'Core Marker value prop — directly ties job score to time-saving, perfect for acquisition content and LinkedIn authority posts',
+                  useFor: 'Core Marker value prop; directly ties job score to time-saving, perfect for acquisition content and LinkedIn authority posts',
                 },
               ].map(g => (
                 <div key={g.slug} style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1033,7 +1033,7 @@ export default function AdminPage() {
                   'LinkedIn post: share 3 key stats from the WLB guide as a list post; link to the full guide in the first comment',
                   'LinkedIn carousel: turn the 8-point role assessment into a 9-slide carousel (one point per slide + CTA slide)',
                   'Email nurture: send the parent guide to anyone who ticks the "parent" filter during signup',
-                  'SEO: each guide is a static page — submit to Google Search Console after launch',
+                  'SEO: each guide is a static page; submit to Google Search Console after launch',
                   'Product Hunt: mention guides as a free resource in the launch post to appeal to job seeker voters',
                 ].map((tip, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -1091,7 +1091,7 @@ export default function AdminPage() {
                     <div>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>{phase.phase}</div>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: isPast && !isComplete ? '#c0392b' : 'var(--marker-mid)' }}>
-                        Target: {dateStr}{isPast && !isComplete ? ' — overdue' : ''}
+                        Target: {dateStr}{isPast && !isComplete ? ' (overdue)' : ''}
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>

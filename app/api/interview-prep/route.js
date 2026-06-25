@@ -53,8 +53,8 @@ export async function POST(req) {
   const STAGE_CONTEXT = {
     'screening': 'Initial screening call, typically 20-30 minutes with HR or talent team. Focus on: culture fit, basic role alignment, salary expectations, notice period, logistics.',
     'hiring_manager': 'With the hiring manager who makes the final call. They want deep role fit, how you think, and whether you can do the job. Expect competency-based questions and deep dives.',
-    'panel': 'Panel with multiple stakeholders — peers, cross-functional partners, senior leaders. Varied question styles, need to engage multiple personalities simultaneously.',
-    'final': 'Final round — likely one of 2-3 candidates. Assessing culture fit at senior level and any remaining concerns. Expect strategic questions, possibly a presentation or case study.',
+    'panel': 'Panel with multiple stakeholders: peers, cross-functional partners, senior leaders. Varied question styles, need to engage multiple personalities simultaneously.',
+    'final': 'Final round: likely one of 2-3 candidates. Assessing culture fit at senior level and any remaining concerns. Expect strategic questions, possibly a presentation or case study.',
     'task': 'Task or presentation round. Structure your thinking clearly, show commercial judgment, demonstrate you understand what the role needs.',
     'ceo': 'Senior/CEO level interview. Big-picture strategic questions, vision alignment, leadership philosophy and long-term thinking.',
   }
@@ -75,10 +75,12 @@ export async function POST(req) {
 
   const prompt = `You are an expert interview coach preparing ${displayName} for a job interview. All research and preparation must be done via your web search tool.
 
+STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.
+
 CANDIDATE BACKGROUND: ${CANDIDATE}
 
 ROLE: ${job.roleTitle || 'Unknown Role'} at ${job.company || 'Unknown Company'}
-${hasJobLink ? 'Job URL: ' + job.jobLink : 'NO JOB URL PROVIDED — use web search to find this role if possible'}
+${hasJobLink ? 'Job URL: ' + job.jobLink : 'NO JOB URL PROVIDED: use web search to find this role if possible'}
 ${job.score ? 'Match score when assessed: ' + job.score + '/10' : ''}
 ${job.signalReason ? 'Initial assessment note: ' + job.signalReason : ''}
 
@@ -87,7 +89,7 @@ ${stageContext}
 
 INTERVIEWER/FORMAT: ${interviewer || 'Not specified'}
 
-${cvBase64 ? `SUBMITTED CV: The PDF attached is the ACTUAL CV ${displayName} submitted for this role. Use this as the basis for all preparation — not general background. Treat it as the source of truth for what they claimed.` : 'NO CV UPLOADED — base preparation on the candidate background above only.'}
+${cvBase64 ? `SUBMITTED CV: The PDF attached is the ACTUAL CV ${displayName} submitted for this role. Use this as the basis for all preparation, not general background. Treat it as the source of truth for what they claimed.` : 'NO CV UPLOADED: base preparation on the candidate background above only.'}
 
 ${hasJdText ? 'JOB DESCRIPTION (provided by candidate):\n' + jdText.trim().slice(0, 6000) : ''}
 
@@ -101,7 +103,7 @@ IMPORTANT INSTRUCTION: For section 0 (JD Essentials), treat ${displayName} as if
 
 Please provide ALL of the following sections in full. Be specific, direct, and tailored. No padding.
 
-## 0. JD ESSENTIALS — WHAT THIS ROLE ACTUALLY WANTS
+## 0. JD ESSENTIALS: WHAT THIS ROLE ACTUALLY WANTS
 Search for the job description if not provided. Then distill it as if briefing someone who has never seen it:
 - The 5-6 core things this role requires (skills, experience, behaviours) in plain language
 - The single most important thing the hiring manager cares about above all else
@@ -110,7 +112,7 @@ Search for the job description if not provided. Then distill it as if briefing s
 - Any specific language or phrases from the JD that the candidate should mirror back in the interview
 ${!hasJobLink && !hasJdText ? '\n⚠️ NOTE: No job link or JD was provided. Search for this role online. If you cannot find it, note this clearly and ask the candidate to paste the JD.' : ''}
 
-## 1. COMPANY INTEL (search now — live research only, no assumptions)
+## 1. COMPANY INTEL (search now; live research only, no assumptions)
 - What the company does and their current strategic focus
 - Recent news, product launches, partnerships, funding, or challenges (last 6 months)
 - Glassdoor signals on interview process and culture
@@ -119,26 +121,26 @@ ${!hasJobLink && !hasJdText ? '\n⚠️ NOTE: No job link or JD was provided. Se
 
 ## 2. ROLE ALIGNMENT
 - Where ${displayName}'s background maps most strongly to what this role needs
-- Where there are gaps — and specifically how to address each one proactively in the interview
+- Where there are gaps, and specifically how to address each one proactively in the interview
 - The angle ${displayName} should lead with (what's the most compelling version of their story for this role)
 
 ## 3. LIKELY QUESTIONS FOR THIS STAGE
 8-10 questions most likely to be asked at a ${stage.replace('_', ' ')} interview for this role. For each:
 **Q: [Question]**
-Answer framework: [Specific approach referencing the candidate's actual experience from the submitted CV or their background — concrete, not generic]
+Answer framework: [Specific approach referencing the candidate's actual experience from the submitted CV or their background; be concrete, not generic]
 
 ## 4. STORIES TO PREPARE (STAR format)
 4 specific stories from the candidate's background mapped to the most likely competency areas for this role:
 - Situation & Task (brief context)
-- Action (what the candidate specifically did — their decisions, not the team's)
-- Result (numbers where available — use the submitted CV as source)
+- Action (what the candidate specifically did: their decisions, not the team's)
+- Result (numbers where available; use the submitted CV as source)
 - Why it lands for THIS role specifically
 
 ## 5. QUESTIONS TO ASK THEM
-8 genuinely smart questions appropriate for this stage — show strategic thinking and genuine curiosity. Not generic. Stage-appropriate.
+8 genuinely smart questions appropriate for this stage; show strategic thinking and genuine curiosity. Not generic. Stage-appropriate.
 
 ## 6. WATCH OUTS
-3 things ${displayName} should prepare to address — likely concerns the interviewer will have, gaps to handle proactively, and anything to avoid saying based on the JD.
+3 things ${displayName} should prepare to address: likely concerns the interviewer will have, gaps to handle proactively, and anything to avoid saying based on the JD.
 
 ## 7. PREP CHECKLIST
 Practical checklist: what to research, what to have ready, logistics, documents, and anything else to do before the call.

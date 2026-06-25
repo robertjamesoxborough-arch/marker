@@ -67,7 +67,7 @@ export async function GET() {
 
     return {
       id: u.id,
-      email: auth.email || '—',
+      email: auth.email || 'n/a',
       name: profile.name || null,
       track: profile.track || null,
       seniority: profile.seniority || null,

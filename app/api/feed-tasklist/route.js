@@ -1,6 +1,6 @@
 import { MODELS } from '../../../lib/anthropic'
 
-const PROFILE =`Rob Oxborough — Strategic Partnership Manager EMEA at Meta. 12+ years across PlayStation, NatWest, King/Activision Blizzard, Google, B2B SEO consultancy. Won 2x Drum Awards including Best Integrated SEO Campaign. Skills: partnerships, product marketing, digital marketing, online marketing, performance marketing, SEO/organic growth, digital strategy, growth, BD, programme management. Based in Greater London.`
+const PROFILE =`Rob Oxborough, Strategic Partnership Manager EMEA at Meta. 12+ years across PlayStation, NatWest, King/Activision Blizzard, Google, B2B SEO consultancy. Won 2x Drum Awards including Best Integrated SEO Campaign. Skills: partnerships, product marketing, digital marketing, online marketing, performance marketing, SEO/organic growth, digital strategy, growth, BD, programme management. Based in Greater London.`
 const RECIPE = `MATCH: Partnerships, Product Marketing, Digital Marketing, Online Marketing, Performance Marketing, SEO, Organic Growth, Programme Lead, Digital Strategy, Growth, BD roles. Senior Manager+ at big cos, Head/Director/VP at 100-500 person cos. UK or remote, max 2 days office. Fintech, SaaS, gaming, martech, retail tech, media, energy tech. REJECT: junior, pure sales quota, 3+ office days, non-UK.`
 
 const BOARDS = {
@@ -79,7 +79,7 @@ export async function POST() {
 
     const summaries = toScore.map((j, i) => `[${i}] "${j.title}" at ${j.company} | ${j.location} | ${j.url}`).join('\n')
 
-    const prompt = `Score these Greenhouse jobs for: ${PROFILE}\nCriteria: ${RECIPE}\n\nJOBS:\n${summaries}\n\nRULES — follow strictly:
+    const prompt = `Score these Greenhouse jobs for: ${PROFILE}\nCriteria: ${RECIPE}\n\nJOBS:\n${summaries}\n\nRULES, follow strictly:
 1. Maximum 2 results per company. Pick ONLY the best-matching roles.
 2. The candidate's domain is: partnerships, product marketing, digital strategy, growth marketing, business development, programme/project management in marketing. ONLY return roles where this is the PRIMARY function of the job.
 3. "Head of Workforce Management" = REJECT. "BDR German Speaking" = REJECT. "Lead Change Partner FinCrime" = REJECT. These are not marketing/partnerships/growth roles regardless of seniority or company. The title must clearly indicate marketing, partnerships, growth, strategy, BD, or programme management as the core function.

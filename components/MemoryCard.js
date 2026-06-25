@@ -21,7 +21,7 @@ const TRACK_LABELS = {
 }
 
 // Inline editable field — click to edit, save persists to DB
-function Field({ label, value, placeholder = 'Not set — click to add', onSave, type = 'text' }) {
+function Field({ label, value, placeholder = 'Not set: click to add', onSave, type = 'text' }) {
   const [editing, setEditing] = useState(false)
   const [draft,   setDraft]   = useState(value ?? '')
   const [saving,  setSaving]  = useState(false)
@@ -122,9 +122,9 @@ export default function MemoryCard() {
 
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <div className="kicker holo-text" style={{ marginBottom: 6 }}>G3 — We never forget you</div>
+        <div className="kicker holo-text" style={{ marginBottom: 6 }}>G3: We never forget you</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 6 }}>Everything Requite knows about you</div>
-        <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Every field below is used to personalise your scores, feed, and AI tools. Click any field to edit — changes save instantly and take effect on your next AI call.</div>
+        <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Every field below is used to personalise your scores, feed, and AI tools. Click any field to edit; changes save instantly and take effect on your next AI call.</div>
       </div>
 
       {/* Role preferences */}
@@ -200,7 +200,7 @@ export default function MemoryCard() {
         <div style={{ fontSize: 13, color: hfj.cvRaw ? 'var(--marker-black)' : 'var(--marker-border)', marginBottom: 4 }}>
           {hfj.cvRaw
             ? `✓ ${hfj.cvRaw.length.toLocaleString()} characters stored`
-            : 'No CV stored — paste it in Settings to unlock full AI scoring'}
+            : 'No CV stored; paste it in Settings to unlock full AI scoring'}
         </div>
         {hfj.cvRaw && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 6, padding: '8px 10px', maxHeight: 80, overflow: 'hidden', lineHeight: 1.5 }}>
@@ -239,7 +239,7 @@ export default function MemoryCard() {
 
       {/* Footer note */}
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', lineHeight: 1.6, marginTop: 8 }}>
-        All data stored in your private profile. Wiping any AI conversation history leaves this record byte-identical. This is what Requite reads on every call — never a chat log.
+        All data stored in your private profile. Wiping any AI conversation history leaves this record byte-identical. This is what Requite reads on every call, never a chat log.
       </div>
     </div>
   )

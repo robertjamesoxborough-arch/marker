@@ -44,9 +44,9 @@ JD: ${(jd || '').slice(0, 2500)}
 
 Rules:
 - Each question should draw out a specific achievement, number, context, or story directly relevant to what this JD asks for
-- Tailor questions to the candidate's background above — do not ask about experience they clearly have
+- Tailor questions to the candidate's background above; do not ask about experience they clearly have
 - Do NOT ask generic questions like "tell me about yourself" or "how many years experience do you have"
-- Make each question unanswerable with a generic CV — the answers should add real specificity
+- Make each question unanswerable with a generic CV; the answers should add real specificity
 - Each answer should be completeable in 2-4 sentences
 - Questions should feel like they were written by a senior recruiter for THIS role
 

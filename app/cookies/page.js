@@ -18,7 +18,7 @@ export default function CookiesPage() {
           </thead>
           <tbody>
             {[
-              { name: 'sb-*-auth-token', purpose: 'Supabase authentication session — keeps you signed in', duration: 'Session / 1 year' },
+              { name: 'sb-*-auth-token', purpose: 'Supabase authentication session; keeps you signed in', duration: 'Session / 1 year' },
               { name: 'sb-*-auth-token-code-verifier', purpose: 'PKCE OAuth security token for sign-in flow', duration: 'Session' },
             ].map(row => (
               <tr key={row.name} style={{ borderBottom: '1px solid var(--marker-border)' }}>

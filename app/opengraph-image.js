@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = "Marker — For experienced people who'd quite like their evenings back"
+export const alt = "Marker: for experienced people who'd quite like their evenings back"
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const runtime = 'edge'

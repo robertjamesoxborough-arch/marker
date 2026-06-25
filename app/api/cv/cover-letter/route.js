@@ -39,7 +39,7 @@ export async function POST(request) {
 
   const TRACK_TONE = {
     balanced:       'The candidate values work-life balance. Where appropriate, the tone should reflect someone who delivers excellent work sustainably, not someone who glorifies overwork.',
-    parent:         'The candidate is a working parent seeking family-friendly roles. The tone should be confident and direct — do not make the candidate sound apologetic or overly grateful.',
+    parent:         'The candidate is a working parent seeking family-friendly roles. The tone should be confident and direct; do not make the candidate sound apologetic or overly grateful.',
     returner:       'The candidate may have taken a career break. Frame their return as a strength. Do not reference or apologise for any gap.',
     career_changer: 'The candidate is changing sector or role type. Emphasise what their different background uniquely brings to this role.',
     standard:       '',
@@ -50,6 +50,8 @@ export async function POST(request) {
   const client = new Anthropic()
 
   const SYSTEM_CACHED = `You are an expert cover letter writer specialising in UK job applications. Your letters are specific, confident, and human. You never use filler language, corporate buzzwords, or generic openings. Never invent, add, or extrapolate any metric, statistic, or achievement not explicitly present in the candidate's CV below.
+
+STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.
 
 CANDIDATE PROFILE:
 ${candidateContext}`
@@ -65,16 +67,16 @@ ${jd.slice(0, 3000)}
 
 Instructions:
 - 3-4 paragraphs, max 350 words
-- Opening: hook that references something specific about the company or role — not generic
+- Opening: hook that references something specific about the company or role, not generic
 - Body: connect 2-3 specific achievements from the CV directly to what the JD asks for
 - Closing: confident, clear call to action
-- Tone: professional but human — not corporate, not sycophantic
+- Tone: professional but human, not corporate, not sycophantic
 - Do not start with "I am writing to apply…" or any variant
 - Banned words: "passionate", "leverage", "synergy", "dynamic", "excited to", "thrilled"
 - Address to "Hiring Manager" unless told otherwise
 - Include a placeholder header: [Candidate Name] | [Email] | [Phone] | [LinkedIn]
 
-Return the cover letter only — no commentary, no title, no labels.`
+Return the cover letter only; no commentary, no title, no labels.`
 
   try {
     const msg = await client.messages.create({

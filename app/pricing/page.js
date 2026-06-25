@@ -9,13 +9,13 @@ export default function PricingPage() {
       period: '/month',
       tagline: 'For the permanent job search',
       features: [
-        'Job scoring — 8-factor AI match score on any role',
+        'Job scoring: 8-factor AI match score on any role',
         'Nightly job feed filtered to your profile',
-        'Company Scan — track and check your target employers',
-        'Pipeline — manage your search across every stage',
+        'Company Scan: track and check your target employers',
+        'Pipeline: manage your search across every stage',
         'CV tailoring prompts and cover letter generator',
         'Interview prep pack for any role',
-        'WLB employer guide — culture data before you apply',
+        'WLB employer guide: culture data before you apply',
         '7-day free trial',
       ],
       cta: 'Start free trial',
@@ -30,9 +30,9 @@ export default function PricingPage() {
       tagline: 'For the contract and interim market',
       features: [
         'Everything in Marker',
-        'Generic contractor CV generator — ready for recruiter blast',
-        'Contractor role scanner — live contract and interim listings',
-        'Agency finder — curated recruiter directory for your field',
+        'Generic contractor CV generator, ready for recruiter blast',
+        'Contractor role scanner: live contract and interim listings',
+        'Agency finder: curated recruiter directory for your field',
         'Target company list weighted for companies that use contractors',
         '7-day free trial',
       ],
@@ -45,11 +45,11 @@ export default function PricingPage() {
       name: 'Marker Pro',
       price: '£26',
       period: '/month',
-      tagline: 'Perm and contractor — full toolkit',
+      tagline: 'Perm and contractor: full toolkit',
       features: [
         'Everything in Marker and Marker Contractor',
         'All perm tools plus all contractor tools in one workspace',
-        'Dual job feed — perm and contract roles together',
+        'Dual job feed: perm and contract roles together',
         'Switch between modes at any time in Settings',
         '7-day free trial',
       ],
@@ -131,11 +131,11 @@ export default function PricingPage() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 80px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 28, textAlign: 'center' }}>Common questions</div>
         {[
-          { q: 'How does the free trial work?', a: 'You get 7 days of full access with no credit card required. At the end of your trial you can subscribe to keep access — your pipeline and settings are preserved.' },
+          { q: 'How does the free trial work?', a: 'You get 7 days of full access with no credit card required. At the end of your trial you can subscribe to keep access; your pipeline and settings are preserved.' },
           { q: 'Can I switch plans later?', a: 'Yes. You can upgrade, downgrade, or switch between perm and contractor mode at any time from Settings.' },
           { q: 'What happens if I cancel?', a: 'Your account stays active until the end of the billing period. We do not charge cancellation fees. You can request a refund within 7 days of any charge.' },
-          { q: 'Are the job scores guaranteed?', a: 'No. Scores are AI estimates based on your profile — they are a starting point for your own judgement, not a hiring prediction or professional recommendation. Read the full disclaimer in our Terms.' },
-          { q: 'Where does job data come from?', a: 'Live roles come from Adzuna, who aggregate listings from thousands of job boards nightly. Company career page checks use publicly available career page data. WLB employer data is sourced from public Glassdoor scores, company disclosures, and employer surveys — always verify directly with the employer.' },
+          { q: 'Are the job scores guaranteed?', a: 'No. Scores are AI estimates based on your profile; they are a starting point for your own judgement, not a hiring prediction or professional recommendation. See the full disclaimer in our Terms.' },
+          { q: 'Where does job data come from?', a: 'Live roles come from Adzuna, who aggregate listings from thousands of job boards nightly. Company career page checks use publicly available career page data. WLB employer data is sourced from public Glassdoor scores, company disclosures, and employer surveys; always verify directly with the employer.' },
           { q: 'Is my CV data secure?', a: 'Your CV and profile data are stored encrypted in Supabase (AWS EU-West-1). When you use AI features, relevant portions are sent to Anthropic for processing under their API terms. We never sell your data or share it with employers.' },
         ].map(({ q, a }) => (
           <div key={q} style={{ borderBottom: '1px solid var(--marker-border)', padding: '20px 0' }}>

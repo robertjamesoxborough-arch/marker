@@ -123,7 +123,7 @@ export async function POST() {
 
   const ir35Note = ir35 === 'outside' ? 'Prefer outside-IR35 roles.' : ir35 === 'inside' ? 'Comfortable with inside-IR35.' : ''
   const fieldNote = field
-    ? `FIELD SPECIFICITY: This candidate works in "${field}". A role with a matching title but in an unrelated sector (e.g. logistics, warehousing, FMCG, construction if the candidate is in ${field}) must score 1-4. The full job context must match their sector — not just the job title.`
+    ? `FIELD SPECIFICITY: This candidate works in "${field}". A role with a matching title but in an unrelated sector (e.g. logistics, warehousing, FMCG, construction if the candidate is in ${field}) must score 1-4. The full job context must match their sector; not just the job title.`
     : ''
 
   const summaries = toScore.map((j, i) => `[${i}] "${j.title}" at ${j.company} | ${j.location} | ${j.salary}`).join('\n')
@@ -140,7 +140,7 @@ ${summaries}
 Return JSON array. Each object:
 {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence explaining relevance to this specific candidate", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown", "contractType": "Day-rate"/"Interim"/"FTC"/"Freelance"/"Unknown"}
 
-Scoring: 8+ use 0.2 increments. Only include score ≥ 7. Reject perm roles, wrong-sector roles, junior roles, generic aggregator listings. Be strict — a smaller list of genuinely relevant roles is better than a long list of questionable ones. Return ONLY the JSON array.`
+Scoring: 8+ use 0.2 increments. Only include score ≥ 7. Reject perm roles, wrong-sector roles, junior roles, generic aggregator listings. Be strict: a smaller list of genuinely relevant roles is better than a long list of questionable ones. Return ONLY the JSON array.`
 
   const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',

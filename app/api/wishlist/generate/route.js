@@ -52,7 +52,7 @@ export async function POST() {
 
   const profileContext = hasCV ? cvRaw.slice(0, 3000) : profileFallback
   const trackNotes = tracks.map(t => TRACK_CONTEXT[t] || '').filter(Boolean).join(' ')
-  const contractorNote = isContractor ? '\nThis person is looking for contract/interim opportunities — prioritise companies known to use senior contractors and interim professionals in this field.' : ''
+  const contractorNote = isContractor ? '\nThis person is looking for contract/interim opportunities; prioritise companies known to use senior contractors and interim professionals in this field.' : ''
 
   const prompt = `You are a senior career advisor. A job seeker wants a personalised list of UK companies to target.
 
@@ -68,7 +68,7 @@ ${existing.length ? `Already on their list (exclude these): ${existing.join(', '
 Return a JSON array of exactly 10 company objects. Each object must have:
 - "company": company name (string)
 - "sector": industry sector (string, 1-3 words)
-- "why": one sentence explaining why this company is a strong fit based on their specific background and goal — be concrete, not generic
+- "why": one sentence explaining why this company is a strong fit based on their specific background and goal; be concrete, not generic
 
 Rules:
 - UK companies or companies with a strong UK presence and real UK hiring
@@ -78,7 +78,7 @@ Rules:
 - For parent/balanced tracks, weight toward companies publicly known for good culture
 - For returner track, weight toward companies with returnship or re-entry programmes
 - DO NOT include: generic consulting firms unless clearly relevant, companies already on their list
-- Return ONLY valid JSON — no markdown, no explanation, no code fences`
+- Return ONLY valid JSON: no markdown, no explanation, no code fences`
 
   try {
     const message = await client.messages.create({
@@ -97,6 +97,6 @@ Rules:
     return NextResponse.json({ suggestions: suggestions.slice(0, 10) })
   } catch (err) {
     console.error('wishlist/generate error:', err)
-    return NextResponse.json({ error: 'Generation failed — try again' }, { status: 500 })
+    return NextResponse.json({ error: 'Generation failed; try again' }, { status: 500 })
   }
 }

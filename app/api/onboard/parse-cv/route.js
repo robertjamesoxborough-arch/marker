@@ -34,7 +34,7 @@ export async function POST(request) {
       max_tokens: 500,
       messages: [{
         role: 'user',
-        content: `Analyse this CV and return structured JSON recommendations for onboarding. Be specific and accurate — only suggest what is clearly evidenced.
+        content: `Analyse this CV and return structured JSON recommendations for onboarding. Be specific and accurate; only suggest what is clearly evidenced.
 
 Canonical role families: ${ROLE_FAMILIES.join(', ')}
 Valid seniority IDs: ${SENIORITY_IDS.join(', ')} (ic=individual contributor, manager, senior_manager, head=Head of, director, vp_plus)
@@ -58,7 +58,7 @@ Rules:
 - "keywords": 3-6 short keywords NOT in the canonical list (skills, sectors, methodologies)
 - "seniority": which levels this person is targeting/qualified for (typically 1-2)
 - "industries": which industries their experience is in (max 4, must be from the canonical list)
-- "salaryHint": estimated salary floor in £k based on seniority and UK market norms — integer only, null if not enough info
+- "salaryHint": estimated salary floor in £k based on seniority and UK market norms; integer only, null if not enough info
 - All "Reason" fields: concise one-sentence explanation, referencing specific details from the CV where possible. Use "null" (string) if genuinely no data.
 
 CV text:

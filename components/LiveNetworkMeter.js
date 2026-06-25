@@ -25,7 +25,7 @@ export default function LiveNetworkMeter({ compact = false, sector = null }) {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
         <span className="holo-dot" style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }} />
         {roleCount === 0
-          ? 'Launching — be a founding partner'
+          ? 'Launching: be a founding partner'
           : `${roleCount} managed role${roleCount !== 1 ? 's' : ''} live${sectorLabel}`}
       </span>
     )
@@ -53,7 +53,7 @@ export default function LiveNetworkMeter({ compact = false, sector = null }) {
       </div>
       {roleCount === 0 && (
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 24 }}>
-          No managed roles live yet — be a founding partner and get priority placement.
+          No managed roles live yet. Be a founding partner and get priority placement.
         </div>
       )}
     </div>

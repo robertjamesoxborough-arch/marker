@@ -156,7 +156,7 @@ export async function POST() {
     const summaries = toScore.map((j, i) => `[${i}] "${j.title}" at ${j.company} | ${j.location} | ${j.salary} | ${j.url}`).join('\n')
 
     const fieldLine = profile?.hard_filters_json?.field
-      ? `FIELD: Candidate works in "${profile.hard_filters_json.field}". A role with a matching title but in an unrelated sector (e.g. logistics, warehousing, manufacturing, retail if candidate is in tech/media/finance) must score 1-4 — title alone is not enough. Score the whole role context, not just the job title.`
+      ? `FIELD: Candidate works in "${profile.hard_filters_json.field}". A role with a matching title but in an unrelated sector (e.g. logistics, warehousing, manufacturing, retail if candidate is in tech/media/finance) must score 1-4; title alone is not enough. Score the whole role context, not just the job title.`
       : ''
 
     const prompt = `Score these Adzuna job search results for: ${PROFILE}\nCriteria: ${RECIPE}\n${fieldLine}\n\nJOBS:\n${summaries}\n\nReturn JSON array only. Each object: {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence explaining relevance to this specific candidate", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.\nSCORING: 1-7 use whole numbers. 8+ use increments of 0.2 (8.0, 8.2, 8.4, 8.6, 8.8, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0).\nOnly include 7+ scores. Max 3 per company. Be strict: reject junior, sales-quota, 3+ days mandatory office, wrong sector, generic aggregator listings. Return ONLY JSON array, no markdown.`

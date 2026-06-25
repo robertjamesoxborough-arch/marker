@@ -39,7 +39,7 @@ export async function POST(request) {
   const adzunaId  = process.env.ADZUNA_APP_ID
   const adzunaKey = process.env.ADZUNA_APP_KEY || process.env.ADZUNA_API_KEY
   if (!adzunaId || !adzunaKey) {
-    return NextResponse.json({ error: 'Adzuna not configured — add ADZUNA_APP_ID and ADZUNA_APP_KEY in Vercel.' })
+    return NextResponse.json({ error: 'Adzuna not configured; add ADZUNA_APP_ID and ADZUNA_APP_KEY in Vercel.' })
   }
 
   const track      = profile?.track || 'standard'
@@ -88,7 +88,7 @@ export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return NextResponse.json({
-      jobs: deduped.slice(0, 20).map((j, i) => ({ id: `az-${i}`, ...j, score: 0, signal: 'maybe', reason: 'AI scoring unavailable — no API key.', badge: null, office: 'Unknown', source: 'adzuna', adzunaAttributionRequired: true, foundAt: new Date().toISOString() })),
+      jobs: deduped.slice(0, 20).map((j, i) => ({ id: `az-${i}`, ...j, score: 0, signal: 'maybe', reason: 'AI scoring unavailable; no API key.', badge: null, office: 'Unknown', source: 'adzuna', adzunaAttributionRequired: true, foundAt: new Date().toISOString() })),
       total: deduped.length,
     })
   }

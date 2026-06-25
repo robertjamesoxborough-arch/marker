@@ -111,7 +111,7 @@ export default function NavHamburger() {
                   padding: '12px 22px', borderRadius: 8, textDecoration: 'none',
                 }}
               >
-                Start free — 7 days →
+                Start free: 7 days →
               </Link>
             </div>
           </nav>

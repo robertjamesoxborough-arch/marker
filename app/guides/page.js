@@ -12,14 +12,14 @@ const GUIDES = [
   {
     slug: '30-minute-role-check',
     title: 'The 30-Minute Role Assessment',
-    desc: 'The 8 things to check before applying for any senior role — and how to do it in half an hour instead of half a day.',
+    desc: 'The 8 things to check before applying for any senior role, and how to do it in half an hour instead of half a day.',
     tag: 'Productivity',
     time: '10 min read',
   },
   {
     slug: 'senior-job-hunt-playbook',
     title: 'The Senior Job Hunt Playbook',
-    desc: 'Why the rules change above Head of level — and how experienced professionals find the roles that are never advertised.',
+    desc: 'Why the rules change above Head of level, and how experienced professionals find the roles that are never advertised.',
     tag: 'Strategy',
     time: '12 min read',
   },
@@ -33,14 +33,14 @@ const GUIDES = [
   {
     slug: 'parent-job-hunt-guide',
     title: "The Parent's Guide to Finding a Better Job",
-    desc: 'How to find employers that are genuinely family-friendly — not just ones that say so on their careers page.',
+    desc: 'How to find employers that are genuinely family-friendly, not just ones that say so on their careers page.',
     tag: 'Parent track',
     time: '10 min read',
   },
   {
     slug: 'score-tier-guide',
     title: 'Stop Applying for Everything. Start Winning the Right Ones.',
-    desc: 'How to use your job score to decide where to spend real effort — and where to let AI handle it. Three tiers. One strategy.',
+    desc: 'How to use your job score to decide where to spend real effort, and where to let AI handle it. Three tiers. One strategy.',
     tag: 'Strategy',
     time: '8 min read',
   },
@@ -62,7 +62,7 @@ export default function GuidesPage() {
           Job hunting is hard enough.<br />At least have the right playbook.
         </h1>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, maxWidth: 480, margin: '0 0 48px' }}>
-          Free, practical guides for experienced professionals. No fluff. Enough juice to be useful — and enough to show you why having a tool matters.
+          Free, practical guides for experienced professionals. No fluff. Enough juice to be useful, and enough to show you why having a tool matters.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -83,7 +83,7 @@ export default function GuidesPage() {
 
         <div style={{ marginTop: 48, padding: '24px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Rather not do all this manually?</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 16 }}>Marker scores every role against what actually matters — salary, WLB, office days, culture — in 30 seconds. Then tracks it all so you don't have to.</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 16 }}>Marker scores every role against what actually matters (salary, WLB, office days, culture) in 30 seconds. Then tracks it all so you don't have to.</div>
           <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
         </div>
       </div>

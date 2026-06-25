@@ -161,7 +161,7 @@ function RolePanel({ role, shortlistData, onLoadShortlist }) {
           ) : (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-                <div className="kicker">Anonymised shortlist — {shortlistData.shortlist.length} of {shortlistData.totalCandidates} candidates</div>
+                <div className="kicker">Anonymised shortlist: {shortlistData.shortlist.length} of {shortlistData.totalCandidates} candidates</div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Deterministic match · no AI</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Identities hidden until mutual opt-in</span>
@@ -292,7 +292,7 @@ function CandidateCard({ candidate, rank }) {
             {introStatus === 'pending' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f5d840', flexShrink: 0, animation: 'marker-pulse 2s ease-in-out infinite' }} />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Intro requested — awaiting candidate response</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Intro requested. Awaiting candidate response.</span>
               </div>
             )}
             {introStatus === 'accepted' && (
@@ -316,7 +316,7 @@ function CandidateCard({ candidate, rank }) {
               </div>
             )}
             {introStatus === 'declined' && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Candidate declined — consider the next match on the shortlist</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Candidate declined. Consider the next match on the shortlist.</span>
             )}
           </div>
         </div>

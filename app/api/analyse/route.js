@@ -62,13 +62,13 @@ export async function POST(req) {
     TRACK_FILTERS.push('- BALANCED TRACK: Candidate prioritises WLB. Flag language like "fast-paced", "high-growth startup", "always-on" or any indication of excessive hours. Lower companyCulture score if Glassdoor warns of overwork. Note it in signalReason if relevant.')
   }
   if (tracks.includes('parent')) {
-    TRACK_FILTERS.push('- PARENT TRACK: Parental leave and flexibility are critical. Set paternityLeave found=false if policy is not mentioned — do not assume. Boost score for explicit enhanced leave (>16 weeks paid) or flexible hours. Lower score if role is described as inflexible or high-travel.')
+    TRACK_FILTERS.push('- PARENT TRACK: Parental leave and flexibility are critical. Set paternityLeave found=false if policy is not mentioned; do not assume. Boost score for explicit enhanced leave (>16 weeks paid) or flexible hours. Lower score if role is described as inflexible or high-travel.')
   }
   if (tracks.includes('returner')) {
-    TRACK_FILTERS.push('- RETURNER TRACK: This candidate may be re-entering the workforce. Award bonus signal for returnship programmes, return-to-work schemes, or employers with stated returner policies. Do not penalise for career gaps — ignore any gap-related concern in signalReason.')
+    TRACK_FILTERS.push('- RETURNER TRACK: This candidate may be re-entering the workforce. Award bonus signal for returnship programmes, return-to-work schemes, or employers with stated returner policies. Do not penalise for career gaps; ignore any gap-related concern in signalReason.')
   }
   if (tracks.includes('career_changer')) {
-    TRACK_FILTERS.push('- CAREER CHANGER TRACK: Candidate is switching sector or role type. Be lenient on industryFit — transferable skills matter more than exact sector match. Focus roleSkillsMatch on underlying competencies, not industry-specific credentials.')
+    TRACK_FILTERS.push('- CAREER CHANGER TRACK: Candidate is switching sector or role type. Be lenient on industryFit; transferable skills matter more than exact sector match. Focus roleSkillsMatch on underlying competencies, not industry-specific credentials.')
   }
 
   const BENEFIT_LABELS = {
@@ -82,7 +82,7 @@ export async function POST(req) {
     maxOfficeDays != null ? `- Max office days: ${maxOfficeDays}/week. If the role requires more, set signal to 'dont_apply' and lower officeFlexibility score to match the gap (e.g. 5-day role when max is 2 = score 1).` : '',
     excludeSalesQuotas ? `- Sales quotas excluded: if this role carries a revenue quota, set signal to 'dont_apply' regardless of other scores.` : '',
     salaryFloor ? `- Minimum salary: £${Math.round(salaryFloor / 1000)}k. If advertised salary is below this, note it in salaryMarket.` : '',
-    benefitList.length > 0 ? `- Preferred benefits: ${benefitList.join(', ')}. If the JD or company is known to offer any of these, note it in signalReason as a positive. This is a soft signal — do not penalise roles that don't mention them.` : '',
+    benefitList.length > 0 ? `- Preferred benefits: ${benefitList.join(', ')}. If the JD or company is known to offer any of these, note it in signalReason as a positive. This is a soft signal; do not penalise roles that don't mention them.` : '',
     ...TRACK_FILTERS,
   ].filter(Boolean).join('\n')
 
@@ -93,7 +93,7 @@ export async function POST(req) {
   "company": "${company || 'Company name from content'}",
   "roleTitle": "${roleTitle || 'Exact role title from content'}",
   "signal": "apply" or "maybe" or "dont_apply",
-  "signalReason": "One sentence about role fit only — never mention job availability or whether it is filled",
+  "signalReason": "One sentence about role fit only; never mention job availability or whether it is filled",
   "officeDays": 0-5,
   "officeNote": "How you determined office days",
   "score": 0-10,
@@ -214,7 +214,7 @@ ${JSON_SCHEMA}`
         'JOB CONTENT:',
         pageContent,
         '',
-        'Analyse this role against the candidate profile. Focus on role fit only — never comment on job availability.',
+        'Analyse this role against the candidate profile. Focus on role fit only; never comment on job availability.',
       ].filter(l => l !== undefined).join('\n')
 
       const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
@@ -235,11 +235,11 @@ ${company ? 'Company: ' + company : ''}
 
 Also search for "${company || 'this company'} paternity leave policy UK" to find their parental leave offering.
 
-RULES — follow exactly:
+RULES, follow exactly:
 1. Use web search to find and read the job description
-2. Analyse ONLY role fit against the candidate profile — never comment on whether the job is available, open, filled or closed
+2. Analyse ONLY role fit against the candidate profile; never comment on whether the job is available, open, filled or closed
 3. If you find the job content, score it properly across all factors
-4. If you genuinely cannot find the job content after searching, return: signal "maybe", score 5, signalReason "Could not retrieve job content — paste the JD below for an accurate score"
+4. If you genuinely cannot find the job content after searching, return: signal "maybe", score 5, signalReason "Could not retrieve job content; paste the JD below for an accurate score"
 5. Never invent or assume job content
 6. For paternityLeave factor: search specifically for this company's policy. If found, set found:true and include the detail. If not found, set found:false and score null.
 
@@ -284,7 +284,7 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministic
     if (priorResponse && typeof priorResponse === 'string') {
       const { isLoop } = checkForLoop(text, priorResponse)
       if (isLoop) {
-        return Response.json({ loopDetected: true, deterministicScore, signal: 'maybe', score: deterministicScore?.score || 5, signalReason: 'Analysis could not complete — please paste the JD directly for a fresh score.' })
+        return Response.json({ loopDetected: true, deterministicScore, signal: 'maybe', score: deterministicScore?.score || 5, signalReason: 'Analysis could not complete; please paste the JD directly for a fresh score.' })
       }
     }
 
@@ -325,12 +325,12 @@ async function runClaudeWithSearch(apiKey, prompt, deterministicScore) {
     if (result.signalReason && filledPatterns.test(result.signalReason)) {
       result.signal = 'maybe'
       result.score = 5
-      result.signalReason = 'Could not retrieve job content — paste the JD below for an accurate score'
+      result.signalReason = 'Could not retrieve job content; paste the JD below for an accurate score'
     }
     if (!result.score || result.score === 0) {
       result.signal = 'maybe'
       result.score = 5
-      result.signalReason = 'Could not retrieve job content — paste the JD below for an accurate score'
+      result.signalReason = 'Could not retrieve job content; paste the JD below for an accurate score'
     }
     return Response.json({ ...result, deterministicScore })
   } catch (err) {

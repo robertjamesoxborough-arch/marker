@@ -149,7 +149,7 @@ TASK: Extract individual job listings from the content above. For each one, chec
 
 CRITICAL RULES:
 - Maximum 3 jobs per company. Pick only the TOP 3 most relevant roles per company.
-- Be selective — only include roles that genuinely match the candidate's seniority and domain. A generic "Account Executive" or "Software Engineer" at GitLab is NOT a match just because GitLab is on the list.
+- Be selective; only include roles that genuinely match the candidate's seniority and domain. A generic "Account Executive" or "Software Engineer" at GitLab is NOT a match just because GitLab is on the list.
 - Prioritise variety across companies over depth within one company.
 - If a career page lists 50 roles but only 1 matches, return only that 1.
 

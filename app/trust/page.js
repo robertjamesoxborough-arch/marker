@@ -17,8 +17,8 @@ const GUARANTEES = [
     headline: 'Real roles, labelled honestly.',
     kills: 'Kills "Jill doesn\'t exist."',
     body: [
-      'Every employer role on Requite carries a mandatory source label — requite_managed (an employer on the platform; you can request a real introduction) or public_listing (aggregated from Adzuna or Gov.uk). This is enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after posting.',
-      'The "Request intro" button appears only on requite_managed roles — structurally disabled on public listings. The Live Network Meter shows you the exact live count of managed roles in your field right now. When it\'s low, we tell you. Every successful introduction is permanently logged in intro_receipts — an immutable, timestamped record.',
+      'Every employer role on Requite carries a mandatory source label: requite_managed (an employer on the platform; you can request a real introduction) or public_listing (aggregated from Adzuna or Gov.uk). This is enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after posting.',
+      'The "Request intro" button appears only on requite_managed roles; structurally disabled on public listings. The Live Network Meter shows you the exact live count of managed roles in your field right now. When it\'s low, we tell you. Every successful introduction is permanently logged in intro_receipts: an immutable, timestamped record.',
     ],
     built: 'source_type CHECK constraint · Live Network Meter · intro_receipts timestamped log',
   },
@@ -28,7 +28,7 @@ const GUARANTEES = [
     headline: 'Every job is fresh, or it\'s flagged.',
     kills: 'Kills "that role closed months ago."',
     body: [
-      'Every cached role has a last_verified_at timestamp. Freshness is computed at read time — not from a stored value — every time you open the feed. Fresh: under 48 hours. Aging: 2–7 days. Stale: 7–14 days, demoted and badged. Expired: removed from your default view.',
+      'Every cached role has a last_verified_at timestamp. Freshness is computed at read time (not from a stored value) every time you open the feed. Fresh: under 48 hours. Aging: 2–7 days. Stale: 7–14 days, demoted and badged. Expired: removed from your default view.',
       'A daily cron at 06:00 UTC re-verifies every role. The Freshness Pulse dot on each card shows exactly when it was last confirmed active. "Still open?" lets you trigger a live re-check in seconds.',
     ],
     built: 'lib/freshness.js (read-time enforcement) · Freshness Pulse badge · daily cron 06:00 UTC · "Still open?" one-tap recheck',
@@ -39,8 +39,8 @@ const GUARANTEES = [
     headline: 'We never forget you.',
     kills: 'Kills "it forgot me / rolling glitch."',
     body: [
-      'Your profile is a structured database record — not a chat log. Every AI call reads your profile fresh from Supabase on every request. It does not rely on what you said in a previous message. Close the browser, return in a month: your profile, pipeline, CV, and career history are byte-identical.',
-      'The Memory Card in your Profile tab shows everything Requite knows about you. Every field is editable. Nothing is inferred from conversation — only what you\'ve explicitly set. A loop guard detects AI repetition automatically and switches to a structured fallback.',
+      'Your profile is a structured database record, not a chat log. Every AI call reads your profile fresh from Supabase on every request. It does not rely on what you said in a previous message. Close the browser, return in a month: your profile, pipeline, CV, and career history are byte-identical.',
+      'The Memory Card in your Profile tab shows everything Requite knows about you. Every field is editable. Nothing is inferred from conversation: only what you\'ve explicitly set. A loop guard detects AI repetition automatically and switches to a structured fallback.',
     ],
     built: 'Supabase profiles table (source of truth) · lib/ai-context.js (bounded, stateless) · lib/loop-guard.js · Memory Card component',
   },
@@ -50,8 +50,8 @@ const GUARANTEES = [
     headline: 'Tracking isn\'t a feature. It\'s the spine.',
     kills: 'Kills "no way to keep track."',
     body: [
-      'Your pipeline is the default landing screen — not a bonus tab you have to find. Analysing any role auto-adds it to your Watchlist. No manual step. No extra click. Your pipeline is stored in Supabase, not browser memory — it survives logout, cache clears, and device changes.',
-      'The momentum strip at the top of your pipeline shows live counts: roles applied to, interviews active, offers in. Losing your place is structurally impossible — your place is the data.',
+      'Your pipeline is the default landing screen, not a bonus tab you have to find. Analysing any role auto-adds it to your Watchlist. No manual step. No extra click. Your pipeline is stored in Supabase, not browser memory; it survives logout, cache clears, and device changes.',
+      'The momentum strip at the top of your pipeline shows live counts: roles applied to, interviews active, offers in. Losing your place is structurally impossible; your place is the data.',
     ],
     built: 'pipeline_items table (Supabase-backed) · auto-capture from Analyse tab · Pipeline as default landing · momentum strip',
   },
@@ -60,33 +60,33 @@ const GUARANTEES = [
 const AI_ROWS = [
   {
     what: 'Job scores (Analyse tab)',
-    how: 'Claude Haiku AI — reads the JD against your profile across 8 factors',
+    how: 'Claude Haiku AI, reading the JD against your profile across 8 factors',
     human: 'You choose which role to analyse',
   },
   {
     what: 'Employer shortlist scores',
-    how: 'Deterministic algorithm — 6 weighted dimensions, no AI, no hallucination risk',
-    human: '—',
+    how: 'Deterministic algorithm: 6 weighted dimensions, no AI, no hallucination risk',
+    human: 'n/a',
   },
   {
     what: 'AI "why" narrative',
-    how: 'Claude Haiku — the one-line reason beneath each score',
+    how: 'Claude Haiku, providing the one-line reason beneath each score',
     human: 'You trigger the analysis',
   },
   {
     what: 'CV & cover letter generation',
-    how: 'Claude Haiku — drafted from your profile. Every number is checked against your CV before delivery; flagged if not found',
+    how: 'Claude Haiku: drafted from your profile. Every number is checked against your CV before delivery; flagged if not found',
     human: 'You review and edit before using',
   },
   {
     what: 'Introductions',
     how: 'Algorithmic match surfaces candidates to employers anonymously; both sides manually confirm',
-    human: 'Employer clicks "Request intro"; you click "Accept" — both must say yes',
+    human: 'Employer clicks "Request intro"; you click "Accept". Both must say yes.',
   },
   {
     what: 'Role sourcing',
     how: 'Automated from licensed sources (Adzuna, Gov.uk) + employer-posted managed roles',
-    human: '—',
+    human: 'n/a',
   },
 ]
 
@@ -111,7 +111,7 @@ export default function TrustPanel() {
           <span className="chrome-text">{BRAND_NAME}.</span>
         </h1>
         <p style={{ fontSize: 'clamp(15px,2vw,18px)', color: 'rgba(250,247,242,0.6)', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 48px', fontWeight: 400 }}>
-          Every claim below is backed by a coded invariant — a rule written into the system that makes the opposite structurally impossible. Not a policy. Not a promise. A constraint.
+          Every claim below is backed by a coded invariant: a rule written into the system that makes the opposite structurally impossible. Not a policy. Not a promise. A constraint.
         </p>
         <div className="iris-divider" style={{ maxWidth: 180, margin: '0 auto' }} />
       </div>
@@ -148,7 +148,7 @@ export default function TrustPanel() {
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div className="kicker holo-text" style={{ marginBottom: 12, fontSize: 11, letterSpacing: '0.12em' }}>Transparency</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px,4vw,40px)', fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.025em', lineHeight: 1.1, marginBottom: 8 }}>What's AI, what's human?</h2>
-          <p style={{ fontSize: 14, color: 'rgba(250,247,242,0.5)', marginBottom: 36, lineHeight: 1.6 }}>Honest about what's automated and what isn't — before you use it.</p>
+          <p style={{ fontSize: 14, color: 'rgba(250,247,242,0.5)', marginBottom: 36, lineHeight: 1.6 }}>Disclosed before you use it: what's automated and what isn't.</p>
 
           {/* Table header */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1.2fr', gap: 16, paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: 4 }}>
@@ -161,7 +161,7 @@ export default function TrustPanel() {
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1.2fr', gap: 16, padding: '14px 0', borderBottom: `1px solid rgba(255,255,255,${i < AI_ROWS.length - 1 ? '0.06' : '0'})` }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.01em', lineHeight: 1.4 }}>{row.what}</div>
               <div style={{ fontSize: 12, color: 'rgba(250,247,242,0.55)', lineHeight: 1.6 }}>{row.how}</div>
-              <div style={{ fontSize: 12, color: row.human === '—' ? 'rgba(255,255,255,0.2)' : 'var(--marker-lime)', lineHeight: 1.6 }}>{row.human}</div>
+              <div style={{ fontSize: 12, color: row.human === 'n/a' ? 'rgba(255,255,255,0.2)' : 'var(--marker-lime)', lineHeight: 1.6 }}>{row.human}</div>
             </div>
           ))}
         </div>
@@ -169,7 +169,7 @@ export default function TrustPanel() {
 
       {/* ── Honest limits ── */}
       <section style={{ maxWidth: 780, margin: '0 auto', padding: 'clamp(56px,7vw,72px) clamp(20px,5vw,48px)' }}>
-        <div className="kicker" style={{ marginBottom: 12, fontSize: 11, letterSpacing: '0.12em' }}>Pricing — no surprises</div>
+        <div className="kicker" style={{ marginBottom: 12, fontSize: 11, letterSpacing: '0.12em' }}>Pricing: no surprises</div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px,4vw,38px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.025em', lineHeight: 1.1, marginBottom: 36 }}>Honest limits,<br />upfront.</h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
@@ -180,9 +180,9 @@ export default function TrustPanel() {
             <p style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 20, lineHeight: 1.6 }}>Full pipeline, job feed, scored discovery, Memory Card, career history, wishlist tracker.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                'AI role scoring — 3 analyses/day on free tier',
+                'AI role scoring: 3 analyses/day on free tier',
                 'Unlimited pipeline tracking',
-                'Memory Card — everything we know about you, editable',
+                'Memory Card: everything we know about you, editable',
                 'Pro (£12–19/mo): unlimited AI, interview prep, CV tailoring',
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -200,7 +200,7 @@ export default function TrustPanel() {
             <p style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 20, lineHeight: 1.6 }}>Matched, anonymised, opted-in shortlist. Real warm intros. Per-role ATS. Pay only on confirmed hire.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                'No upfront fee — success fee only',
+                'No upfront fee; success fee only',
                 '8% of first-year base salary',
                 '3-month leaver refund',
                 'Undercuts traditional agencies (20–30%) and J&J (10%)',
@@ -221,7 +221,7 @@ export default function TrustPanel() {
           <div className="kicker" style={{ marginBottom: 12, fontSize: 11, letterSpacing: '0.12em' }}>Support</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,3vw,32px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 12 }}>We respond to every message.</h2>
           <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 24 }}>
-            This is a small team — not a ticket queue. We read everything and reply within 24 hours on weekdays.
+            This is a small team, not a ticket queue. We read everything and reply within 24 hours on weekdays.
           </p>
           <a href="mailto:support@requite.io" style={{ display: 'inline-block', background: 'var(--marker-black)', color: 'var(--marker-cream)', padding: '12px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, textDecoration: 'none', letterSpacing: '-0.01em' }}>
             Email support@requite.io →
@@ -238,7 +238,7 @@ export default function TrustPanel() {
         </h2>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/auth" className="btn-iris-sheen" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '13px 32px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 700, textDecoration: 'none', position: 'relative', overflow: 'hidden' }}>
-            Start free — candidates
+            Start free (candidates)
           </Link>
           <Link href="/hire" style={{ display: 'inline-block', background: 'transparent', color: 'rgba(250,247,242,0.7)', border: '1px solid rgba(255,255,255,0.15)', padding: '13px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
             Post a role →

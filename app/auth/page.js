@@ -125,7 +125,7 @@ function AuthForm() {
               lineHeight: '1.6',
             }}>
               Enter your email and we will send you a sign-in link.
-              <span style={{ display: 'block', fontSize: '13px', marginTop: 6 }}>No account yet? Just enter your email — we&apos;ll create yours automatically.</span>
+              <span style={{ display: 'block', fontSize: '13px', marginTop: 6 }}>No account yet? Just enter your email and we&apos;ll create yours automatically.</span>
             </p>
 
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-body)', marginBottom: '8px' }}>

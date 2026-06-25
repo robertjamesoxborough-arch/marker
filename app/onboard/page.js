@@ -100,7 +100,7 @@ const CONTRACT_TYPES = [
 
 const STATUSES = [
   { id: 'employed_searching', title: 'Employed, actively searching' },
-  { id: 'employed_passive',   title: 'Employed, passively open', sub: 'The Standby tier is built for you — weekly digest, no daily faff.' },
+  { id: 'employed_passive',   title: 'Employed, passively open', sub: 'The Standby tier is built for you: weekly digest, no daily faff.' },
   { id: 'unemployed',         title: 'Unemployed' },
   { id: 'on_leave',           title: 'On leave', sub: 'Parental, sick, or otherwise.' },
   { id: 'student',            title: 'Student' },
@@ -279,7 +279,7 @@ export default function OnboardPage() {
       const seniority = data.seniority || []
       const industrySuggestions = data.industries || []
       if (suggested.length === 0 && keywords.length === 0) {
-        setCvParseError(data.error || 'No roles spotted — continue and pick manually.')
+        setCvParseError(data.error || 'No roles spotted. Continue and pick manually.')
       }
       setCvSuggested(suggested)
       setCvKeywords(keywords)
@@ -289,7 +289,7 @@ export default function OnboardPage() {
       if (industrySuggestions.length > 0) setIndustries(prev => prev.length === 0 ? industrySuggestions : [...new Set([...prev, ...industrySuggestions])])
       if (data.salaryHint && !salaryFloor) setSalaryFloor(String(data.salaryHint))
     } catch {
-      setCvParseError('Request failed — continue and pick roles manually.')
+      setCvParseError('Request failed. Continue and pick roles manually.')
     } finally {
       setCvParsing(false)
     }
@@ -371,7 +371,7 @@ export default function OnboardPage() {
       } catch {}
       router.replace('/app')
     } catch (e) {
-      setSaveError(e?.message || 'Something went wrong — please try again.')
+      setSaveError(e?.message || 'Something went wrong. Please try again.')
       setSaving(false)
     }
   }
@@ -438,7 +438,7 @@ export default function OnboardPage() {
           <div>
             <div className="kicker holo-text" style={{ marginBottom: 12 }}>Step 1</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Where are you right now?</h2>
-            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 24, lineHeight: 1.6 }}>Be honest — it's just us. This sets the urgency and tone of everything.</p>
+            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 24, lineHeight: 1.6 }}>Be honest: it's just us. This sets the urgency and tone of everything.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {STATUSES.map(s => (
                 <OptionCard key={s.id} selected={status === s.id} onClick={() => setStatus(s.id)} title={s.title} sub={s.sub} />
@@ -458,7 +458,7 @@ export default function OnboardPage() {
             <textarea
               value={cvText}
               onChange={e => setCvText(e.target.value)}
-              placeholder="Paste your CV here — plaintext is fine..."
+              placeholder="Paste your CV here; plaintext is fine..."
               rows={10}
               style={{
                 display: 'block', width: '100%', padding: '12px 14px', fontSize: 13, lineHeight: 1.6,
@@ -482,7 +482,7 @@ export default function OnboardPage() {
                 {cvParsing ? 'Reading...' : cvSuggested.length > 0 ? 'Done ✓' : 'Read my CV'}
               </button>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', lineHeight: 1.5 }}>
-                {cvParsing ? 'Asking Claude...' : cvSuggested.length > 0 ? `Spotted ${cvSuggested.length} role ${cvSuggested.length === 1 ? 'family' : 'families'} — pre-selected next.` : 'Paste above then hit this.'}
+                {cvParsing ? 'Asking Claude...' : cvSuggested.length > 0 ? `Spotted ${cvSuggested.length} role ${cvSuggested.length === 1 ? 'family' : 'families'}, pre-selected next.` : 'Paste above then hit this.'}
               </span>
             </div>
 
@@ -511,7 +511,7 @@ export default function OnboardPage() {
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.08em', marginBottom: 10 }}>SPOTTED IN YOUR CV</div>
                 {cvSuggested.length > 0 && (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 6 }}>Role families — pre-selected on the next step:</div>
+                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 6 }}>Role families, pre-selected on the next step:</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {cvSuggested.map(r => <span key={r} className="chip chip-lime" style={{ fontSize: 11 }}>{r}</span>)}
                     </div>
@@ -560,7 +560,7 @@ export default function OnboardPage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Career summary <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>— a few sentences</span></label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Career summary <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(a few sentences)</span></label>
                   <textarea
                     value={careerSummary}
                     onChange={e => setCareerSummary(e.target.value)}
@@ -612,7 +612,7 @@ export default function OnboardPage() {
 
               {cvSuggested.length > 0 && (
                 <RecommendationBanner reason={cvSuggestions?.rolesReason}>
-                  We spotted {cvSuggested.length} role {cvSuggested.length === 1 ? 'family' : 'families'} from your CV — pre-selected below. Add or remove anything.
+                  We spotted {cvSuggested.length} role {cvSuggested.length === 1 ? 'family' : 'families'} from your CV, pre-selected below. Add or remove anything.
                 </RecommendationBanner>
               )}
 
@@ -726,11 +726,11 @@ export default function OnboardPage() {
           <div>
             <div className="kicker holo-text" style={{ marginBottom: 12 }}>Step 4</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Your requirements</h2>
-            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 28, lineHeight: 1.6 }}>All optional — skip straight through and adjust any time in Settings.</p>
+            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 28, lineHeight: 1.6 }}>All optional. Skip straight through and adjust any time in Settings.</p>
 
             {cvSuggestions?.salaryHint && (
               <RecommendationBanner reason={cvSuggestions.salaryReason}>
-                Suggested salary floor: £{cvSuggestions.salaryHint}k — based on your experience. Pre-filled below.
+                Suggested salary floor: £{cvSuggestions.salaryHint}k, based on your experience. Pre-filled below.
               </RecommendationBanner>
             )}
 
@@ -795,9 +795,9 @@ export default function OnboardPage() {
               <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10, lineHeight: 1.5 }}>How heavily should WLB factor into your match scores? High means roles with "always-on" or "fast-paced" signals score lower and get flagged.</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
-                  { id: 'low',    label: 'Low',    desc: 'Pay and progression first — WLB noted, not a primary filter' },
-                  { id: 'medium', label: 'Medium', desc: 'Healthy balance matters — WLB balanced against other factors' },
-                  { id: 'high',   label: 'High',   desc: 'WLB is a deal-breaker — startup "hustle culture" roles score lower' },
+                  { id: 'low',    label: 'Low',    desc: 'Pay and progression first. WLB noted, not a primary filter.' },
+                  { id: 'medium', label: 'Medium', desc: 'Healthy balance matters. WLB balanced against other factors.' },
+                  { id: 'high',   label: 'High',   desc: "WLB is a deal-breaker: startup \"hustle culture\" roles score lower" },
                 ].map(w => (
                   <button key={w.id} onClick={() => setWlbPriority(w.id)} style={{
                     flex: 1, padding: '10px 8px', borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 13, textAlign: 'center',
@@ -809,7 +809,7 @@ export default function OnboardPage() {
               </div>
               {wlbPriority && (
                 <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 8, lineHeight: 1.5 }}>
-                  {wlbPriority === 'high' ? 'WLB is a deal-breaker — startup "hustle culture" roles score lower' : wlbPriority === 'low' ? 'Pay and progression first — WLB noted, not a primary filter' : 'Healthy balance matters — WLB balanced against other factors'}
+                  {wlbPriority === 'high' ? "WLB is a deal-breaker: startup \"hustle culture\" roles score lower" : wlbPriority === 'low' ? 'Pay and progression first. WLB noted, not a primary filter.' : 'Healthy balance matters. WLB balanced against other factors.'}
                 </div>
               )}
             </div>
@@ -828,7 +828,7 @@ export default function OnboardPage() {
 
             <div>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 4 }}>Nice-to-have benefits</div>
-              <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10, lineHeight: 1.5 }}>We highlight roles that mention these — but we never hide roles that don't. Think of it as a bonus flag, not a filter.</div>
+              <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10, lineHeight: 1.5 }}>We highlight roles that mention these, but we never hide roles that don't. Think of it as a bonus flag, not a filter.</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {BENEFITS.map(b => (
                   <Chip key={b.id} label={b.label} selected={benefits.includes(b.id)} onClick={() => toggleMulti(benefits, setBenefits, b.id)} />
@@ -855,7 +855,7 @@ export default function OnboardPage() {
                 {[
                   { id: 'perm',       label: 'Permanent roles only',       sub: 'Tailored CV prompts, interview prep, perm job feed' },
                   { id: 'contractor', label: 'Contract / interim only',     sub: 'Generic CV for recruiter blast, contractor role scanner, agency finder' },
-                  { id: 'both',       label: 'Both — perm and contractor',  sub: 'Full access to all tools. Most flexible option' },
+                  { id: 'both',       label: 'Both (perm and contractor)',  sub: 'Full access to all tools. Most flexible option' },
                 ].map(opt => (
                   <button key={opt.id} onClick={() => setSearchMode(opt.id)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${searchMode === opt.id ? 'var(--marker-black)' : 'var(--marker-border)'}`, background: searchMode === opt.id ? 'var(--marker-black)' : 'var(--marker-cream-2)' }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: searchMode === opt.id ? 'var(--marker-cream)' : 'var(--marker-text)', marginBottom: 2 }}>{opt.label}</div>
@@ -866,17 +866,17 @@ export default function OnboardPage() {
             </div>
             <Toggle on={wantsEasyLife} onClick={() => setWantsEasyLife(v => !v)}
               label="Work-life balance employer suggestions"
-              sub="Curated list of employers with strong WLB ratings — scores, leave, remote policy" />
+              sub="Curated list of employers with strong WLB ratings: scores, leave, remote policy" />
             <Toggle on={wantsCvGen} onClick={() => setWantsCvGen(v => !v)}
               label="CV and cover letter generation"
               sub="Generate tailored CV prompts and cover letters for any pipeline role" />
             <Toggle on={wantsInterviewPrep} onClick={() => setWantsInterviewPrep(v => !v)}
               label="Interview preparation"
-              sub="Full interview prep packs — company research, questions, and STAR stories" />
+              sub="Full interview prep packs: company research, questions, and STAR stories" />
 
             {openToContract && (
               <div style={{ marginTop: 4, padding: '12px 14px', background: 'var(--marker-lime)', borderRadius: 10, fontSize: 13, color: 'var(--marker-black)', lineHeight: 1.5 }}>
-                Contractor tools are on — the next step captures your contract preferences.
+                Contractor tools are on. The next step captures your contract preferences.
               </div>
             )}
           </div>
@@ -887,7 +887,7 @@ export default function OnboardPage() {
           <div>
             <div className="kicker holo-text" style={{ marginBottom: 12 }}>Step 6</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Contract details</h2>
-            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 28, lineHeight: 1.6 }}>Helps us tune your Contractor Routes tab. All optional — update any time in Settings.</p>
+            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 28, lineHeight: 1.6 }}>Helps us tune your Contractor Routes tab. All optional. Update any time in Settings.</p>
 
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Which contract types?</div>
@@ -900,7 +900,7 @@ export default function OnboardPage() {
 
             {isUK && (
               <div style={{ marginBottom: 28 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>IR35 — able and willing to work outside IR35?</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>IR35: able and willing to work outside IR35?</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[{ id: true, label: 'Yes, outside IR35' }, { id: false, label: 'Inside IR35 only' }, { id: null, label: 'Not sure / either' }].map(o => (
                     <button key={String(o.id)} onClick={() => setIr35Willing(o.id)} style={{
@@ -929,7 +929,7 @@ export default function OnboardPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 4 }}>Contractor field — if different from {field || 'your main field'}</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 4 }}>Contractor field (if different from {field || 'your main field'}</label>
               <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 8 }}>Some people contract in a different discipline. Leave blank if it's the same.</div>
               <input
                 value={contractorField}

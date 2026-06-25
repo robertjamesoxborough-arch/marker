@@ -33,15 +33,15 @@ function AIDisclaimer({ light }) {
 const PROMISES = [
   {
     title: 'Everything in one place.',
-    body: "Discover roles, score them, track your whole pipeline, tailor your CV, prep interviews, rehearse negotiations — start to finish, on one board. No spreadsheet, no fifteen open tabs.",
+    body: "Discover roles, score them, track your whole pipeline, tailor your CV, prep interviews, rehearse negotiations: start to finish, on one board. No spreadsheet, no fifteen open tabs.",
   },
   {
     title: 'A score you can actually read.',
-    body: "Every role gets scored across six things you care about — salary, seniority fit, location, office days, freshness, culture signals — and you can see the reasoning behind each one. Not a mystery rating you're meant to take on faith.",
+    body: "Every role gets scored across six things you care about: salary, seniority fit, location, office days, freshness, and culture signals. You can see the reasoning behind each one. Not a mystery rating you're meant to take on faith.",
   },
   {
     title: 'It remembers you.',
-    body: "Your profile, preferences and pipeline live in your account, not in a chatbot's memory. Close the tab, come back next month — it's all exactly where you left it. You can see everything it knows on your Memory Card, and edit any of it.",
+    body: "Your profile, preferences and pipeline live in your account, not in a chatbot's memory. Close the tab, come back next month; it's all exactly where you left it. You can see everything it knows on your Memory Card, and edit any of it.",
   },
 ]
 
@@ -62,7 +62,7 @@ const balancedRows = [
   { co: 'GitLab',        wlb: '4.2', leave: '4mo',  office: '0d', score: '8.6' },
 ]
 
-const FALLBACK_TAGLINE = "Requite scores each role against what actually matters to you — salary, seniority, location, office days, and more — and shows you why. Then it keeps your whole search in one place: discover roles, track them, tailor your CV, prep the interview. And it remembers everything, so you never start from scratch."
+const FALLBACK_TAGLINE = "Requite scores each role against what actually matters to you (salary, seniority, location, office days, and more) and shows you why. Then it keeps your whole search in one place: discover roles, track them, tailor your CV, prep the interview. And it remembers everything, so you never start from scratch."
 const MOBILE_TAGLINE = "Score roles against what matters. No noise, no amnesia, no wasted evenings."
 
 export default async function Home() {
@@ -117,7 +117,7 @@ export default async function Home() {
           </p>
 
           <div className={styles.heroActions}>
-            <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'hero' }} className="btn btn-lime" style={{ fontSize: 16, padding: '14px 26px', fontWeight: 600 }}>Start free — score a role in 60 seconds</TrackCTA>
+            <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'hero' }} className="btn btn-lime" style={{ fontSize: 16, padding: '14px 26px', fontWeight: 600 }}>Start free: score a role in 60 seconds</TrackCTA>
             <a href="#promises" className="btn btn-ghost" style={{ fontSize: 14, padding: '13px 20px' }}>See how it works →</a>
             <span className={styles.heroNote}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</span>
           </div>
@@ -162,7 +162,7 @@ export default async function Home() {
       {/* ── FRESHNESS STRIP ── */}
       <section style={{ padding: '32px 64px', background: 'var(--marker-black)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 20px)', color: 'var(--marker-cream)', textAlign: 'center', maxWidth: 820, lineHeight: 1.55, margin: 0 }}>
-          Every job shows when it was last checked. Stale ones get flagged, closed ones get removed &mdash; so you&apos;re only ever spending effort on roles that are actually open.{' '}
+          Every job shows when it was last checked. Stale ones get flagged, closed ones get removed, so you&apos;re only ever spending effort on roles that are actually open.{' '}
           <span style={{ color: 'var(--marker-lime)', fontWeight: 500 }}>(No more polishing a cover letter for something that died last week.)</span>
         </p>
       </section>
@@ -240,7 +240,7 @@ export default async function Home() {
       <section className={styles.productShowcase}>
         <Image
           src="/brand/product-showcase.png"
-          alt={`${BRAND_NAME} — AI copilot for experienced job hunters`}
+          alt={`${BRAND_NAME}: AI copilot for experienced job hunters`}
           width={2400}
           height={1200}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -355,7 +355,7 @@ export default async function Home() {
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div className="kicker" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>Hiring, not job-hunting?</div>
           <h2 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: 'var(--marker-cream)', marginBottom: 20, textWrap: 'balance' }}>
-            Requite introduces you to candidates who fit your role and genuinely want it &mdash; pre-screened, no CV spam &mdash; and you only pay when you actually hire.
+            Requite introduces you to candidates who fit your role and genuinely want it. Pre-screened, no CV spam. You only pay when you actually hire.
           </h2>
           <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 15, display: 'inline-flex' }}>For employers →</Link>
         </div>
@@ -373,7 +373,7 @@ export default async function Home() {
           </h2>
           <div className="iris-divider" style={{ margin: '0 auto 28px', maxWidth: 240 }} />
           <p className={styles.ctaSub}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</p>
-          <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'bottom_cta' }} className={`btn btn-lime btn-iris-sheen ${styles.ctaBtn}`} style={{ fontSize: 16, padding: '16px 28px', fontWeight: 600 }}>Start free — score a role in 60 seconds →</TrackCTA>
+          <TrackCTA href="/auth" event="cta_clicked" props={{ location: 'bottom_cta' }} className={`btn btn-lime btn-iris-sheen ${styles.ctaBtn}`} style={{ fontSize: 16, padding: '16px 28px', fontWeight: 600 }}>Start free: score a role in 60 seconds →</TrackCTA>
         </div>
       </section>
 
@@ -401,7 +401,7 @@ export default async function Home() {
         <div className={styles.footerBottom}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, maxWidth: 720 }}>
             <AIDisclaimer />
-            <div className="legal-line">Live UK roles, including listings via Adzuna. Independently sourced and scored — not affiliated with employers listed.</div>
+            <div className="legal-line">Live UK roles, including listings via Adzuna. Independently sourced and scored. Not affiliated with employers listed.</div>
           </div>
           <AdzunaBadge />
         </div>

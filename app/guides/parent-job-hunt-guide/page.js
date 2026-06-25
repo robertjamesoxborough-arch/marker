@@ -4,19 +4,19 @@ const CHECKS = [
   {
     n: '01',
     title: 'Read the actual parental leave policy, not the careers page',
-    body: 'Most companies advertise "enhanced parental leave" without specifying the numbers. Enhanced could mean 12 weeks at full pay or 4 weeks at 50% — legally, both qualify as enhanced. The careers page is marketing material. The actual policy is in the employee handbook or available on request from HR.',
+    body: 'Most companies advertise "enhanced parental leave" without specifying the numbers. Enhanced could mean 12 weeks at full pay or 4 weeks at 50%; legally, both qualify as enhanced. The careers page is marketing material. The actual policy is in the employee handbook or available on request from HR.',
     action: 'Ask HR directly: "What are the current maternity, paternity, and shared parental leave policies in weeks and pay?" Get the numbers before you invest time applying. If they are cagey about sharing it, that tells you something.',
   },
   {
     n: '02',
     title: 'Find out if parental leave is actually taken',
-    body: 'A policy on paper is not the same as a culture where leave is taken without career consequences. Some companies have market-leading policies and a culture where taking more than a few months is quietly career-limiting. The signal is whether senior employees — men in particular — actually take the full leave entitlement.',
-    action: 'Ask in the interview: "Can you tell me about how parental leave actually plays out in practice — do people tend to take the full entitlement?" A confident yes with specific examples is good. Hesitation, or an answer that pivots to the policy rather than the practice, is not.',
+    body: 'A policy on paper is not the same as a culture where leave is taken without career consequences. Some companies have market-leading policies and a culture where taking more than a few months is quietly career-limiting. The signal is whether senior employees (men in particular) actually take the full leave entitlement.',
+    action: 'Ask in the interview: "Can you tell me about how parental leave actually plays out in practice. Do people tend to take the full entitlement?" A confident yes with specific examples is good. Hesitation, or an answer that pivots to the policy rather than the practice, is not.',
   },
   {
     n: '03',
     title: 'Count the actual in-office days',
-    body: 'For parents managing school runs, nursery drop-offs, or caring responsibilities, the difference between 2 in-office days and 3 is not a minor preference — it can determine whether a job is viable. "Hybrid" tells you almost nothing. Most UK companies using that word mean 2-3 days minimum in the office.',
+    body: 'For parents managing school runs, nursery drop-offs, or caring responsibilities, the difference between 2 in-office days and 3 is not a minor preference; it can determine whether a job is viable. "Hybrid" tells you almost nothing. Most UK companies using that word mean 2-3 days minimum in the office.',
     action: 'Ask the specific question: "How many days a week do people in this team typically come in?" And: "Is that flexible around specific circumstances, or is it a firm requirement?" Also ask: "Is there flexibility on which days those are?" Commuting Wednesday and Friday is very different from Monday and Friday for school-run logistics.',
   },
   {
@@ -41,14 +41,14 @@ const CHECKS = [
     n: '07',
     title: 'Watch the interview scheduling itself',
     body: 'How a company schedules interviews is a preview of how they run. If they only offer you slots outside working hours, need multiple rounds with 2-week gaps, or show obvious disorganisation throughout the process, that is a preview of what internal coordination looks like on a Tuesday afternoon when you need to leave for school pickup.',
-    action: 'Pay attention to how responsive they are, how well-organised the process is, and whether interviewers have actually read your CV. A smooth, respectful interview process is not proof of a good employer — but a chaotic, disorganised one is a reasonable signal.',
+    action: 'Pay attention to how responsive they are, how well-organised the process is, and whether interviewers have actually read your CV. A smooth, respectful interview process is not proof of a good employer, but a chaotic, disorganised one is a reasonable signal.',
   },
 ]
 
 const QUESTIONS = [
   { q: 'What does a typical day look like for someone in this role?', why: 'Surfaces actual hours and pace. Listen for hints about evening availability expectations or weekend working.' },
   { q: 'How does the team handle urgent requests outside working hours?', why: 'Whether "flexible" means flex for you or for the company. If there is an on-call rota, get the details.' },
-  { q: 'What is the parental leave policy — for both parents — in weeks and percentage of pay?', why: 'Forces specifics. "Enhanced" without numbers is not useful information.' },
+  { q: 'What is the parental leave policy, for both parents, in weeks and percentage of pay?', why: 'Forces specifics. "Enhanced" without numbers is not useful information.' },
   { q: 'Do people in senior roles typically take the full parental leave entitlement?', why: 'Probes culture versus policy. An honest answer distinguishes companies that mean it from companies that perform it.' },
   { q: 'How does the team manage if someone needs to finish early or start late occasionally?', why: 'Reveals whether flexibility is genuinely reciprocal or theoretical.' },
 ]
@@ -79,7 +79,7 @@ export default function ParentJobHuntPage() {
           The Parent's Guide to Finding a Better Job
         </h1>
         <p style={{ fontSize: 15, color: 'var(--marker-mid)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
-          How to find employers that are genuinely family-friendly — not just ones that say so on their careers page. The seven things to check, the five questions to ask in any interview, and how to read the signals that companies do not advertise.
+          How to find employers that are genuinely family-friendly, not just ones that say so on their careers page. The seven things to check, the five questions to ask in any interview, and how to read the signals that companies do not advertise.
         </p>
         <div style={{ display: 'flex', gap: 16, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           <span>10 min read</span>
@@ -93,10 +93,10 @@ export default function ParentJobHuntPage() {
       <div style={{ padding: '36px 0 32px', borderBottom: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 16 }}>The problem with "family-friendly"</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          Every company says they are family-friendly. It is the safest possible claim to make — it costs nothing to write on a careers page and is almost impossible to disprove until you are already in the job. What parents actually need to know is not whether a company says the right things, but whether the structure, culture, and senior team make it genuinely viable to do good work and have a life outside of it.
+          Every company says they are family-friendly. It is the safest possible claim to make; it costs nothing to write on a careers page and is almost impossible to disprove until you are already in the job. What parents actually need to know is not whether a company says the right things, but whether the structure, culture, and senior team make it genuinely viable to do good work and have a life outside of it.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          The gap between policy and practice is where most job search advice falls short. This guide is about reading both — knowing what to look for before you apply, what to ask in interviews, and how to spot the difference between a company that means it and one that is just good at saying it.
+          The gap between policy and practice is where most job search advice falls short. This guide is about reading both: knowing what to look for before you apply, what to ask in interviews, and how to spot the difference between a company that means it and one that is just good at saying it.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
           None of this is about asking for less. It is about finding the places where you can do your best work without paying for it in the time your family gets.
@@ -143,19 +143,19 @@ export default function ParentJobHuntPage() {
       <div style={{ padding: '36px 0 32px', borderTop: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 16 }}>The honest reality of this search</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          Doing this research properly takes time you often do not have. Reading Glassdoor reviews, tracking down the actual parental leave policy, finding the right contacts to verify culture claims — it is 3-4 hours of work per role before you have even decided whether to apply.
+          Doing this research properly takes time you often do not have. Reading Glassdoor reviews, tracking down the actual parental leave policy, finding the right contacts to verify culture claims: it is 3-4 hours of work per role before you have even decided whether to apply.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
           Marker does not do all of it for you. But it does the parts that are most mechanical and time-consuming: scoring the salary against your floor, surfacing WLB data for listed employers, checking office expectations against your preferences, and tracking everything so you are not starting from scratch every time you open a new job ad.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
-          The questions you need to ask in interviews — no tool replaces those. But at least you can stop spending your limited time looking up Glassdoor scores and start spending it on the things that actually require your judgment.
+          The questions you need to ask in interviews: no tool replaces those. But at least you can stop spending your limited time looking up Glassdoor scores and start spending it on the things that actually require your judgment.
         </p>
       </div>
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Find the role that fits your whole life.</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Marker scores any job against your salary floor, WLB priority, office day limit, and parental leave needs — in 30 seconds. Then tracks everything so nothing slips.</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Marker scores any job against your salary floor, WLB priority, office day limit, and parental leave needs, in 30 seconds. Then tracks everything so nothing slips.</div>
         <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
       </div>
 

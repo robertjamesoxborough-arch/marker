@@ -43,27 +43,27 @@ For each agency return a JSON object with EXACTLY these fields:
 {
   "agency": "Agency name",
   "priority": 1, // 1 = most relevant to this candidate's seniority and field, 2 = strong, 3 = useful but less targeted
-  "specialisation": "What they specifically place — be specific about seniority, function, and sector",
+  "specialisation": "What they specifically place; be specific about seniority, function, and sector",
   "coverage": "Geographic coverage",
   "contractFocus": "perm",
   "website": "Their website URL",
   "linkedin": "LinkedIn company page URL or null",
   "register": "Direct URL to their registration/candidate portal or jobs page",
   "ats": {
-    "name": "ATS system name (e.g. Bullhorn, Workday, Greenhouse, Lever, Workable, proprietary — use your knowledge)",
+    "name": "ATS system name (e.g. Bullhorn, Workday, Greenhouse, Lever, Workable, proprietary: use your knowledge)",
     "format": "Preferred CV format (.docx or PDF)",
-    "instructions": "2-3 specific formatting tips for getting past their ATS — what keywords matter, how to structure it, what to avoid"
+    "instructions": "2-3 specific formatting tips for getting past their ATS: what keywords matter, how to structure it, what to avoid"
   },
   "companies": ["List", "of", "10-15", "real", "UK", "companies", "they", "have", "placed", "candidates", "at"],
-  "insight": "One strategic insight — why this agency is particularly relevant to this candidate and how to stand out",
-  "note": "One practical tip on HOW to approach — direct LinkedIn to practice lead, specific team, whether cold outreach works, etc."
+  "insight": "One strategic insight: why this agency is particularly relevant to this candidate and how to stand out",
+  "note": "One practical tip on HOW to approach: direct LinkedIn to practice lead, specific team, whether cold outreach works, etc."
 }
 
 Rules:
 - Only include real, active UK agencies. Mix boutique specialists with larger players.
 - Priority 1: agencies with a genuine specialism in this candidate's seniority level and field
 - The companies list must be real companies this agency genuinely places at
-- ATS instructions must be specific and actionable — not generic advice
+- ATS instructions must be specific and actionable; not generic advice
 - For senior roles, include executive search firms and headhunters where appropriate
 - Return ONLY a JSON array of 10 objects, no markdown`
 
@@ -84,7 +84,7 @@ Rules:
 
   let recruiters
   try { recruiters = JSON.parse(cleaned) } catch {
-    return Response.json({ error: 'Parse error — try again', raw: cleaned.slice(0, 300) })
+    return Response.json({ error: 'Parse error; try again', raw: cleaned.slice(0, 300) })
   }
   if (!Array.isArray(recruiters)) return Response.json({ error: 'Expected array from model' })
 

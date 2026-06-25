@@ -41,26 +41,26 @@ For each agency return a JSON object with EXACTLY these fields:
 {
   "agency": "Agency name",
   "priority": 1, // 1 = most relevant to this candidate's field, 2 = strong, 3 = useful
-  "specialisation": "What they specifically place — be specific about seniority and sector",
+  "specialisation": "What they specifically place; be specific about seniority and sector",
   "coverage": "Geographic coverage",
   "contractFocus": "Contract types they specialise in",
   "website": "Their website URL",
   "linkedin": "LinkedIn company page URL or null",
   "register": "Direct URL to their registration/candidate portal page",
   "ats": {
-    "name": "ATS system name (e.g. Bullhorn, Hays proprietary, Workable, Lever, SmartRecruiters — use your knowledge of what each agency uses)",
+    "name": "ATS system name (e.g. Bullhorn, Hays proprietary, Workable, Lever, SmartRecruiters: use your knowledge of what each agency uses)",
     "format": "Preferred CV format (.docx or PDF)",
-    "instructions": "2-3 specific formatting tips for getting past their ATS — be concrete and practical"
+    "instructions": "2-3 specific formatting tips for getting past their ATS; be concrete and practical"
   },
   "companies": ["List", "of", "10-15", "real", "UK", "companies", "they", "regularly", "place", "candidates", "at"],
-  "insight": "One strategic insight — why this agency is particularly relevant to this candidate and how to maximise your chances with them",
-  "note": "One practical tip on HOW to approach this agency — e.g. direct LinkedIn to practice lead, specific division, timing"
+  "insight": "One strategic insight: why this agency is particularly relevant to this candidate and how to maximise your chances with them",
+  "note": "One practical tip on HOW to approach this agency: e.g. direct LinkedIn to practice lead, specific division, timing"
 }
 
 Rules:
 - Only include real, active UK agencies
 - Priority 1: most relevant to this specific field and contract type
-- The companies list must be real companies this agency genuinely works with — not generic examples
+- The companies list must be real companies this agency genuinely works with; not generic examples
 - ATS instructions must be specific and actionable
 - Return ONLY a JSON array of 10 objects, no markdown`
 
@@ -81,7 +81,7 @@ Rules:
 
   let recruiters
   try { recruiters = JSON.parse(cleaned) } catch {
-    return Response.json({ error: 'Parse error — try again', raw: cleaned.slice(0, 300) })
+    return Response.json({ error: 'Parse error; try again', raw: cleaned.slice(0, 300) })
   }
   if (!Array.isArray(recruiters)) return Response.json({ error: 'Expected array from model' })
 

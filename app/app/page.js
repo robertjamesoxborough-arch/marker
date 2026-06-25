@@ -106,7 +106,7 @@ function PipelineCard({ job, onEditDetails, onDelete, onScore, onTailorCv, onSta
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
         </div>
         <ScoreBadge score={job.score} />
       </div>
@@ -221,7 +221,7 @@ const FIRST_RUN_STEPS = [
     tab: 'Discover',
     subTab: 'tasklist',
     heading: 'See a role? Add it to your pipeline.',
-    body: 'Hit the + Pipeline button on any role. Aim for 5–8 active roles — enough to keep momentum without overwhelm.',
+    body: 'Hit the + Pipeline button on any role. Aim for 5–8 active roles: enough to keep momentum without overwhelm.',
     cta: 'Got it →',
     pulse: 'pipeline-button',
   },
@@ -230,7 +230,7 @@ const FIRST_RUN_STEPS = [
     tab: 'Today',
     subTab: null,
     heading: 'Score any role in 30 seconds.',
-    body: 'Paste a job URL into the box on this page. Claude reads the full JD and gives you an 8-factor match score — including office days, WLB, and parental leave.',
+    body: 'Paste a job URL into the box on this page. Claude reads the full JD and gives you an 8-factor match score (including office days, WLB, and parental leave).',
     cta: "Let's go",
     pulse: 'score-input',
   },
@@ -640,7 +640,7 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
         setResult(data.prep || '')
       }
     } catch {
-      setError('Request failed — try again.')
+      setError('Request failed. Try again.')
     } finally {
       setGenerating(false)
     }
@@ -675,8 +675,8 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
         </div>
         <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
           {mode === 'negotiate'
-            ? 'Scripts, counter-offer strategy, and BATNA for your offer-stage role — grounded in your profile and market data.'
-            : 'Pick a role you\'ve applied for and get a full prep pack — company background, likely questions, and STAR story starters tailored to the JD.'}
+            ? 'Scripts, counter-offer strategy, and BATNA for your offer-stage role, grounded in your profile and market data.'
+            : 'Pick a role you\'ve applied for and get a full prep pack: company background, likely questions, and STAR story starters tailored to the JD.'}
         </div>
         {offerJobs.length > 0 && (
           <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
@@ -697,7 +697,7 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Role</label>
         <select value={selectedJobId} onChange={e => { setSelectedJobId(e.target.value); setResult(''); setError('') }}
           style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}>
-          {(mode === 'negotiate' ? offerJobs : activeJobs).map(j => <option key={j.id} value={j.id}>{j.company} — {j.roleTitle || 'Untitled'}</option>)}
+          {(mode === 'negotiate' ? offerJobs : activeJobs).map(j => <option key={j.id} value={j.id}>{j.company}: {j.roleTitle || 'Untitled'}</option>)}
         </select>
         {salary && (
           <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
@@ -726,10 +726,10 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
       </div>
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Job description <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(paste for best results)</span></label>
-        <textarea value={jdText} onChange={e => setJdText(e.target.value)} placeholder="Paste the JD here — Claude will research the company live via web search regardless…" rows={4} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.5 }} />
+        <textarea value={jdText} onChange={e => setJdText(e.target.value)} placeholder="Paste the JD here; Claude will research the company live via web search regardless…" rows={4} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.5 }} />
       </div>
       <div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>CV you submitted <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional — PDF only, for targeted STAR answers)</span></label>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>CV you submitted <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional; PDF only, for targeted STAR answers)</span></label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-black)', color: 'var(--marker-cream)', padding: '4px 10px', borderRadius: 4, letterSpacing: '0.04em', flexShrink: 0 }}>CHOOSE FILE</span>
           <span style={{ fontSize: 12, color: cvFileName ? 'var(--marker-text)' : 'var(--marker-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cvFileName || 'No file chosen'}</span>
@@ -764,7 +764,7 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
 
       {generating && (
         <div style={{ padding: '16px 0 4px' }}>
-          <ProgressBar duration={mode === 'negotiate' ? 15 : 50} steps={STEPS_PREP} slowAt={mode === 'negotiate' ? 10 : 32} slowMsg={mode === 'negotiate' ? 'Preparing your negotiation scripts and market analysis…' : "Web search adds time here — Claude's looking up the actual company, not guessing from training data."} />
+          <ProgressBar duration={mode === 'negotiate' ? 15 : 50} steps={STEPS_PREP} slowAt={mode === 'negotiate' ? 10 : 32} slowMsg={mode === 'negotiate' ? 'Preparing your negotiation scripts and market analysis…' : "Web search adds time here; Claude's looking up the actual company, not guessing from training data."} />
         </div>
       )}
 
@@ -784,7 +784,7 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
         </div>
       )}
 
-      <div className="legal-line">{mode === 'negotiate' ? 'AI negotiation coaching. Market data from Adzuna. Verify figures independently.' : 'Live web research via Claude — cost absorbed by Requite. Takes 30–60 seconds.'}</div>
+      <div className="legal-line">{mode === 'negotiate' ? 'AI negotiation coaching. Market data from Adzuna. Verify figures independently.' : 'Live web research via Claude, cost absorbed by Requite. Takes 30–60 seconds.'}</div>
     </div>
     </div>
   )
@@ -833,7 +833,7 @@ function StatsTab({ jobs }) {
   ]
 
   // Effort level breakdown
-  const EFFORT_LABELS = { 1: 'L1 — Keywords', 2: 'L2 — Guided', 3: 'L3 — Deep' }
+  const EFFORT_LABELS = { 1: 'L1: Keywords', 2: 'L2: Guided', 3: 'L3: Deep' }
 
   // Source breakdown
   const SOURCE_BREAKDOWN = [
@@ -860,7 +860,7 @@ function StatsTab({ jobs }) {
         {[
           { label: 'Applied', value: applied },
           { label: 'Interviews', value: interviews },
-          { label: 'Int. rate', value: applied > 0 ? `${intRate}%` : '—' },
+          { label: 'Int. rate', value: applied > 0 ? `${intRate}%` : '–' },
           { label: 'Offers', value: offers },
         ].map(({ label, value }) => (
           <div key={label} style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: '12px 8px', textAlign: 'center' }}>
@@ -876,7 +876,7 @@ function StatsTab({ jobs }) {
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Score insight</div>
           <div style={{ fontSize: 13, color: 'var(--marker-text)', lineHeight: 1.5 }}>
             You applied to roles averaging <strong>{avgApplied}</strong>, but interviewed for roles averaging <strong>{avgInterv}</strong>.
-            {parseFloat(avgInterv) > parseFloat(avgApplied) + 0.5 ? ' Higher-scored roles are converting — keep prioritising them.' : ''}
+            {parseFloat(avgInterv) > parseFloat(avgApplied) + 0.5 ? ' Higher-scored roles are converting; keep prioritising them.' : ''}
           </div>
         </div>
       )}
@@ -932,7 +932,7 @@ function StatsTab({ jobs }) {
             {topJobs.map(job => (
               <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 2 }}>{job.company}</div>
                 </div>
                 <ScoreBadge score={job.score} />
@@ -959,7 +959,7 @@ function StatsTab({ jobs }) {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-text)', fontWeight: 500 }}>{label}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{bandApplied}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{bandInterv}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: rate >= 30 ? '#16a34a' : rate > 0 ? 'var(--marker-text)' : 'var(--marker-mid)' }}>{bandApplied > 0 ? `${rate}%` : '—'}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: rate >= 30 ? '#16a34a' : rate > 0 ? 'var(--marker-text)' : 'var(--marker-mid)' }}>{bandApplied > 0 ? `${rate}%` : '–'}</div>
                 </div>
               )
             })}
@@ -986,7 +986,7 @@ function StatsTab({ jobs }) {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-text)', fontWeight: 500 }}>{EFFORT_LABELS[level]}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{lvApplied}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{lvInterv}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: rate >= 30 ? '#16a34a' : rate > 0 ? 'var(--marker-text)' : 'var(--marker-mid)' }}>{lvApplied > 0 ? `${rate}%` : '—'}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: rate >= 30 ? '#16a34a' : rate > 0 ? 'var(--marker-text)' : 'var(--marker-mid)' }}>{lvApplied > 0 ? `${rate}%` : '–'}</div>
                 </div>
               )
             })}
@@ -1000,7 +1000,7 @@ function StatsTab({ jobs }) {
         const topBandApplied = jobs.filter(j => ['applied','interviewing','offer','rejected'].includes(j.status) && parseFloat(j.score) >= 9).length
         const topBandInterv  = jobs.filter(j => ['interviewing','offer'].includes(j.status) && parseFloat(j.score) >= 9).length
         if (topBandApplied >= 3 && topBandInterv / topBandApplied >= 0.4) {
-          insights.push(`Roles scored 9-10 converted at ${Math.round((topBandInterv/topBandApplied)*100)}% — prioritise these above all else.`)
+          insights.push(`Roles scored 9-10 converted at ${Math.round((topBandInterv/topBandApplied)*100)}% . Prioritise these above all else.`)
         }
         const l3Jobs = jobs.filter(j => j.cvEffortLevel === 3)
         const l1Jobs = jobs.filter(j => j.cvEffortLevel === 1)
@@ -1009,7 +1009,7 @@ function StatsTab({ jobs }) {
         const l3Rate = l3App > 0 ? l3Jobs.filter(j => ['interviewing','offer'].includes(j.status)).length / l3App : 0
         const l1Rate = l1App > 0 ? l1Jobs.filter(j => ['interviewing','offer'].includes(j.status)).length / l1App : 0
         if (l3App >= 2 && l1App >= 2 && l3Rate > l1Rate) {
-          insights.push(`Level 3 tailored CVs got ${Math.round((l3Rate - l1Rate)*100)}% more interviews than Level 1 — consider trusting the AI more.`)
+          insights.push(`Level 3 tailored CVs got ${Math.round((l3Rate - l1Rate)*100)}% more interviews than Level 1 . Consider trusting the AI more.`)
         }
         if (insights.length === 0) return null
         return (
@@ -1033,7 +1033,7 @@ function StatsTab({ jobs }) {
 // ── CV Generator tab ──────────────────────────────────────────────
 
 const EFFORT_LEVELS = [
-  { id: 'none',   label: 'Zero effort', sub: 'AI writes now — no questions',     cvEffort: 'standard' },
+  { id: 'none',   label: 'Zero effort', sub: 'AI writes now, no questions',     cvEffort: 'standard' },
   { id: 'light',  label: 'Light',       sub: '2 questions · adds real context',   cvEffort: 'standard' },
   { id: 'medium', label: 'Medium',      sub: '4 questions · stronger tailoring',  cvEffort: 'deep'     },
   { id: 'deep',   label: 'Deep',        sub: '7 questions · maximum precision',   cvEffort: 'deep'     },
@@ -1042,21 +1042,21 @@ const EFFORT_LEVELS = [
 function buildCvPrompt(level, roleTitle, company, jobLink, cvRaw) {
   const jobLine = `Role: ${roleTitle}${company ? ` at ${company}` : ''}${jobLink ? `\nJob link: ${jobLink}` : ''}`
   const cvBlock = cvRaw ? `\nMy CV:\n${cvRaw}` : ''
-  const footer = `\nATS + AI screening defence: Use exact-match keywords from the JD. Keep bullet points action-verb led with metrics. Avoid tables, text boxes, and headers/footers which ATS parsers cannot read. Do not add skills or experience that are not in my CV.\n\nImportant: share download links to the final CV only — do not paste the CV text directly in this chat.`
+  const footer = `\nATS + AI screening defence: Use exact-match keywords from the JD. Keep bullet points action-verb led with metrics. Avoid tables, text boxes, and headers/footers which ATS parsers cannot read. Do not add skills or experience that are not in my CV.\n\nImportant: share download links to the final CV only. Do not paste the CV text directly in this chat.`
 
-  if (level === 1) return `You are helping me tailor my CV for a specific role. Analyse it against the job description and give me actionable guidance — I will make the edits myself.\n\n${jobLine}${cvBlock}\n\nPlease:\n1. List the 10–15 most important keywords from the JD I should include in my CV\n2. Identify the 3 biggest gaps between my CV and what they are asking for\n3. Suggest 5 specific bullet point rewrites I could make (keep my authentic experience, just tighten the language and add metrics where possible)\n4. Flag any ATS risks — formatting issues, missing keywords, vague phrases${footer}`
+  if (level === 1) return `You are helping me tailor my CV for a specific role. Analyse it against the job description and give me actionable guidance; I will make the edits myself.\n\n${jobLine}${cvBlock}\n\nPlease:\n1. List the 10–15 most important keywords from the JD I should include in my CV\n2. Identify the 3 biggest gaps between my CV and what they are asking for\n3. Suggest 5 specific bullet point rewrites I could make (keep my authentic experience, just tighten the language and add metrics where possible)\n4. Flag any ATS risks: formatting issues, missing keywords, vague phrases${footer}`
 
-  if (level === 2) return `Please rewrite my CV to better match this specific role. Keep my authentic experience — improve how it is framed, not what I have done.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Rewrite bullet points to mirror language from the JD where genuinely applicable\n- Optimise for ATS: ensure exact-match keywords appear naturally, remove filler phrases, keep formatting clean\n- Optimise for AI screening: ensure the skills section, first page, and each role's opening line are keyword-dense but readable\n- Keep every job title, company, and date — do not invent experience\n- Aim for a relevance score of 8+/10 for this specific role${footer}`
+  if (level === 2) return `Please rewrite my CV to better match this specific role. Keep my authentic experience; improve how it is framed, not what I have done.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Rewrite bullet points to mirror language from the JD where genuinely applicable\n- Optimise for ATS: ensure exact-match keywords appear naturally, remove filler phrases, keep formatting clean\n- Optimise for AI screening: ensure the skills section, first page, and each role's opening line are keyword-dense but readable\n- Keep every job title, company, and date. Do not invent experience.\n- Aim for a relevance score of 8+/10 for this specific role${footer}`
 
-  return `Please create a fully tailored, ATS-optimised version of my CV for this specific role. This is a deep rewrite — pull every relevant piece of experience forward and present it in the strongest possible way.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Reorder and reframe bullet points to lead with what this employer cares most about\n- Rewrite the profile/summary to be a direct pitch for this exact role\n- Use exact keywords from the JD throughout, especially in the summary, skills section, and each role's opening bullets\n- ATS: no tables, no text boxes, no columns, no headers/footers with key info, bullet points only, clean section headers\n- AI screening defence: ensure the first page, summary, and every role heading directly echo the language of the JD\n- Remove or de-prioritise anything clearly irrelevant to this role\n- Keep every job title, company, and date — do not invent experience or qualifications${footer}`
+  return `Please create a fully tailored, ATS-optimised version of my CV for this specific role. This is a deep rewrite; pull every relevant piece of experience forward and present it in the strongest possible way.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Reorder and reframe bullet points to lead with what this employer cares most about\n- Rewrite the profile/summary to be a direct pitch for this exact role\n- Use exact keywords from the JD throughout, especially in the summary, skills section, and each role's opening bullets\n- ATS: no tables, no text boxes, no columns, no headers/footers with key info, bullet points only, clean section headers\n- AI screening defence: ensure the first page, summary, and every role heading directly echo the language of the JD\n- Remove or de-prioritise anything clearly irrelevant to this role\n- Keep every job title, company, and date. Do not invent experience or qualifications.${footer}`
 }
 
 function buildClPrompt(level, roleTitle, company, jobLink, cvRaw) {
   const jobLine = `Role: ${roleTitle}${company ? ` at ${company}` : ''}${jobLink ? `\nJob link: ${jobLink}` : ''}`
   const cvBlock = cvRaw ? `\nMy CV:\n${cvRaw}` : ''
-  const footer = `\nKeep it to 3–4 paragraphs, 300–400 words. British English. Confident and direct — no phrases like "I am writing to apply" or "I would be thrilled".\n\nImportant: share download links to the final cover letter only — do not paste the text directly in this chat.`
+  const footer = `\nKeep it to 3–4 paragraphs, 300–400 words. British English. Confident and direct. No phrases like "I am writing to apply" or "I would be thrilled".\n\nImportant: share download links to the final cover letter only. Do not paste the text directly in this chat.`
 
-  if (level === 1) return `Help me write a cover letter for this role. Give me a structure and key points to include — I will write it myself.\n\n${jobLine}${cvBlock}\n\nPlease:\n1. Suggest the 3 strongest points from my background to lead with for this specific role\n2. Identify any gaps I should address proactively\n3. Give me an opening line that is direct and specific (not generic)\n4. Suggest a closing sentence${footer}`
+  if (level === 1) return `Help me write a cover letter for this role. Give me a structure and key points to include; I will write it myself.\n\n${jobLine}${cvBlock}\n\nPlease:\n1. Suggest the 3 strongest points from my background to lead with for this specific role\n2. Identify any gaps I should address proactively\n3. Give me an opening line that is direct and specific (not generic)\n4. Suggest a closing sentence${footer}`
 
   if (level === 2) return `Please write a first draft cover letter for this role based on my CV. I will edit it.\n\n${jobLine}${cvBlock}\n\nStructure: opening that names the role and why I am the right fit, 2 paragraphs of relevant evidence from my CV, closing with availability and enthusiasm.${footer}`
 
@@ -1064,9 +1064,9 @@ function buildClPrompt(level, roleTitle, company, jobLink, cvRaw) {
 }
 
 const CV_EFFORT_OPTIONS = [
-  { level: 1, label: 'Level 1 — Keywords and gaps', sub: 'You write it, ChatGPT guides you', tool: 'ChatGPT' },
-  { level: 2, label: 'Level 2 — Guided rewrite',    sub: 'AI rewrites, you review and edit', tool: 'Claude or ChatGPT' },
-  { level: 3, label: 'Level 3 — Deep rewrite',      sub: 'Claude does the full tailoring',   tool: 'Claude' },
+  { level: 1, label: 'Level 1: Keywords and gaps', sub: 'You write it, ChatGPT guides you', tool: 'ChatGPT' },
+  { level: 2, label: 'Level 2: Guided rewrite',    sub: 'AI rewrites, you review and edit', tool: 'Claude or ChatGPT' },
+  { level: 3, label: 'Level 3: Deep rewrite',      sub: 'Claude does the full tailoring',   tool: 'Claude' },
 ]
 
 function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPrefill, onSwitchToEngine }) {
@@ -1141,7 +1141,7 @@ function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPref
           <option value="">Choose a role…</option>
           {eligibleJobs.map(j => (
             <option key={j.id} value={j.id}>
-              {j.company}{j.roleTitle ? ` — ${j.roleTitle}` : ''}{j.score ? ` (${j.score})` : ''}
+              {j.company}{j.roleTitle ? `: ${j.roleTitle}` : ''}{j.score ? ` (${j.score})` : ''}
             </option>
           ))}
         </select>
@@ -1160,7 +1160,7 @@ function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPref
               <div key={j.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-black)', textTransform: 'uppercase' }}>{j.company}</div>
-                  <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 2 }}>{j.roleTitle || '—'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 2 }}>{j.roleTitle || '–'}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   {j.cvEffortLevel && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)' }}>L{j.cvEffortLevel}</div>}
@@ -1182,7 +1182,7 @@ function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPref
         <div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Step 2 of 4</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)' }}>Choose effort level</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 2 }}>{selectedJob?.company}{selectedJob?.roleTitle ? ` — ${selectedJob.roleTitle}` : ''}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 2 }}>{selectedJob?.company}{selectedJob?.roleTitle ? `: ${selectedJob.roleTitle}` : ''}</div>
         </div>
       </div>
 
@@ -1223,7 +1223,7 @@ function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPref
 
       <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Your prompt — copy and paste into AI</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Your prompt: copy and paste into AI</div>
           <button onClick={copyPrompt}
             style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: copied ? 'var(--marker-lime)' : 'var(--marker-border)', color: 'var(--marker-black)', border: 'none', padding: '5px 12px', borderRadius: 4, cursor: 'pointer', letterSpacing: '0.04em', fontWeight: 600 }}>
             {copied ? 'COPIED ✓' : 'COPY'}
@@ -1247,23 +1247,23 @@ function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPref
       <div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Step 4 of 4</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>Did you apply?</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 3 }}>{selectedJob?.company}{selectedJob?.roleTitle ? ` — ${selectedJob.roleTitle}` : ''}</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 3 }}>{selectedJob?.company}{selectedJob?.roleTitle ? `: ${selectedJob.roleTitle}` : ''}</div>
       </div>
 
       {markedApplied ? (
         <div style={{ padding: '20px', background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#065F46', marginBottom: 6 }}>Applied — good luck!</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#065F46', marginBottom: 6 }}>Applied. Good luck!</div>
           <div style={{ fontSize: 12, color: '#047857' }}>Status updated to Applied in your pipeline.</div>
         </div>
       ) : (
         <>
           <button onClick={confirmApplied}
             style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '13px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>
-            Yes, I applied — mark as Applied
+            Yes, I applied. Mark as Applied.
           </button>
           <button onClick={goStep1}
             style={{ background: 'transparent', color: 'var(--marker-mid)', border: '1px solid var(--marker-border)', padding: '12px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
-            Not yet — back to start
+            Not yet. Back to start.
           </button>
         </>
       )}
@@ -1314,7 +1314,7 @@ function RecruiterPanel({ profile, mode }) {
       const data = await res.json()
       if (data.error) { setError(data.error); return }
       setRecruiters(data.recruiters || [])
-    } catch { setError('Request failed — try again') }
+    } catch { setError('Request failed. Try again.') }
     finally { setLoading(false) }
   }
 
@@ -1324,18 +1324,18 @@ function RecruiterPanel({ profile, mode }) {
     const atsName = r.ats?.name || 'their ATS'
     const atsFormat = r.ats?.format || '.docx'
     const atsInstructions = r.ats?.instructions || 'single-column format, no tables or text boxes'
-    return `Please create a CV optimised for submission to ${r.agency}. They use ${atsName} — here are the specific formatting requirements: ${atsInstructions}. Preferred format: ${atsFormat}.
+    return `Please create a CV optimised for submission to ${r.agency}. They use ${atsName}. Formatting requirements: ${atsInstructions}. Preferred format: ${atsFormat}.
 
 My target roles: ${targetRoles}
 
 My CV:
-${cvRaw || '[No CV added yet — go to Settings > Profile to add your CV]'}
+${cvRaw || '[No CV added yet. Go to Settings > Profile to add your CV.]'}
 
 Please:
-1. Reformat for ${atsName} compatibility — ${atsInstructions}
+1. Reformat for ${atsName} compatibility: ${atsInstructions}
 2. Ensure all skills, tools, and sector keywords appear as plain body text (not in tables or text boxes)
 3. Job titles and seniority level should be prominent at the start of each role
-4. Keep every job title, company, and date accurate — do not invent anything
+4. Keep every job title, company, and date accurate. Do not invent anything.
 5. Output as clean text I can paste into ${atsFormat} format
 
 Make sure the CV is tailored to ${r.agency}'s typical clients: ${(r.companies || []).slice(0, 5).join(', ')}.`
@@ -1386,13 +1386,13 @@ Make sure the CV is tailored to ${r.agency}'s typical clients: ${(r.companies ||
           </div>
           <ProgressBar duration={25}
             steps={['Searching for specialist agencies…', 'Checking ATS systems and company relationships…', 'Ranking by relevance to your profile…', 'Almost done…']}
-            slowAt={40} slowMsg="Researching agency specialisms takes a moment — results will be specific to your field." />
+            slowAt={40} slowMsg="Researching agency specialisms takes a moment; results will be specific to your field." />
         </div>
       )}
 
       {error && !loading && (
         <div style={{ margin: 16, background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#B91C1C' }}>
-          {error} — <button onClick={generate} style={{ background: 'none', border: 'none', color: '#B91C1C', cursor: 'pointer', textDecoration: 'underline', fontSize: 13, padding: 0 }}>try again</button>
+          {error} <button onClick={generate} style={{ background: 'none', border: 'none', color: '#B91C1C', cursor: 'pointer', textDecoration: 'underline', fontSize: 13, padding: 0 }}>try again</button>
         </div>
       )}
 
@@ -1521,7 +1521,7 @@ function ContractorCvPanel({ profile }) {
 
   const prompt = `You are an expert CV writer for UK contractors and interim professionals.
 
-Write a clean, skills-led contractor CV for the following person. This CV will be sent directly to recruitment agencies — it must be concise, outcomes-focused, and easy to skim in 10 seconds.
+Write a clean, skills-led contractor CV for the following person. This CV will be sent directly to recruitment agencies; it must be concise, outcomes-focused, and easy to skim in 10 seconds.
 
 Professional background:
 ${summary || cvRaw || `Experienced ${field} professional with ${yearsExp ? yearsExp + ' years experience' : 'significant experience'} in ${roles}.`}
@@ -1534,18 +1534,18 @@ Contract type preference: ${contractTypes}
 CV structure to produce:
 1. Name + contact line placeholder (e.g. "[Name] | [Email] | [LinkedIn] | Day rate: £[X]/day")
 2. Professional summary (3-4 lines, contractor positioning, sector breadth, key skills)
-3. Core skills (bullet list, 12-16 items — use keywords recruiters search for)
-4. Career history (most recent first — company, role, dates, 3-4 achievement bullets per role using £/% outcomes where possible)
+3. Core skills (bullet list, 12-16 items; use keywords recruiters search for)
+4. Career history (most recent first: company, role, dates, 3-4 achievement bullets per role using £/% outcomes where possible)
 5. Education + certifications (brief)
 
 Rules:
 - UK English throughout
-- No "responsible for" — use strong verbs (led, delivered, grew, built, reduced)
+- No "responsible for". Use strong verbs: (led, delivered, grew, built, reduced)
 - Include day rate placeholder
 - Keep to 2 pages equivalent
 - Format clearly with section headers
 
-Return the CV text only — no preamble, no explanation.`
+Return the CV text only, no preamble, no explanation.`
 
   function copy() {
     navigator.clipboard.writeText(prompt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) })
@@ -1555,11 +1555,11 @@ Return the CV text only — no preamble, no explanation.`
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '3px solid var(--marker-lime)', borderRadius: '0 10px 10px 0', padding: '12px 14px' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>How to use</div>
-        <div style={{ fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.6 }}>Copy the prompt below and paste it into Claude or ChatGPT. It generates a skills-led 2-page CV formatted for recruiter mailshots — not tied to any single JD. Update your day rate and LinkedIn URL in the output before sending.</div>
+        <div style={{ fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.6 }}>Copy the prompt below and paste it into Claude or ChatGPT. It generates a skills-led 2-page CV formatted for recruiter mailshots, not tied to any single JD. Update your day rate and LinkedIn URL in the output before sending.</div>
       </div>
       <div style={{ background: '#fff', border: '1px solid var(--marker-border)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Contractor CV prompt — copy into AI</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Contractor CV prompt: copy into AI</div>
           <button onClick={copy} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: copied ? 'var(--marker-lime)' : 'var(--marker-black)', border: 'none', color: copied ? 'var(--marker-black)' : 'var(--marker-cream)', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', letterSpacing: '0.04em', fontWeight: 600 }}>
             {copied ? 'COPIED ✓' : 'COPY PROMPT'}
           </button>
@@ -1616,7 +1616,7 @@ function DirectCvPanel({ allJobs, profile }) {
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflowY: 'auto' }}>
       <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
-        Generate a tailored CV sent directly to the API — output displayed here with verified-stats check.
+        Generate a tailored CV sent directly to the API. Output displayed here with verified-stats check.
       </div>
 
       {/* Role picker */}
@@ -1625,11 +1625,11 @@ function DirectCvPanel({ allJobs, profile }) {
         <select value={selectedJobId} onChange={e => setSelectedJobId(e.target.value)}
           style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-text)' }}>
           {eligibleJobs.map(j => (
-            <option key={j.id} value={j.id}>{j.roleTitle}{j.company ? ` — ${j.company}` : ''} ({j.status})</option>
+            <option key={j.id} value={j.id}>{j.roleTitle}{j.company ? `: ${j.company}` : ''} ({j.status})</option>
           ))}
         </select>
         {selectedJob && !selectedJob.jdRaw && (
-          <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#d97706' }}>No JD stored for this role — paste it from the pipeline card first.</div>
+          <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#d97706' }}>No JD stored for this role. Paste it from the pipeline card first.</div>
         )}
       </div>
 
@@ -1657,12 +1657,12 @@ function DirectCvPanel({ allJobs, profile }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {result.flaggedMetrics && result.flaggedMetrics.length > 0 && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fcd34d', fontFamily: 'var(--font-body)', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-              <strong>Verified-stats warning:</strong> The following numbers were not found in your stored CV — review before using: <strong>{result.flaggedMetrics.join(', ')}</strong>
+              <strong>Verified-stats warning:</strong> The following numbers were not found in your stored CV. Review before using: <strong>{result.flaggedMetrics.join(', ')}</strong>
             </div>
           )}
           {result.flaggedMetrics && result.flaggedMetrics.length === 0 && (
             <div style={{ padding: '8px 12px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #86efac', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#166534', letterSpacing: '0.06em' }}>
-              VERIFIED — all metrics trace to your stored CV
+              VERIFIED: all metrics trace to your stored CV
             </div>
           )}
           <textarea readOnly value={result.type === 'keywords' ? JSON.stringify(result.data, null, 2) : result.text}
@@ -1708,7 +1708,7 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
         </div>
         <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
           {isContractorOnly
-            ? 'Generate a skills-based CV to send directly to recruiters — no specific JD needed. Designed for contractor market.'
+            ? 'Generate a skills-based CV to send directly to recruiters, no specific JD needed. Designed for contractor market.'
             : 'Pick a role from your pipeline and generate a tailored CV prompt or cover letter, matched to the JD in seconds.'}
         </div>
       </div>
@@ -1897,7 +1897,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
           </div>
           {/* Score + score button */}
           <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
@@ -2016,7 +2016,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
             <>
               {showWishlistTour && (
                 <TourBanner onDismiss={dismissWishlistTour}>
-                  Companies are generated from your profile. <strong>Hiring now</strong> means open roles are live right now. Add any you want — even if they don't post publicly.
+                  Companies are generated from your profile. <strong>Hiring now</strong> means open roles are live right now. Add any you want, even if they don't post publicly.
                 </TourBanner>
               )}
               <WishlistTab profile={profile} jobs={pipelineJobs} addJob={addJob} />
@@ -2031,7 +2031,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
             <button onClick={() => setLinkedinOpen(o => !o)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '12px 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)' }}>Find roles on LinkedIn</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 2, letterSpacing: '0.04em' }}>COPY THESE STRINGS — SURFACES ROLES BEFORE THEY HIT JOB BOARDS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 2, letterSpacing: '0.04em' }}>COPY THESE STRINGS: SURFACES ROLES BEFORE THEY HIT JOB BOARDS</div>
               </div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--marker-mid)', flexShrink: 0, lineHeight: 1 }}>{linkedinOpen ? '▾' : '▸'}</span>
             </button>
@@ -2054,7 +2054,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
 
           {showWebTour && (
             <TourBanner onDismiss={dismissWebTour}>
-              These roles refresh every night — anything dismissed stays hidden. Hit <strong>SCORE</strong> on a role to get your 8-factor match score before deciding whether to add it to your pipeline.
+              These roles refresh every night. Anything dismissed stays hidden. Hit <strong>SCORE</strong> on a role to get your 8-factor match score before deciding whether to add it to your pipeline.
             </TourBanner>
           )}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', position: 'sticky', top: 0, zIndex: 5 }}>
@@ -2079,7 +2079,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
                 style={{ background: 'none', border: 'none', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', cursor: refreshing ? 'default' : 'pointer', letterSpacing: '0.04em', padding: 0 }}>
                 {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
               </button>
-              {refreshCooldownMsg && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Refreshed &lt;1h ago — check back later</span>}
+              {refreshCooldownMsg && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Refreshed &lt;1h ago. Check back later.</span>}
             </div>
           </div>
           {feedLoading ? (
@@ -2111,11 +2111,11 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
                   <div style={{ fontSize: 12, color: 'var(--marker-mid)', fontWeight: 500 }}>In the meantime:</div>
                   <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, cursor: 'pointer' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)' }}>Add target companies ↑</div>
-                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2, lineHeight: 1.4 }}>Build your shortlist above — companies you'd actually want to work for. Open roles surface automatically.</div>
+                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2, lineHeight: 1.4 }}>Build your shortlist above: companies you'd actually want to work for. Open roles surface automatically.</div>
                   </button>
                   <button onClick={() => { /* parent will handle tab switch */ document.querySelector('[data-tab="WLB"]')?.click() }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, cursor: 'pointer' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)' }}>WLB guide →</div>
-                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2, lineHeight: 1.4 }}>Browse 30+ UK employers with strong WLB scores — Glassdoor ratings, parental leave, and office expectations.</div>
+                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2, lineHeight: 1.4 }}>Browse 30+ UK employers with strong WLB scores: Glassdoor ratings, parental leave, and office expectations.</div>
                   </button>
                 </>
               ) : (
@@ -2129,8 +2129,8 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
           ) : (
             <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filteredWeb.map(job => renderFeedCard(job, 'web_search'))}
-              {showWebAdzuna && <div className="legal-line" style={{ paddingTop: 8 }}>Job listings provided by Adzuna. Roles pulled nightly. Match scores are AI estimates based on your profile — not guarantees. Not affiliated with employers listed.</div>}
-              {!showWebAdzuna && filteredWeb.length > 0 && <div className="legal-line" style={{ paddingTop: 8 }}>Roles pulled nightly from public career pages. Match scores are AI estimates — not guarantees. Not affiliated with employers listed.</div>}
+              {showWebAdzuna && <div className="legal-line" style={{ paddingTop: 8 }}>Job listings provided by Adzuna. Roles pulled nightly. Match scores are AI estimates based on your profile, not guarantees. Not affiliated with employers listed.</div>}
+              {!showWebAdzuna && filteredWeb.length > 0 && <div className="legal-line" style={{ paddingTop: 8 }}>Roles pulled nightly from public career pages. Match scores are AI estimates, not guarantees. Not affiliated with employers listed.</div>}
             </div>
           )}
           {showReturnships && (
@@ -2138,7 +2138,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
               <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
                 <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--marker-border)' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--marker-black)', marginBottom: 3 }}>Returnship programmes</div>
-                  <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.4 }}>Structured paid re-entry programmes at major UK employers. Click any to go directly to the programme page — not all are open year-round.</div>
+                  <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.4 }}>Structured paid re-entry programmes at major UK employers. Click any to go directly to the programme page. Not all are open year-round.</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {RETURNSHIP_PROGRAMMES.map((p, i) => (
@@ -2157,7 +2157,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
               <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
                 <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--marker-border)' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--marker-black)', marginBottom: 3 }}>Parental-friendly employers</div>
-                  <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.4 }}>UK employers with enhanced parental leave policies — worth researching if this matters to you. Always verify directly with the employer.</div>
+                  <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.4 }}>UK employers with enhanced parental leave policies, worth researching if this matters to you. Always verify directly with the employer.</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {PARENTAL_FRIENDLY_EMPLOYERS.map((e, i) => (
@@ -2203,7 +2203,7 @@ const WISHLIST_SEEDS = {
   ],
   parent: [
     { company: 'Aviva',            sector: 'Insurance', note: '26 weeks full pay for all parents, flexible return options' },
-    { company: 'Channel 4',        sector: 'Media',     note: '9 months full pay for all parents — one of the best in UK' },
+    { company: 'Channel 4',        sector: 'Media',     note: '9 months full pay for all parents, one of the best in UK' },
     { company: 'NatWest Group',    sector: 'Finance',   note: '52 weeks available, first 26 at full pay' },
     { company: 'Sky',              sector: 'Media/Tech',note: '26 weeks full pay, enhanced partner leave, phased return' },
     { company: 'Vodafone',         sector: 'Telecoms',  note: '16 weeks full pay globally, flexible return programme' },
@@ -2214,13 +2214,13 @@ const WISHLIST_SEEDS = {
     { company: 'Lloyds Banking',   sector: 'Finance',   note: 'Up to 39 weeks full pay maternity, strong culture' },
   ],
   returner: [
-    { company: 'Goldman Sachs',    sector: 'Finance',   note: 'Returnship programme — 6 months paid, structured support' },
-    { company: 'Amazon',           sector: 'Tech',      note: 'Return to Work — open to career breaks of 2+ years' },
+    { company: 'Goldman Sachs',    sector: 'Finance',   note: 'Returnship programme: 6 months paid, structured support' },
+    { company: 'Amazon',           sector: 'Tech',      note: 'Return to Work: open to career breaks of 2+ years' },
     { company: 'Morgan Stanley',   sector: 'Finance',   note: 'Return to Work programme, open to all disciplines' },
     { company: 'Mastercard',       sector: 'Fintech',   note: 'Returnship programme, London offices' },
     { company: 'PwC',              sector: 'Consulting',note: 'Back to Business programme, targets career returners' },
     { company: 'Barclays',         sector: 'Finance',   note: 'Bespoke Return to Work programme with coaching' },
-    { company: 'JP Morgan',        sector: 'Finance',   note: 'ReEntry programme — 15 weeks paid, mentored' },
+    { company: 'JP Morgan',        sector: 'Finance',   note: 'ReEntry programme: 15 weeks paid, mentored' },
     { company: 'HSBC',             sector: 'Finance',   note: 'Career Returners partnership, structured onboarding' },
     { company: 'IBM',              sector: 'Tech',      note: 'SkillsBuild returnship, tech and consulting roles' },
     { company: 'Lloyds Banking',   sector: 'Finance',   note: 'Returning to Work programme, hybrid-friendly' },
@@ -2234,7 +2234,7 @@ const WISHLIST_SEEDS = {
     { company: 'Capgemini',        sector: 'Tech',       note: 'Tech degree apprenticeships designed for career switchers' },
     { company: 'BT Group',         sector: 'Telecoms',   note: 'Digital bootcamp-to-hire pathways, skills-first hiring' },
     { company: 'Lloyds Banking',   sector: 'Finance',    note: 'Tech Academy for career changers moving into engineering' },
-    { company: 'General Assembly', sector: 'EdTech',     note: 'Hires its own graduates — good first tech role post-bootcamp' },
+    { company: 'General Assembly', sector: 'EdTech',     note: 'Hires its own graduates, good first tech role post-bootcamp' },
     { company: 'Makers',           sector: 'EdTech',     note: 'Partner companies hire directly from their cohorts' },
   ],
   standard: [
@@ -2430,7 +2430,7 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
         setSuggestions(suggs)
       }
     } catch {
-      setGenerateError('Request failed — try again')
+      setGenerateError('Request failed. Try again.')
       if (autoAdd) setWishlist([])
     } finally {
       setGenerating(false)
@@ -2505,7 +2505,7 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
             {co.note && !WLB_DATA[co.name.toLowerCase()] && <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginBottom: 4, lineHeight: 1.4 }}>{co.note}</div>}
             {loading && <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div className="anim-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--marker-border)', flexShrink: 0 }} /><span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-mid)' }}>Checking…</span></div>}
             {status === 'has_roles' && <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }} /><span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: '#15803D', fontWeight: 500 }}>{roleJobs.length} matching role{roleJobs.length !== 1 ? 's' : ''} open now</span></div>}
-            {status === 'no_roles' && <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--marker-border)', flexShrink: 0 }} /><span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-mid)' }}>No matching roles right now{result.totalOnBoard ? ` — ${result.totalOnBoard} others on their board` : ''}</span></div>}
+            {status === 'no_roles' && <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--marker-border)', flexShrink: 0 }} /><span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-mid)' }}>No matching roles right now{result.totalOnBoard ? `. ${result.totalOnBoard} others on their board.` : ''}</span></div>}
             {status === 'no_board' && <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}><div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--marker-border)', flexShrink: 0 }} /><a href={careersUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-black)', fontWeight: 500 }}>Search careers ↗</a></div>}
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
@@ -2543,10 +2543,10 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
   }
 
   const trackCtx = {
-    balanced:       'WLB-first employers — hybrid working, strong leave policies, and low-stress cultures',
-    parent:         'Family-friendly employers — enhanced parental leave, phased returns, fertility support',
-    returner:       'Active returnship programmes — structured paid re-entry for career returners',
-    career_changer: 'Open to non-traditional backgrounds — skills-first hiring and internal pathway programmes',
+    balanced:       'WLB-first employers: hybrid working, strong leave policies, and low-stress cultures',
+    parent:         'Family-friendly employers: enhanced parental leave, phased returns, fertility support',
+    returner:       'Active returnship programmes: structured paid re-entry for career returners',
+    career_changer: 'Open to non-traditional backgrounds: skills-first hiring and internal pathway programmes',
     standard:       'Top UK employers across tech, fintech, media, and professional services',
   }
   const activeTrack = profile?.track || 'standard'
@@ -2590,7 +2590,7 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
 
         {generating && list.length > 0 && (
           <div style={{ padding: '12px 0 4px' }}>
-            <ProgressBar duration={20} steps={['Scanning your CV for relevant sectors…', 'Matching to companies that hire your profile…', 'Ranking by fit and hiring activity…', 'Adding the finishing touches…', 'Nearly there…']} slowAt={45} slowMsg="Reading your CV takes a moment — suggestions will be specific to you, not generic." />
+            <ProgressBar duration={20} steps={['Scanning your CV for relevant sectors…', 'Matching to companies that hire your profile…', 'Ranking by fit and hiring activity…', 'Adding the finishing touches…', 'Nearly there…']} slowAt={45} slowMsg="Reading your CV takes a moment; suggestions will be specific to you, not generic." />
           </div>
         )}
 
@@ -2620,7 +2620,7 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
             {generating ? (
               <>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.08em', marginBottom: 16 }}>BUILDING YOUR TARGET LIST…</div>
-                <ProgressBar duration={20} steps={['Reading your CV…', 'Matching to UK employers…', 'Ranking by fit and hiring activity…', 'Nearly ready…']} slowAt={45} slowMsg="Taking your profile into account — companies will be specific to you." />
+                <ProgressBar duration={20} steps={['Reading your CV…', 'Matching to UK employers…', 'Ranking by fit and hiring activity…', 'Nearly ready…']} slowAt={45} slowMsg="Taking your profile into account; companies will be specific to you." />
               </>
             ) : (
               <>
@@ -2678,7 +2678,7 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
         {suggestions && suggestions.length > 0 && (
           <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12, overflow: 'hidden', animation: 'fadeSlideIn 0.3s ease' }}>
             <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>AI suggestions — based on your CV</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>AI suggestions: based on your CV</div>
               <button onClick={() => setSuggestions(null)} style={{ background: 'none', border: 'none', color: 'var(--marker-mid)', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
             </div>
             {suggestions.map((s, i) => (
@@ -2704,7 +2704,7 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
 
         {list.length > 0 && (
           <div className="legal-line" style={{ paddingTop: 4 }}>
-            Live data from public jobs boards. Not all companies post publicly — use "Search careers" to check the ones that don't. Refreshed on every visit.
+            Live data from public jobs boards. Not all companies post publicly; use "Search careers" to check the ones that don't. Refreshed on every visit.
           </div>
         )}
       </div>
@@ -2810,7 +2810,7 @@ function SearchTab({ profile, jobs: pipelineJobs, addJob }) {
       setResults(data.jobs || [])
       setMeta({ total: data.total || 0, scored: data.scored || 0 })
     } catch {
-      setError('Search failed — check your connection and try again.')
+      setError('Search failed. Check your connection and try again.')
     } finally {
       setSearching(false)
     }
@@ -2877,7 +2877,7 @@ function SearchTab({ profile, jobs: pipelineJobs, addJob }) {
         {searching && (
           <div style={{ padding: '48px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--marker-black)' }}>Scanning live listings</div>
-            <ProgressBar duration={50} steps={STEPS_SEARCH} slowAt={45} slowMsg="Scoring is the slow bit — Claude's reading each job description properly, not just matching keywords." />
+            <ProgressBar duration={50} steps={STEPS_SEARCH} slowAt={45} slowMsg="Scoring is the slow bit; Claude's reading each job description properly, not just matching keywords." />
           </div>
         )}
 
@@ -2901,7 +2901,7 @@ function SearchTab({ profile, jobs: pipelineJobs, addJob }) {
           <div style={{ padding: '40px 0', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Live Adzuna search</div>
             <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
-              Type any role title or pick a suggestion above. Results are scored against your profile by Claude — only the strongest matches appear.
+              Type any role title or pick a suggestion above. Results are scored against your profile by Claude. Only the strongest matches appear.
             </div>
           </div>
         )}
@@ -2928,7 +2928,7 @@ function SearchTab({ profile, jobs: pipelineJobs, addJob }) {
 
         {results.length > 0 && !searching && (
           <div className="legal-line" style={{ paddingTop: 4 }}>
-            Job listings provided by Adzuna. AI-scored against your profile. Scores refresh each search — same role may score differently as listings change.
+            Job listings provided by Adzuna. AI-scored against your profile. Scores refresh each search. Same role may score differently as listings change.
           </div>
         )}
       </div>
@@ -2941,7 +2941,7 @@ function SearchTab({ profile, jobs: pipelineJobs, addJob }) {
 const BALANCED_COMPANIES = [
   { co: 'Nationwide',     sector: 'Finance',      wlb: '4.4', reviews: '4,820', leave: '26 weeks full pay',  office: '1d', wf: true,  careers: 'https://jobs.nationwide.co.uk',           score: '9.1', note: 'Best enhanced parental leave in UK finance; hybrid-first culture. Working Families Top Employer 2024.' },
   { co: 'Wellcome Trust', sector: 'Charity',      wlb: '4.6', reviews: '640',   leave: '26 weeks full pay',  office: '1d', wf: false, careers: 'https://wellcome.org/jobs',               score: '9.0', note: 'Sector-leading WLB; mission-driven science philanthropy; flexible by default.' },
-  { co: 'Channel 4',      sector: 'Media',        wlb: '4.2', reviews: '1,080', leave: '9 months full pay',  office: '2d', wf: true,  careers: 'https://careers.channel4.com',            score: '8.9', note: '9 months full pay for all parents — best in UK broadcasting. Working Families Top Employer 2024.' },
+  { co: 'Channel 4',      sector: 'Media',        wlb: '4.2', reviews: '1,080', leave: '9 months full pay',  office: '2d', wf: true,  careers: 'https://careers.channel4.com',            score: '8.9', note: '9 months full pay for all parents; best in UK broadcasting. Working Families Top Employer 2024.' },
   { co: 'Ofcom',          sector: 'Regulator',    wlb: '4.5', reviews: '780',   leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://www.ofcom.org.uk/about-ofcom/careers', score: '8.8', note: 'Regulator stability; hybrid-first; consistently high WLB ratings on Glassdoor.' },
   { co: 'Lloyds Banking', sector: 'Finance',      wlb: '4.1', reviews: '9,200', leave: '39 weeks full pay',  office: '2d', wf: true,  careers: 'https://www.lloydsbankinggroup.com/careers', score: '8.8', note: 'Up to 39 weeks full pay; strong flexible return options. Working Families Top Employer.' },
   { co: 'BBC',            sector: 'Media',        wlb: '4.3', reviews: '6,400', leave: '26 weeks full pay',  office: '2d', wf: true,  careers: 'https://careers.bbc.co.uk',               score: '8.7', note: '35-hour week, hybrid, public service culture. Working Families Top Employer 2024.' },
@@ -2996,9 +2996,9 @@ function BalancedTab({ jobs: pipelineJobs, addJob }) {
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '4px solid var(--marker-lime)', borderRadius: '0 10px 10px 0', padding: '12px 14px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 4 }}>What is Work-Life Balance (WLB)?</div>
-        <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6 }}>WLB is how well a job fits around the rest of your life — hours, flexibility, parental leave, culture, and whether you're actually expected to switch off. Job ads claim it. Glassdoor reviews measure it. This list uses ≥500 Glassdoor reviews plus Working Families benchmark data, so you can research before you apply.</div>
+        <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6 }}>WLB is how well a job fits around the rest of your life: hours, flexibility, parental leave, culture, and whether you're actually expected to switch off. Job ads claim it. Glassdoor reviews measure it. This list uses ≥500 Glassdoor reviews plus Working Families benchmark data, so you can research before you apply.</div>
         <div style={{ marginTop: 10, fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--marker-black)' }}>Watch</strong> adds a company to your pipeline Watchlist — no role yet, just a signal to keep an eye on them. You'll see them in your Pipeline under <em>Watching</em>, and if they appear in your live job feed they'll be highlighted.
+          <strong style={{ color: 'var(--marker-black)' }}>Watch</strong> adds a company to your pipeline Watchlist, no role yet, just a signal to keep an eye on them. You'll see them in your Pipeline under <em>Watching</em>, and if they appear in your live job feed they'll be highlighted.
         </div>
       </div>
 
@@ -3053,7 +3053,7 @@ function BalancedTab({ jobs: pipelineJobs, addJob }) {
           { title: 'Digital Strategy Manager',  why: 'Advisory remit, cross-functional, rarely firefighting' },
           { title: 'Product Manager (platform)',why: 'Internal tooling orgs tend to have calmer roadmaps' },
           { title: 'Operations Lead',           why: 'Process-oriented, stable timelines, measurable scope' },
-          { title: 'Marketing Manager (brand)', why: 'Avoid "Growth" in the title — often means startup hours' },
+          { title: 'Marketing Manager (brand)', why: 'Avoid "Growth" in the title; often means startup hours' },
         ].map((r, i, arr) => (
           <div key={r.title} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--marker-border)' : 'none', display: 'flex', gap: 12, alignItems: 'baseline' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', minWidth: 180, flexShrink: 0 }}>{r.title}</div>
@@ -3068,11 +3068,11 @@ function BalancedTab({ jobs: pipelineJobs, addJob }) {
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>How to find balanced roles</div>
         </div>
         {[
-          { tip: 'LinkedIn',          detail: '"Senior product manager remote £80k" — apply "Easy Apply off" + "Under 10 applicants" filters' },
+          { tip: 'LinkedIn',          detail: '"Senior product manager remote £80k". Apply "Easy Apply off" + "Under 10 applicants" filters' },
           { tip: 'Glassdoor filter',  detail: 'Company filter → Work/Life Balance ≥ 4.0 → sort by most recent reviews' },
           { tip: 'Escape the City',   detail: '"Purpose-driven" filter surfaces B Corps, charities, and public sector orgs' },
-          { tip: 'Working Families',  detail: 'workingfamilies.org.uk/top-employers — annual verified list of family-friendly UK employers' },
-          { tip: 'Civil Service Jobs',detail: 'civilservicejobs.service.gov.uk — Director/Deputy Director level, flexible working by default' },
+          { tip: 'Working Families',  detail: 'workingfamilies.org.uk/top-employers: annual verified list of family-friendly UK employers' },
+          { tip: 'Civil Service Jobs',detail: 'civilservicejobs.service.gov.uk: Director/Deputy Director level, flexible working by default' },
         ].map((t, i, arr) => (
           <div key={t.tip} style={{ padding: '9px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--marker-border)' : 'none' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-black)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 3 }}>{t.tip}</div>
@@ -3160,7 +3160,7 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
       if (data.roleTitle && !roleInput) setRoleInput(data.roleTitle)
       if (data.company && !coInput) setCoInput(data.company)
     } catch {
-      setError('Request failed — check your connection and try again.')
+      setError('Request failed. Check your connection and try again.')
     } finally {
       setAnalysing(false)
     }
@@ -3209,7 +3209,7 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
             value={url}
             onChange={e => setUrl(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !analysing && analyse()}
-            placeholder="Job URL — e.g. https://monzo.com/careers/jobs/…"
+            placeholder="Job URL, e.g. https://monzo.com/careers/jobs/…"
             style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', boxSizing: 'border-box' }}
           />
         </div>
@@ -3232,7 +3232,7 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
             <textarea
               value={jd}
               onChange={e => setJd(e.target.value)}
-              placeholder="Paste the full job description here — improves accuracy, especially for parental leave and culture data"
+              placeholder="Paste the full job description here; improves accuracy, especially for parental leave and culture data"
               rows={5}
               style={{ display: 'block', width: '100%', marginTop: 8, padding: '9px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
             />
@@ -3259,7 +3259,7 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
         {analysing && (
           <div style={{ padding: '40px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)' }}>Analysing role</div>
-            <ProgressBar duration={45} steps={STEPS_ANALYSE} slowAt={38} slowMsg="Taking a bit longer — Claude's searching the web for this one rather than reading the page directly. Worth the wait." />
+            <ProgressBar duration={45} steps={STEPS_ANALYSE} slowAt={38} slowMsg="Taking a bit longer; Claude's searching the web for this one rather than reading the page directly. Worth the wait." />
           </div>
         )}
 
@@ -3338,11 +3338,11 @@ function AnalyseTab({ profile, jobs: pipelineJobs, addJob }) {
                 disabled={!canAdd}
                 style={{ flex: 2, padding: '11px', borderRadius: 10, border: 'none', background: added || alreadyAdded ? 'var(--marker-border)' : 'var(--marker-black)', color: added || alreadyAdded ? 'var(--marker-mid)' : 'var(--marker-cream)', fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: !canAdd ? 'default' : 'pointer' }}
               >
-                {added || alreadyAdded ? 'Added to pipeline ✓' : `+ Add to pipeline${result.signal === 'apply' ? ' — apply!' : ''}`}
+                {added || alreadyAdded ? 'Added to pipeline ✓' : `+ Add to pipeline${result.signal === 'apply' ? ': apply!' : ''}`}
               </button>
             </div>
 
-            <div className="legal-line">AI-generated analysis. Review all scoring before making decisions. Web search used for company data — may not reflect current policies.</div>
+            <div className="legal-line">AI-generated analysis. Review all scoring before making decisions. Web search used for company data. May not reflect current policies.</div>
           </>
         )}
       </div>
@@ -3381,7 +3381,7 @@ function FocusPipelineView({ jobs, updateJob, deleteJob }) {
     return (
       <div style={{ padding: '48px 24px', textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>No roles tracked yet</div>
-        <div style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, maxWidth: 300, margin: '0 auto' }}>Score a role on the Score tab and add it to your pipeline — it will appear here.</div>
+        <div style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, maxWidth: 300, margin: '0 auto' }}>Score a role on the Score tab and add it to your pipeline. It will appear here.</div>
       </div>
     )
   }
@@ -3413,7 +3413,7 @@ function FocusPipelineView({ jobs, updateJob, deleteJob }) {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
                     </div>
                     {needsFollowUp && (
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, background: '#FCD34D', color: '#78350F', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Follow up?</span>
@@ -3511,7 +3511,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
           .then(r => r.json()).then(d => { if (d.salary) setSalary(d.salary) }).catch(() => {}).finally(() => setSalaryLoading(false))
       }
     } catch {
-      setError('Request failed — check your connection and try again.')
+      setError('Request failed. Check your connection and try again.')
       setShowJd(true) // Bug 4: auto-switch on network failure too
     } finally {
       setAnalysing(false)
@@ -3601,7 +3601,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       {!stripped && recentUnscoredJobs.length > 0 && (
         <div style={{ padding: '0 16px 10px' }}>
           <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '3px solid var(--marker-lime)', borderRadius: '0 8px 8px 0', padding: '10px 14px' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>Recently added — score these?</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>Recently added: score these?</div>
             {recentUnscoredJobs.map(j => (
               <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 12, color: 'var(--marker-text)' }}>
                 <span>{j.company}{j.roleTitle ? ` · ${j.roleTitle}` : ''}</span>
@@ -3621,7 +3621,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginBottom: 14 }}>Paste a job URL · Claude reads it and scores it against your profile</div>
         <div style={{ marginBottom: 10 }}>
           <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && !analysing && analyse()}
-            placeholder="Job URL — e.g. https://monzo.com/careers/jobs/…"
+            placeholder="Job URL, e.g. https://monzo.com/careers/jobs/…"
             style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', boxSizing: 'border-box' }} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
@@ -3648,7 +3648,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
         {analysing && (
           <div style={{ padding: '40px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)' }}>Analysing role</div>
-            <ProgressBar duration={45} steps={STEPS_ANALYSE} slowAt={38} slowMsg="Taking a bit longer — Claude's searching the web for this one rather than reading the page directly. Worth the wait." />
+            <ProgressBar duration={45} steps={STEPS_ANALYSE} slowAt={38} slowMsg="Taking a bit longer; Claude's searching the web for this one rather than reading the page directly. Worth the wait." />
           </div>
         )}
         {error && !analysing && <div style={{ fontSize: 12, color: '#B91C1C', padding: '12px 14px', background: '#FEE2E2', borderRadius: 10 }}>{error}</div>}
@@ -3697,10 +3697,10 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
               )}
               <button onClick={!autoAdded ? addToPipeline : undefined} disabled={added || alreadyAdded}
                 style={{ flex: 2, padding: '11px', borderRadius: 10, border: 'none', background: autoAdded ? 'rgba(198,244,50,0.3)' : (added || alreadyAdded) ? 'var(--marker-border)' : 'var(--marker-black)', color: (added || alreadyAdded || autoAdded) ? 'var(--marker-black)' : 'var(--marker-cream)', fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: (added || alreadyAdded) ? 'default' : 'pointer' }}>
-                {autoAdded ? 'Watchlisted ✓ — see Pipeline tab' : (added || alreadyAdded) ? 'In pipeline ✓' : `+ Add to pipeline${result.signal === 'apply' ? ' — apply!' : ''}`}
+                {autoAdded ? 'Watchlisted ✓: see Pipeline tab' : (added || alreadyAdded) ? 'In pipeline ✓' : `+ Add to pipeline${result.signal === 'apply' ? ': apply!' : ''}`}
               </button>
             </div>
-            <div className="legal-line">AI-generated analysis. Review before making decisions. Web search used for company data — may not reflect current policies.</div>
+            <div className="legal-line">AI-generated analysis. Review before making decisions. Web search used for company data. May not reflect current policies.</div>
           </>
         )}
       </div>
@@ -3749,7 +3749,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
       const data = await res.json()
       if (data.error) { setRolesError(data.error); return }
       setRoles(data.jobs || [])
-    } catch { setRolesError('Request failed — try again') }
+    } catch { setRolesError('Request failed. Try again.') }
     finally { setRolesLoading(false) }
   }
 
@@ -3760,7 +3760,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
       const data = await res.json()
       if (data.error) { setRecruitersError(data.error); return }
       setRecruiters(data.recruiters || [])
-    } catch { setRecruitersError('Request failed — try again') }
+    } catch { setRecruitersError('Request failed. Try again.') }
     finally { setRecruitersLoading(false) }
   }
 
@@ -3821,12 +3821,12 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
           {rolesLoading && (
             <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)' }}>Scanning live contract roles…</div>
-              <ProgressBar duration={35} steps={STEPS_CT_ROLES} slowAt={48} slowMsg="Scoring 40–60 roles takes a moment. Claude reads each one properly — not just the title." />
+              <ProgressBar duration={35} steps={STEPS_CT_ROLES} slowAt={48} slowMsg="Scoring 40–60 roles takes a moment. Claude reads each one properly, not just the title." />
             </div>
           )}
           {rolesError && !rolesLoading && (
             <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#B91C1C' }}>
-              {rolesError} — <button onClick={scanRoles} style={{ background: 'none', border: 'none', color: '#B91C1C', cursor: 'pointer', textDecoration: 'underline', fontSize: 13, padding: 0 }}>try again</button>
+              {rolesError} <button onClick={scanRoles} style={{ background: 'none', border: 'none', color: '#B91C1C', cursor: 'pointer', textDecoration: 'underline', fontSize: 13, padding: 0 }}>try again</button>
             </div>
           )}
           {roles && !rolesLoading && (
@@ -3858,7 +3858,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
                           </div>
                           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ background: scoreBg, fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, padding: '3px 9px', borderRadius: 6, color: 'var(--marker-black)' }}>{job.score || '—'}</div>
+                              <div style={{ background: scoreBg, fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, padding: '3px 9px', borderRadius: 6, color: 'var(--marker-black)' }}>{job.score || '–'}</div>
                               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginTop: 2 }}>JOB FIT</div>
                             </div>
                             {wlbScore !== null && (
@@ -3972,7 +3972,7 @@ function WeekProgress({ jobs }) {
 
 const JOURNEY = [
   { n: 1, label: 'Find roles',    full: 'Find your roles',      sub: 'Browse Discover and save anything that looks right.',               tab: 'Discover', cta: 'Go to Discover'    },
-  { n: 2, label: 'Score them',    full: 'Score your saves',     sub: 'Paste each URL into the scorer — see which are actually worth your time.', tab: 'Today',    cta: 'Score a role'      },
+  { n: 2, label: 'Score them',    full: 'Score your saves',     sub: 'Paste each URL into the scorer; see which are actually worth your time.', tab: 'Today',    cta: 'Score a role'      },
   { n: 3, label: 'Apply',         full: 'Apply to your best',   sub: 'Take your top-scored role seriously. Use the CV generator, write a real cover letter.', tab: 'CV', cta: 'Open CV generator' },
   { n: 4, label: 'Follow up',     full: 'Track and follow up',  sub: 'Applications are out. A short follow-up email can make the difference.',  tab: 'Pipeline', cta: 'View pipeline'     },
   { n: 5, label: 'Interview',     full: 'Prepare to win',       sub: "You're in a live interview process. Prep before anything else.",         tab: 'Interview', cta: 'Interview prep'    },
@@ -4110,7 +4110,7 @@ function SmartNudge({ jobs, onTabSwitch }) {
   // 1. Live interview process — highest priority
   if (interviewingJobs.length > 0) {
     const co = interviewingJobs[0].company || interviewingJobs[0].roleTitle || 'a live process'
-    nudge = { tag: 'In interviews', accent: 'var(--marker-lime)', msg: `You're at interview stage with ${co}. That takes priority over everything else right now. Prepare properly — most candidates don't.`, cta: 'Interview prep', tab: 'Interview' }
+    nudge = { tag: 'In interviews', accent: 'var(--marker-lime)', msg: `You're at interview stage with ${co}. That takes priority over everything else right now. Prepare properly. Most candidates don't.`, cta: 'Interview prep', tab: 'Interview' }
 
   // 2. Follow-ups overdue
   } else if (followUps.length > 0) {
@@ -4118,36 +4118,36 @@ function SmartNudge({ jobs, onTabSwitch }) {
 
   // 3. Just applied to several things yesterday — rotate to research mode
   } else if (appliedRecently.length >= 2) {
-    nudge = { tag: 'Research day', accent: 'var(--marker-lime)', msg: `You applied to ${appliedRecently.length} roles yesterday. Good. Today: build your target company shortlist or do LinkedIn outreach — applying every day without researching leaves half the market untouched.`, cta: 'Target companies', tab: 'Discover' }
+    nudge = { tag: 'Research day', accent: 'var(--marker-lime)', msg: `You applied to ${appliedRecently.length} roles yesterday. Good. Today: build your target company shortlist or do LinkedIn outreach. Applying every day without researching leaves half the market untouched.`, cta: 'Target companies', tab: 'Discover' }
 
   // 4. Added many auto-generated jobs from the feed — need to score and filter
   } else if (bulkFeedAdded.length >= 3) {
-    nudge = { tag: 'Score before you apply', accent: '#e8c830', msg: `You added ${bulkFeedAdded.length} roles from the feed. Before applying to any of them, score them — you'll find half aren't worth your time. Focus your effort on the ones that score 7+.`, cta: 'Score roles', tab: 'Today' }
+    nudge = { tag: 'Score before you apply', accent: '#e8c830', msg: `You added ${bulkFeedAdded.length} roles from the feed. Before applying to any of them, score them; you'll find half aren't worth your time. Focus your effort on the ones that score 7+.`, cta: 'Score roles', tab: 'Today' }
 
   // 5. Several unscored roles sitting in pipeline
   } else if (unscoredReady.length >= 3) {
-    nudge = { tag: 'Score your pipeline', accent: '#e8c830', msg: `You have ${unscoredReady.length} unscored roles saved. Scoring takes 30 seconds each — paste the URL into the scorer above. You should only apply to roles that score 7 or higher.`, cta: 'Score a role', tab: 'Today' }
+    nudge = { tag: 'Score your pipeline', accent: '#e8c830', msg: `You have ${unscoredReady.length} unscored roles saved. Scoring takes 30 seconds each. Paste the URL into the scorer above. You should only apply to roles that score 7 or higher.`, cta: 'Score a role', tab: 'Today' }
 
   // 6. High-score role ready to apply
   } else if (topUnacted) {
     const name = topUnacted.company || topUnacted.roleTitle || 'Your top role'
-    nudge = { tag: 'Apply today', accent: 'var(--marker-lime)', msg: `${name} scored ${topUnacted.score} — that's a strong match. A tailored application to a well-scored role gets 3× more callbacks than the same application sent to a weak match. Apply before it closes.`, cta: 'View pipeline', tab: 'Pipeline' }
+    nudge = { tag: 'Apply today', accent: 'var(--marker-lime)', msg: `${name} scored ${topUnacted.score} : that's a strong match. A tailored application to a well-scored role gets 3× more callbacks than the same application sent to a weak match. Apply before it closes.`, cta: 'View pipeline', tab: 'Pipeline' }
 
   // 7. Applied a bunch in last 2 days, nothing new discovered
   } else if (appliedTwoDaysAgo.length >= 2 && savedThisWeek <= appliedTwoDaysAgo.length) {
-    nudge = { tag: 'Find more roles', accent: 'var(--marker-lime)', msg: `You've applied to ${appliedTwoDaysAgo.length} roles this week — good. Keep the pipeline topped up. Check for new roles in the feed or add a few more target companies.`, cta: 'Discover roles', tab: 'Discover' }
+    nudge = { tag: 'Find more roles', accent: 'var(--marker-lime)', msg: `You've applied to ${appliedTwoDaysAgo.length} roles this week. Good. Keep the pipeline topped up. Check for new roles in the feed or add a few more target companies.`, cta: 'Discover roles', tab: 'Discover' }
 
   // 8. Stalled — nothing active this week
   } else if (weeksIn >= 3 && appliedThisWeek === 0 && savedThisWeek === 0) {
-    nudge = { tag: 'Pipeline stalled', accent: 'var(--marker-border)', msg: `Week ${weeksIn} with nothing saved or applied. Job searches stall when activity stalls. Pick your two strongest roles and apply this week — momentum compounds.`, cta: 'View pipeline', tab: 'Pipeline' }
+    nudge = { tag: 'Pipeline stalled', accent: 'var(--marker-border)', msg: `Week ${weeksIn} with nothing saved or applied. Job searches stall when activity stalls. Pick your two strongest roles and apply this week. Momentum compounds.`, cta: 'View pipeline', tab: 'Pipeline' }
 
   // 9. New user / empty pipeline
   } else if (activeJobs.length === 0) {
-    nudge = { tag: 'Start here', accent: 'var(--marker-lime)', msg: 'Head to Discover first — your target company list auto-populates from your profile. Browse it, then use the scorer above on any role that looks right.', cta: 'Go to Discover', tab: 'Discover' }
+    nudge = { tag: 'Start here', accent: 'var(--marker-lime)', msg: 'Head to Discover first. Your target company list auto-populates from your profile. Browse it, then use the scorer above on any role that looks right.', cta: 'Go to Discover', tab: 'Discover' }
 
   // 10. Small pipeline, not applied yet
   } else if (activeJobs.length < 5 && appliedThisWeek === 0) {
-    nudge = { tag: 'Build your pipeline', accent: 'var(--marker-lime)', msg: `${activeJobs.length} role${activeJobs.length !== 1 ? 's' : ''} saved. Aim for 5–8 before applying — more options means better decisions. Find 3–4 more before sending anything.`, cta: 'Find more roles', tab: 'Discover' }
+    nudge = { tag: 'Build your pipeline', accent: 'var(--marker-lime)', msg: `${activeJobs.length} role${activeJobs.length !== 1 ? 's' : ''} saved. Aim for 5–8 before applying; more options means better decisions. Find 3–4 more before sending anything.`, cta: 'Find more roles', tab: 'Discover' }
   }
 
   if (!nudge) return null
@@ -4177,7 +4177,7 @@ function buildWhyBullets(job, profile) {
 
   const officeDays = job.officeDays ?? bd.officeDays
   if (typeof officeDays === 'number') {
-    if (officeDays === 0) bullets.push('Fully remote — matches your working preferences')
+    if (officeDays === 0) bullets.push('Fully remote, matching your working preferences')
     else if (officeDays <= maxDays) bullets.push(`${officeDays} day${officeDays !== 1 ? 's' : ''} in the office, within your stated limit`)
   }
 
@@ -4192,7 +4192,7 @@ function buildWhyBullets(job, profile) {
   const salFound = factors.salaryMarket?.found
   const salaryStr = job.salary || bd.salary
   if (salScore >= 7 && salFound) {
-    bullets.push(salaryStr ? `Salary ${salaryStr} — above your stated minimum` : 'Advertised salary is above your stated minimum')
+    bullets.push(salaryStr ? `Salary ${salaryStr} , above your stated minimum` : 'Advertised salary is above your stated minimum')
   } else if (salaryStr && bullets.length < 4) {
     bullets.push(`Salary listed as ${salaryStr}`)
   }
@@ -4231,7 +4231,7 @@ const DAILY_INSIGHTS = [
   'Senior roles close faster than they post. Apply to your 7+ scored roles within 48 hours of finding them.',
   'Tailoring your CV opening paragraph to the JD keywords typically raises ATS match scores significantly.',
   'The best hiring managers do read cover letters. Three focused paragraphs beat a generic one every time.',
-  'Roles posted Monday or Tuesday fill fastest — the hiring team is fresh off the weekly planning meeting.',
+  'Roles posted Monday or Tuesday fill fastest; the hiring team is fresh off the weekly planning meeting.',
   'Practising your answer to "walk me through your background" out loud cuts interview nerves by more than you expect.',
 ]
 
@@ -4289,13 +4289,13 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
   let nudge = null
   if (interviewingJobs.length > 0) {
     const co = interviewingJobs[0].company || 'a live process'
-    nudge = { tag: 'In interviews', msg: `You are at interview stage with ${co}. Prepare properly — most candidates do not.`, cta: 'Interview prep', tab: 'Interview' }
+    nudge = { tag: 'In interviews', msg: `You are at interview stage with ${co}. Prepare properly. Most candidates do not.`, cta: 'Interview prep', tab: 'Interview' }
   } else if (followUps.length > 0) {
     nudge = { tag: 'Follow up today', msg: `${followUps.length} application${followUps.length !== 1 ? 's are' : ' is'} 7+ days old with no reply. Two minutes of outreach now.`, cta: 'View pipeline', tab: 'Pipeline' }
   } else if (unscoredReady.length >= 2) {
     nudge = { tag: 'Score your pipeline', msg: `${unscoredReady.length} saved roles have no score yet. Score before applying.`, cta: 'Score a role', action: () => setScorerOpen(true) }
   } else if (topUnacted) {
-    nudge = { tag: 'Ready to apply', msg: `${topUnacted.company || topUnacted.roleTitle} scored ${topUnacted.score} — a strong match. Apply before it closes.`, cta: 'View pipeline', tab: 'Pipeline' }
+    nudge = { tag: 'Ready to apply', msg: `${topUnacted.company || topUnacted.roleTitle} scored ${topUnacted.score}. A strong match. Apply before it closes.`, cta: 'View pipeline', tab: 'Pipeline' }
   } else if (appliedThisWeek === 0 && activeJobs.length >= 3) {
     nudge = { tag: 'Apply this week', msg: `${activeJobs.length} roles saved, none applied this week. Pick your best and send.`, cta: 'View pipeline', tab: 'Pipeline' }
   } else if (activeJobs.length < 5) {
@@ -4434,7 +4434,7 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestJob.company}</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestJob.roleTitle || '—'}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestJob.roleTitle || '–'}</div>
               </div>
               <div style={{ textAlign: 'center', flexShrink: 0 }}>
                 <div
@@ -4565,7 +4565,7 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
                 <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '10px 12px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{(job.status || '').replace('_', ' ')}</span>
@@ -4604,7 +4604,7 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
                   <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '—'}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
                     </div>
                     <div style={{ display: 'flex', align: 'center', gap: 6, flexShrink: 0 }}>
                       {score > 0 ? (
@@ -4673,12 +4673,12 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
 }
 
 const TAB_TOOLTIPS = {
-  Today:      'Your daily hub — score roles, see your week at a glance, and get back on track fast',
-  Pipeline:   'Manage your active roles across stages — stats at the bottom',
+  Today:      'Your daily hub: score roles, see your week at a glance, and get back on track fast',
+  Pipeline:   'Manage your active roles across stages. Stats at the bottom.',
   Discover:   'Your personalised job feed and target company shortlist',
-  WLB:        'Curated employer reference — Glassdoor WLB scores, parental leave, and office days before you commit to applying',
+  WLB:        'Curated employer reference: Glassdoor WLB scores, parental leave, and office days before you commit to applying',
   CV:         'Generate a tailored CV prompt or cover letter for any pipeline role',
-  Interview:  'Full interview prep pack — company research, questions, STAR stories',
+  Interview:  'Full interview prep pack: company research, questions, STAR stories',
   Contractor: 'Curated employer list, recruiter directory, and live contract role scan',
 }
 
@@ -4751,9 +4751,9 @@ function GettingStartedPanel({ profile, jobs, onProfileSaved, onTabSwitch }) {
   const steps = [
     // Step 1: profile — only show if genuinely no profile data (post-onboarding this should never show)
     !hasCv && { id: 'profile', label: 'Tell us about yourself', detail: 'A bit more background helps Claude score roles accurately for you' },
-    cvThin && { id: 'supplement', label: 'Strengthen your profile', detail: 'Your profile is thin — a few more details will meaningfully improve your scores' },
+    cvThin && { id: 'supplement', label: 'Strengthen your profile', detail: 'Your profile is thin. A few more details will meaningfully improve your scores.' },
     // Step 2: discovery before scoring
-    !hasPipeline && !hasScored && { id: 'discover', label: 'Find your first roles', detail: 'Go to the Discover tab — browse your company list and job feed, then come back here to score anything that looks right' },
+    !hasPipeline && !hasScored && { id: 'discover', label: 'Find your first roles', detail: 'Go to the Discover tab. Browse your company list and job feed, then come back here to score anything that looks right' },
     // Step 3: score
     !hasScored && hasPipeline === false && { id: 'score', label: 'Score a promising role', detail: 'Paste a job URL in the box below. Claude reads the JD and scores it against your profile in ~30 seconds' },
     hasScored && !hasPipeline && { id: 'pipeline', label: 'Add it to your pipeline', detail: 'Click + Add to pipeline after scoring to start tracking it. Aim for 5-8 live roles' },
@@ -5102,7 +5102,7 @@ export default function AppPage() {
               <div className="chip" style={{ fontSize: 9, padding: '3px 7px' }}>
                 {jobs.filter(j => j.score > 0).length}/{jobs.length} SCORED
               </div>
-              <button onClick={toggleFocusMode} title={focusMode ? 'Switch to Standard view' : 'Switch to Focus view — fewer tabs, less noise'} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: focusMode ? 'var(--marker-black)' : 'transparent', color: focusMode ? 'var(--marker-cream)' : 'var(--marker-mid)', border: `1px solid ${focusMode ? 'var(--marker-black)' : 'var(--marker-border)'}`, borderRadius: 4, padding: '3px 8px', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: focusMode ? 600 : 400, lineHeight: 1 }}>
+              <button onClick={toggleFocusMode} title={focusMode ? 'Switch to Standard view' : 'Switch to Focus view: fewer tabs, less noise'} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: focusMode ? 'var(--marker-black)' : 'transparent', color: focusMode ? 'var(--marker-cream)' : 'var(--marker-mid)', border: `1px solid ${focusMode ? 'var(--marker-black)' : 'var(--marker-border)'}`, borderRadius: 4, padding: '3px 8px', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: focusMode ? 600 : 400, lineHeight: 1 }}>
                 {focusMode ? '⊙ Focus' : '⊙ Focus'}
               </button>
               <button onClick={() => router.push('/settings')} style={{ width: 26, height: 26, borderRadius: 6, background: 'var(--marker-border)', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--marker-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Settings">⚙</button>
@@ -5314,7 +5314,7 @@ export default function AppPage() {
                 </div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '4px 4px 8px' }}>
-                <div className="legal-line">AI-generated scores and summaries. Not professional career advice. Parental leave data sourced via web search — verify directly with the employer before relying on it.</div>
+                <div className="legal-line">AI-generated scores and summaries. Not professional career advice. Parental leave data sourced via web search. Verify directly with the employer before relying on it.</div>
               </div>
 
               {jobs.length > 0 && (
@@ -5364,7 +5364,7 @@ export default function AppPage() {
             <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--marker-border)' }}>
               <div className="kicker holo-text" style={{ marginBottom: 6 }}>Know before you apply</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 8 }}>Employers actually worth working for.</div>
-              <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Real Glassdoor WLB scores, parental leave policies, and office expectations — so you can research culture before you commit to an application.</div>
+              <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Real Glassdoor WLB scores, parental leave policies, and office expectations, so you can research culture before you commit to an application.</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 8 }}>Culture data from public Glassdoor scores, company disclosures, and employer surveys. Always verify directly with the employer before applying.</div>
             </div>
             <BalancedTab jobs={jobs} addJob={addJob} />
@@ -5390,7 +5390,7 @@ export default function AppPage() {
             : <>
                 {showInterviewTour && (
                   <TourBanner onDismiss={dismissInterviewTour}>
-                    Full prep pack for any role at <strong>Applied</strong> stage or beyond — company briefing, likely questions, and STAR frameworks tailored to the JD. Add your interviewer's name for targeted prep.
+                    Full prep pack for any role at <strong>Applied</strong> stage or beyond: company briefing, likely questions, and STAR frameworks tailored to the JD. Add your interviewer's name for targeted prep.
                   </TourBanner>
                 )}
                 <PrepTab jobs={jobs} profile={profile} onSwitchToPipeline={() => setTab('Pipeline')} />
@@ -5434,7 +5434,7 @@ export default function AppPage() {
         ].map(({ label, href }) => (
           <a key={label} href={href} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none' }}>{label}</a>
         ))}
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em' }}>· Job scores are AI estimates — not professional advice ·</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em' }}>· Job scores are AI estimates, not professional advice ·</span>
       </div>
     </div>
   )

@@ -126,7 +126,7 @@ export default function SettingsPage() {
       else throw new Error(data.error || 'No checkout URL returned')
     } catch {
       setUpgrading(null)
-      setError('Checkout failed — try again or contact support@requite.io.')
+      setError('Checkout failed. Try again or contact support@requite.io.')
     }
   }
 
@@ -140,7 +140,7 @@ export default function SettingsPage() {
       else throw new Error(data.error || 'No portal URL returned')
     } catch {
       setPortalLoading(false)
-      setError('Could not open billing portal — try again or contact support@requite.io.')
+      setError('Could not open billing portal. Try again or contact support@requite.io.')
     }
   }
 
@@ -227,7 +227,7 @@ export default function SettingsPage() {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
-      setError(e?.message || 'Save failed — try again.')
+      setError(e?.message || 'Save failed. Try again.')
     } finally {
       setSaving(false)
     }
@@ -248,7 +248,7 @@ export default function SettingsPage() {
       await createClient().auth.signOut()
       window.location.href = '/?deleted=1'
     } catch (e) {
-      setDeleteError(e?.message || 'Deletion failed — contact hello@marker.work')
+      setDeleteError(e?.message || 'Deletion failed. Contact hello@marker.work')
       setDeleting(false)
     }
   }
@@ -389,7 +389,7 @@ export default function SettingsPage() {
             rows={10}
             style={{ display: 'block', width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-mono)' }}
           />
-          <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 6 }}>Paste as plain text. Formatting is stripped — content is what matters for ATS matching.</div>
+          <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 6 }}>Paste as plain text. Formatting is stripped; content is what matters for ATS matching.</div>
         </Section>
 
         {/* Background */}
@@ -407,7 +407,7 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <Label sub="Used when no CV is stored — a few sentences about your background">Career summary</Label>
+          <Label sub="Used when no CV is stored. A few sentences about your background.">Career summary</Label>
           <textarea value={careerSummary} onChange={e => setCareerSummary(e.target.value)} placeholder="e.g. 10 years in digital marketing, most recently Head of Growth at a Series B startup. Looking for a Director-level role." rows={4} style={{ display: 'block', width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-body)' }} />
 
           <div style={{ marginTop: 16 }}>
@@ -427,7 +427,7 @@ export default function SettingsPage() {
             {[
               { id: 'perm',       label: 'Permanent roles only',      sub: 'CV tailoring, interview prep, perm job feed' },
               { id: 'contractor', label: 'Contract / interim only',    sub: 'Generic CV for recruiter blast, contractor role scanner, agency finder' },
-              { id: 'both',       label: 'Both — perm and contractor', sub: 'Full access to all tools' },
+              { id: 'both',       label: 'Both (perm and contractor)', sub: 'Full access to all tools' },
             ].map(opt => (
               <button key={opt.id} onClick={() => setSearchMode(opt.id)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${searchMode === opt.id ? 'var(--marker-black)' : 'var(--marker-border)'}`, background: searchMode === opt.id ? 'var(--marker-black)' : 'var(--marker-cream-2)' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: searchMode === opt.id ? 'var(--marker-cream)' : 'var(--marker-text)', marginBottom: 2 }}>{opt.label}</div>
@@ -495,7 +495,7 @@ export default function SettingsPage() {
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Export your data</div>
-            <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10 }}>Download everything Marker holds about you — your profile, CV text, and pipeline — as a JSON file.</div>
+            <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10 }}>Download everything Marker holds about you as a JSON file: your profile, CV text, and pipeline.</div>
             <a href="/api/data-export" download style={{ display: 'inline-block', fontSize: 13, color: 'var(--marker-text)', border: '1px solid var(--marker-border)', padding: '8px 14px', borderRadius: 8, textDecoration: 'none', background: 'var(--marker-cream)' }}>Export data (JSON)</a>
           </div>
 

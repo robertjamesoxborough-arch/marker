@@ -13,7 +13,7 @@ const HOW_STEPS = [
   {
     n: '01',
     title: 'Describe the role.',
-    body: 'In plain language — we\'ll turn it into a brief.',
+    body: 'In plain language. We\'ll turn it into a brief.',
   },
   {
     n: '02',
@@ -106,7 +106,7 @@ export default function HirePage() {
           <div className="holo-dot" style={{ width: 48, height: 48, borderRadius: '50%', margin: '0 auto 24px' }} />
           <h1 style={H1} className="display-lg">Role posted.</h1>
           <p style={{ fontSize: 16, color: 'var(--marker-mid)', marginBottom: 32, lineHeight: 1.6 }}>
-            Your role is live in the {BRAND_NAME} network. We&apos;re matching candidates now — anonymised shortlist ready in your dashboard.
+            Your role is live in the {BRAND_NAME} network. We&apos;re matching candidates now. Anonymised shortlist ready in your dashboard.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/employer" className="btn btn-lime" style={{ fontWeight: 600, fontSize: 15 }}>View shortlist →</Link>
@@ -137,13 +137,13 @@ export default function HirePage() {
       <section style={{ padding: '72px 64px 48px', maxWidth: 1100, margin: '0 auto' }}>
         <div className="kicker holo-text" style={{ marginBottom: 16 }}>For teams who want to hire well without an agency retainer.</div>
         <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 6vw, 80px)', marginBottom: 20, maxWidth: 760 }}>
-          <span className="chrome-text">A short list of people who fit &mdash; and want it.</span>
+          <span className="chrome-text">A short list of people who fit and genuinely want it.</span>
         </h1>
         <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 600, lineHeight: 1.65, marginBottom: 28 }}>
           Tell {BRAND_NAME} about the role and you&apos;ll get a ranked short list of candidates from our pool, scored against what you need and genuinely interested in the work. Everyone stays anonymous until you both choose to connect. You pay 8% of first-year salary only when you hire, with a three-month guarantee &mdash; and we&apos;ll always be clear about what&apos;s done by software and what&apos;s done by a person.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          {['No subscription. No fee unless you hire.', 'Anonymised until mutual opt-in', 'Real candidates — no fake "200 matches"'].map(f => (
+          {['No subscription. No fee unless you hire.', 'Anonymised until mutual opt-in', 'Real candidates, no fake "200 matches"'].map(f => (
             <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '7px 12px' }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--marker-lime)', flexShrink: 0 }} />
               <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500 }}>{f}</span>
@@ -248,7 +248,7 @@ export default function HirePage() {
 
             <Field label="Role brief">
               <textarea value={description} onChange={e => setDescription(e.target.value)}
-                placeholder="Describe the role, what you're looking for, the team context. Paste a JD if you have one — we'll use it for matching."
+                placeholder="Describe the role, what you're looking for, the team context. Paste a JD if you have one; we'll use it for matching."
                 rows={6} style={{ ...INPUT, resize: 'vertical', lineHeight: 1.6 }} />
             </Field>
 
@@ -278,7 +278,7 @@ export default function HirePage() {
               disabled={saving || !canSubmit}
               className="btn btn-lime btn-iris-sheen"
               style={{ marginTop: 8, padding: '14px 24px', fontSize: 15, fontWeight: 600, opacity: canSubmit ? 1 : 0.4 }}>
-              {saving ? 'Posting…' : 'Post a role — see your shortlist →'}
+              {saving ? 'Posting…' : 'Post a role: see your shortlist →'}
             </button>
 
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', lineHeight: 1.6 }}>

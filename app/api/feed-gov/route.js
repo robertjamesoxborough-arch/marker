@@ -155,7 +155,7 @@ RULES:
 3. REJECT anything clearly private sector unrelated to candidate background.
 4. REJECT junior grades: EO, HEO, SEO unless the actual job title is clearly Director/Head/Deputy level.
 5. Director of Digital Products & Delivery at a parliament or public body = 8+ score.
-6. Be specific in reason — mention org type and title alignment.
+6. Be specific in reason; mention org type and title alignment.
 
 Return ONLY a JSON array. Each object: {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.
 SCORING: 1-7 use whole numbers. 8+ use increments of 0.2 (8.0, 8.2, 8.4, 8.6, 8.8, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0).

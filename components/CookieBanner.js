@@ -43,7 +43,7 @@ export default function CookieBanner() {
       animation: 'fadeSlideIn 0.3s ease',
     }}>
       <div style={{ flex: '1 1 300px', fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
-        We use performance analytics (Vercel Analytics) to understand how Marker is used — no advertising, no third-party tracking, no cookies stored. See our{' '}
+        We use performance analytics (Vercel Analytics) to understand how Marker is used: no advertising, no third-party tracking, no cookies stored. See our{' '}
         <a href="/privacy" style={{ color: 'var(--marker-lime)', textDecoration: 'none' }}>Privacy Policy</a>.
       </div>
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>

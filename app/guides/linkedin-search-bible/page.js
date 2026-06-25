@@ -36,26 +36,26 @@ const BOOLEAN_STRINGS = [
 const INMAIL_TEMPLATES = [
   {
     type: 'Recruiter cold outreach (you reaching out to them)',
-    subject: 'Senior [function] roles — open to conversations',
+    subject: 'Senior [function] roles: open to conversations',
     body: `Hi [Name],
 
 I am a [title] with [X] years in [sector/function], currently at [Company] where I have been responsible for [one-line scope].
 
 I am beginning to explore what comes next and thought it was worth introducing myself directly. I am interested in [type of role] at [size/stage of company or sector], ideally in [location or remote].
 
-I am not in a rush, and I am not interested in every role that exists — I am looking for something specific. If you work on [relevant sector] searches and have something relevant in the pipeline or come across one, I would be happy to have a short call.
+I am not in a rush, and I am not interested in every role that exists. I am looking for something specific. If you work on [relevant sector] searches and have something relevant in the pipeline or come across one, I would be happy to have a short call.
 
 [Name]`,
-    notes: 'Keep it short. Recruiters get a lot of these. The signal is specificity — you know what you want and are not just blasting everyone.',
+    notes: 'Keep it short. Recruiters get a lot of these. The signal is specificity: you know what you want and are not just blasting everyone.',
   },
   {
     type: 'Warm intro request (through a mutual connection)',
     subject: 'Would you mind introducing me to [Name]?',
     body: `Hi [Name],
 
-Hope you are well. Quick ask — I noticed you are connected to [Target Name] at [Company]. I am exploring a move and think their work on [specific thing] is genuinely interesting.
+Hope you are well. Quick ask: I noticed you are connected to [Target Name] at [Company]. I am exploring a move and think their work on [specific thing] is genuinely interesting.
 
-Would you be comfortable making an introduction? No pressure if it feels awkward. A two-line email is more than enough — I can take it from there.
+Would you be comfortable making an introduction? No pressure if it feels awkward. A two-line email is more than enough. I can take it from there.
 
 Thanks,
 [Your name]`,
@@ -63,10 +63,10 @@ Thanks,
   },
   {
     type: 'Direct outreach to a hiring manager (speculative)',
-    subject: '[Your field] — background you might find relevant',
+    subject: '[Your field]: background you might find relevant',
     body: `Hi [Name],
 
-I came across [Company] through [specific context — a product, an article, a person] and was struck by [one genuine specific thing].
+I came across [Company] through [specific context: a product, an article, a person] and was struck by [one genuine specific thing].
 
 I am a [title] with a background in [relevant area]. I am not sure whether you are hiring, but if you are building out [relevant function] and think it is worth 20 minutes, I would be interested in the conversation.
 
@@ -127,7 +127,7 @@ export default function LinkedInBiblePage() {
       <div style={{ padding: '36px 0 32px', borderBottom: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 8 }}>Boolean search strings</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 24 }}>
-          Boolean search uses AND, OR, NOT, and quotes to find exactly what you mean. LinkedIn Jobs search supports it — paste these into the keyword box. Adapt the titles to your function. The structure is what matters.
+          Boolean search uses AND, OR, NOT, and quotes to find exactly what you mean. LinkedIn Jobs search supports it; paste these into the keyword box. Adapt the titles to your function. The structure is what matters.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {BOOLEAN_STRINGS.map((s, i) => (
@@ -167,7 +167,7 @@ export default function LinkedInBiblePage() {
       <div style={{ padding: '36px 0 32px', borderBottom: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 8 }}>InMail templates that get replies</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 24 }}>
-          The reason most InMails do not get replies is not the message — it is the lack of specificity. These templates are written to be specific enough to feel human and short enough to be read. Adapt them; do not copy them verbatim.
+          The reason most InMails do not get replies is not the message; it is the lack of specificity. These templates are written to be specific enough to feel human and short enough to be read. Adapt them; do not copy them verbatim.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
           {INMAIL_TEMPLATES.map((t, i) => (
@@ -190,7 +190,7 @@ export default function LinkedInBiblePage() {
           LinkedIn Job Search is free and powerful. But it is also a place where you quickly accumulate a mess: tabs open, roles you half-read, applications you sent but cannot remember the details of, conversations you meant to follow up on.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          The biggest waste in a senior job search is not missing roles — it is losing track of the ones you have already found. Applying for something good and then forgetting to follow up. Finding a perfect company and never getting round to scanning their jobs properly.
+          The biggest waste in a senior job search is not missing roles; it is losing track of the ones you have already found. Applying for something good and then forgetting to follow up. Finding a perfect company and never getting round to scanning their jobs properly.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
           Marker tracks everything. You paste in the URL, get a score, and it sits in your pipeline with a timestamp. When the follow-up window opens, it flags it. You do the LinkedIn work; Marker keeps the score.

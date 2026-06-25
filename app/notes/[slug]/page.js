@@ -13,7 +13,7 @@ export async function generateMetadata({ params }) {
   const article = articles.find(a => a.slug === params.slug)
   if (!article) return {}
   return {
-    title: `${article.title} — Marker`,
+    title: `${article.title} | Marker`,
     description: article.excerpt,
     openGraph: {
       title: article.title,

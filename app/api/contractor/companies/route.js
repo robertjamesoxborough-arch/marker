@@ -47,12 +47,12 @@ Your task: Identify exactly 12 UK companies in the ${field} space that regularly
 For each company, provide evidence-based scores based on what you know about UK hiring patterns, LinkedIn contractor activity, industry norms, and company culture.
 
 Score each company on:
-1. contractorVolume (1–10): How actively does this company use senior contractors / interims in ${field}? (10 = very high — they are known to have a large contractor workforce or regularly post interim roles)
+1. contractorVolume (1–10): How actively does this company use senior contractors / interims in ${field}? (10 = very high; they are known to have a large contractor workforce or regularly post interim roles)
 2. conversionConfidence (1–10): How confident is a ${roles} contractor to actually land work here, considering the company's hiring behaviour, size, and typical use of contractors in this field?
 3. wlb (1–10): Work-life balance evidence from Glassdoor ratings, culture disclosures, and industry reputation
 
 Tier is determined by: average of conversionConfidence and wlb.
-Tier 1 = avg ≥ 8 (prime targets — high confidence + good culture)
+Tier 1 = avg ≥ 8 (prime targets: high confidence + good culture)
 Tier 2 = avg ≥ 6 (strong targets)
 Tier 3 = avg ≥ 4 (worth monitoring)
 
@@ -60,7 +60,7 @@ Return ONLY a JSON array of exactly 12 objects. Each object:
 {
   "company": "Company name",
   "sector": "Industry sector (2–4 words)",
-  "why": "One sentence: why this company regularly uses contractors in ${field} — be specific (e.g. 'Going through a major digital transformation with heavy use of interim programme managers')",
+  "why": "One sentence: why this company regularly uses contractors in ${field}; be specific (e.g. 'Going through a major digital transformation with heavy use of interim programme managers')",
   "contractorVolume": number 1-10,
   "conversionConfidence": number 1-10,
   "wlb": number 1-10,
@@ -93,7 +93,7 @@ Rules:
 
   let companies
   try { companies = JSON.parse(cleaned) } catch {
-    return Response.json({ error: 'Parse error — try again', raw: cleaned.slice(0, 300) })
+    return Response.json({ error: 'Parse error; try again', raw: cleaned.slice(0, 300) })
   }
   if (!Array.isArray(companies)) return Response.json({ error: 'Expected array from model' })
 

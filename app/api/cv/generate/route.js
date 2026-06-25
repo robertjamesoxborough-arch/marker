@@ -43,8 +43,8 @@ export async function POST(request) {
   const TRACK_TONE = {
     balanced:       'The candidate prioritises roles with genuine work-life balance. Where relevant, highlight achievements that demonstrate sustainable, high-quality output rather than overwork.',
     parent:         'The candidate is a parent seeking family-friendly employers. Where relevant, frame experience to highlight reliability, time management, and the breadth of transferable skills that come with managing work and family.',
-    returner:       'The candidate has taken a career break. Frame any gaps positively — reframe transferable skills, volunteer work, or development activities from the break period. Never apologise for the gap.',
-    career_changer: 'The candidate is changing industries or role type. Emphasise transferable skills, underlying competencies, and the value their different background brings — not what they lack.',
+    returner:       'The candidate has taken a career break. Frame any gaps positively; reframe transferable skills, volunteer work, or development activities from the break period. Never apologise for the gap.',
+    career_changer: 'The candidate is changing industries or role type. Emphasise transferable skills, underlying competencies, and the value their different background brings, not what they lack.',
     standard:       '',
   }
   const trackNote = TRACK_TONE[profile?.track] || ''
@@ -108,9 +108,9 @@ TARGET ROLE: ${roleTitle}${company ? ` at ${company}` : ''}
 JOB DESCRIPTION:
 ${jd.slice(0, 3000)}${answersSection}
 
-Step 1 — ATS simulation: list matched keywords, missing keywords, and an honest match score.
-Step 2 — Full rewrite: rewrite the profile, core skills section, and all experience bullets to maximise ATS match and human readability. Do not invent any metrics not in the BASE CV.
-Step 3 — Sift assessment: 2-3 sentences on strengths, concerns, and estimated interview invite probability.
+Step 1: ATS simulation: list matched keywords, missing keywords, and an honest match score.
+Step 2: Full rewrite: rewrite the profile, core skills section, and all experience bullets to maximise ATS match and human readability. Do not invent any metrics not in the BASE CV.
+Step 3: Sift assessment: 2-3 sentences on strengths, concerns, and estimated interview invite probability.
 
 Format:
 ---ATS ANALYSIS---
@@ -127,9 +127,11 @@ Match score: X/100
   }
 
   const candidateContext = buildAiContext(profile, careerHistory, wishlists)
-  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates — accuracy, specificity, and professional tone are essential.
+  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates; accuracy, specificity, and professional tone are essential.
 
-HARD RULE: Never invent, add, or extrapolate any metric, statistic, number, percentage, date, or monetary figure not explicitly present in the candidate's base CV. Hallucinated CV stats are the #1 trust failure in AI writing — it is your job to prevent them. Only use facts that appear in the source material below.
+STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.
+
+HARD RULE: Never invent, add, or extrapolate any metric, statistic, number, percentage, date, or monetary figure not explicitly present in the candidate's base CV. Hallucinated CV stats are the #1 trust failure in AI writing; it is your job to prevent them. Only use facts that appear in the source material below.
 
 CANDIDATE PROFILE:
 ${candidateContext}`

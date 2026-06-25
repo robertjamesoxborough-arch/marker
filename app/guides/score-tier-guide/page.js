@@ -6,10 +6,10 @@ const TIERS = [
     score: '80 and above',
     label: 'Write it yourself',
     color: 'var(--marker-lime)',
-    time: 'High effort — worth it',
+    time: 'High effort: worth it',
     what: 'This role scores highly against your salary, WLB, office days, and culture preferences. The match is real. Apply like it matters.',
     how: [
-      'Write a fully personalised cover letter. Reference something specific about the company — not just the job title.',
+      'Write a fully personalised cover letter. Reference something specific about the company, not just the job title.',
       'Tailor your CV for this role specifically. Reorder bullet points, surface the most relevant experience.',
       'Research the hiring manager on LinkedIn before the interview. Know their background.',
       'Prepare properly. A high-scoring role is worth three hours of preparation, not 20 minutes.',
@@ -22,24 +22,24 @@ const TIERS = [
     score: '60 to 79',
     label: 'AI drafts it, you personalise',
     color: '#C8E6C9',
-    time: 'Medium effort — selective attention',
-    what: "There's a genuine match here but it's not perfect. Maybe the office days are slightly higher than you'd like, or the salary is at the lower end of your range. Worth applying — but not worth spending three hours on.",
+    time: 'Medium effort: selective attention',
+    what: "There's a genuine match here but it's not perfect. Maybe the office days are slightly higher than you'd like, or the salary is at the lower end of your range. Worth applying, but not worth spending three hours on.",
     how: [
       'Use Marker\'s CV generator to produce a first draft. It will pull from your profile and the job description.',
       'Read the AI output before sending. Change the opening paragraph to be specific to this company.',
       'Do not send the cover letter verbatim. AI-generated letters read as AI-generated. Add one sentence that is clearly yours.',
-      'Standard prep is fine — review your relevant experience, think through one or two likely questions.',
+      'Standard prep is fine: review your relevant experience, think through one or two likely questions.',
       'Set a reminder to follow up in 7 days. Treat it as a real application but allocate time proportionately.',
     ],
-    signal: "The gap between a Tier 1 and Tier 2 role isn't the match quality — it's how much of your personal attention the application deserves. AI does the heavy lifting; you add the detail that makes it feel human.",
+    signal: "The gap between a Tier 1 and Tier 2 role isn't the match quality; it's how much of your personal attention the application deserves. AI does the heavy lifting; you add the detail that makes it feel human.",
   },
   {
     tier: '03',
     score: '40 to 59',
     label: 'AI handles it',
     color: 'var(--marker-border)',
-    time: 'Low effort — volume play',
-    what: "The match isn't strong, but the role isn't completely wrong either. You could get an interview. At this tier, you're playing volume — sending enough to keep options open without investing significant time in any single application.",
+    time: 'Low effort: volume play',
+    what: "The match isn't strong, but the role isn't completely wrong either. You could get an interview. At this tier, you're playing volume, sending enough to keep options open without investing significant time in any single application.",
     how: [
       'Use Marker\'s CV generator and send the output without heavy editing. The time cost of personalising a low-match application is rarely worth it.',
       'No cover letter unless specifically required. If one is required, use AI to generate it and do not agonise over it.',
@@ -49,18 +49,18 @@ const TIERS = [
     signal: "Most job seekers treat every application the same. That's the mistake. A Tier 3 application that takes 5 minutes and leads to a conversation is better than a Tier 3 application that took 90 minutes and didn't.",
   },
   {
-    tier: '—',
+    tier: 'n/a',
     score: 'Below 40',
     label: 'Skip it',
     color: '#FDECEA',
-    time: 'No effort — correct decision',
-    what: 'The mismatch is significant across multiple factors. Salary is likely below your floor, WLB signals are poor, or the role itself does not fit your profile. Applying anyway is not persistence — it is noise.',
+    time: 'No effort: correct decision',
+    what: 'The mismatch is significant across multiple factors. Salary is likely below your floor, WLB signals are poor, or the role itself does not fit your profile. Applying anyway is not persistence; it is noise.',
     how: [
       "Your time has a value. Applying for roles with a very low match wastes it without meaningfully improving your chances of getting a job you'll actually want.",
       "A rejected application at this score level would not have been a surprise. Save the energy for roles where the odds are better.",
-      "If you find yourself consistently scoring below 40, the issue is not the roles — it is the search. Go back to Discover and reassess your target companies and role criteria.",
+      "If you find yourself consistently scoring below 40, the issue is not the roles; it is the search. Go back to Discover and reassess your target companies and role criteria.",
     ],
-    signal: 'Marker flags these with a "Don\'t apply" signal not to be harsh — but because your time spent on this is genuinely better spent finding a Tier 1 or Tier 2 role.',
+    signal: 'Marker flags these with a "Don\'t apply" signal not to be harsh, but because your time spent on this is genuinely better spent finding a Tier 1 or Tier 2 role.',
   },
 ]
 
@@ -90,7 +90,7 @@ export default function ScoreTierGuidePage() {
           Stop Applying for Everything.<br />Start Winning the Right Ones.
         </h1>
         <p style={{ fontSize: 15, color: 'var(--marker-mid)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
-          Your time is finite. How you allocate it across applications is the biggest lever in a job search. This guide explains how to use your job score to decide where to invest real effort — and where to let AI do the work.
+          Your time is finite. How you allocate it across applications is the biggest lever in a job search. This guide explains how to use your job score to decide where to invest real effort, and where to let AI do the work.
         </p>
         <div style={{ display: 'flex', gap: 16, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           <span>8 min read</span>
@@ -110,14 +110,14 @@ export default function ScoreTierGuidePage() {
           The result is predictable: the strong applications are diluted by being surrounded by weak ones, and the roles that genuinely fit do not get the attention they deserve. Meanwhile, the roles that were always going to be a long shot consumed time that could have gone into preparation and follow-up on the good ones.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
-          A job score changes this. When a tool tells you a role scores 84 against your profile, you know: this deserves your best. When it scores 52, you know: send something decent and move on. The question is not whether to apply — it is how much of your time this role has earned.
+          A job score changes this. When a tool tells you a role scores 84 against your profile, you know: this deserves your best. When it scores 52, you know: send something decent and move on. The question is not whether to apply; it is how much of your time this role has earned.
         </p>
       </div>
 
       <div style={{ padding: '36px 0 32px', borderBottom: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 8 }}>The score system</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 28 }}>
-          Marker scores every role out of 10 across eight factors — salary, WLB, office days, culture, seniority match, sector fit, benefits, and growth. The overall score determines which tier the role falls into — and how much of your time it deserves.
+          Marker scores every role out of 10 across eight factors: salary, WLB, office days, culture, seniority match, sector fit, benefits, and growth. The overall score determines which tier the role falls into, and how much of your time it deserves.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -179,7 +179,7 @@ export default function ScoreTierGuidePage() {
       <div style={{ padding: '36px 0 32px' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 16 }}>The honest bit</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          This strategy only works if you have a score to work from. Most people do not — they apply based on a quick read of the job title and salary and then wonder why their conversion rate is low. The whole model depends on knowing, before you write a word, how well a role actually fits.
+          This strategy only works if you have a score to work from. Most people do not; they apply based on a quick read of the job title and salary and then wonder why their conversion rate is low. The whole model depends on knowing, before you write a word, how well a role actually fits.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
           That is what the Marker score gives you. Paste the job URL, get a score in 30 seconds, and immediately know which tier this role falls into. No gut feeling, no guesswork.
@@ -191,7 +191,7 @@ export default function ScoreTierGuidePage() {
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Know your tier before you type a word.</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Marker scores any job in 30 seconds — salary, WLB, office days, culture — and tells you exactly which tier it falls into. Spend your time where it counts.</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Marker scores any job in 30 seconds (salary, WLB, office days, culture) and tells you exactly which tier it falls into. Spend your time where it counts.</div>
         <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
       </div>
 
