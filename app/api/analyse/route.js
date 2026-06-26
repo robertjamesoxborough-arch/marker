@@ -8,6 +8,7 @@ import { scoreMatch } from '../../../lib/match-engine'
 import { buildAiContext } from '../../../lib/ai-context'
 import { checkForLoop } from '../../../lib/loop-guard'
 import { STYLE_RULES } from '../../../lib/brand'
+import { checkAllowance } from '../../../lib/allowance'
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -48,6 +49,19 @@ export async function POST(req) {
     freshness: null,
     raw_json: {},
   })
+
+  // Allowance gate — checked after deterministic score so we can always return it in the error
+  if (user) {
+    const { allowed, used, cap, tier } = await checkAllowance(user.id, 'analyse')
+    if (!allowed) {
+      return Response.json({
+        error: cap === 0
+          ? 'AI scoring is not available on your current plan. Upgrade to unlock.'
+          : `AI scoring limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to continue.`,
+        limitReached: true, used, cap, tier, deterministicScore,
+      }, { status: 429 })
+    }
+  }
 
   const CANDIDATE = buildAiContext(profile, careerHistory, wishlists)
 
@@ -249,7 +263,21 @@ RULES, follow exactly:
 ${SCORING}
 ${JSON_SCHEMA}`
 
-    const result = await runClaudeWithSearch(apiKey, searchPrompt, deterministicScore)
+    // Gate Sonnet web-search separately — more expensive, tighter cap
+    if (user) {
+      const searchCheck = await checkAllowance(user.id, 'analyse_search')
+      if (!searchCheck.allowed) {
+        return Response.json({
+          deterministicScore,
+          signal: 'maybe',
+          score: deterministicScore?.score || 5,
+          signalReason: 'Web search limit reached. Paste the job description directly for a full AI score.',
+          limitReached: true, action: 'analyse_search',
+        })
+      }
+    }
+
+    const result = await runClaudeWithSearch(apiKey, searchPrompt, deterministicScore, user?.id)
     try {
       const body = await result.json()
       return Response.json({ ...body, _usedWebSearch: true })
@@ -300,7 +328,7 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministic
   }
 }
 
-async function runClaudeWithSearch(apiKey, prompt, deterministicScore) {
+async function runClaudeWithSearch(apiKey, prompt, deterministicScore, userId) {
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -318,6 +346,9 @@ async function runClaudeWithSearch(apiKey, prompt, deterministicScore) {
       }),
     })
     const aiData = await aiRes.json()
+    if (userId && aiData.usage) {
+      after(() => trackAiUsage({ userId, model: MODELS.sonnet, action: 'analyse_search', usage: aiData.usage }))
+    }
     const text = aiData.content?.filter(c => c.type === 'text').map(c => c.text).join('') || ''
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)

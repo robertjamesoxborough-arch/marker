@@ -20,6 +20,14 @@ const tiers = [
     cta: 'Choose Pro',
     flag: true,
   },
+  {
+    name: 'Max',
+    sub: 'Maximum firepower',
+    monthly: 39,
+    detail: '3× higher limits · 60 CV tailors · 30 interview packs · 30 negotiation packs',
+    cta: 'Choose Max',
+    flag: false,
+  },
 ]
 
 export default function PricingSection() {
@@ -34,7 +42,7 @@ export default function PricingSection() {
           </h2>
         </div>
       </div>
-      <div className={styles.pricingGrid} style={{ maxWidth: 640, margin: '0 auto' }}>
+      <div className={styles.pricingGrid} style={{ maxWidth: 960, margin: '0 auto' }}>
         {tiers.map(p => (
           <div key={p.name} style={{
             background: p.flag ? 'var(--marker-black)' : 'var(--marker-cream-2)',

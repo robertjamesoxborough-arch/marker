@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 14 complete — Rebrand, pricing, style rules, cleanup  
-**Last commit:** Stage 14: Marker→Requite rebrand, pricing consolidation, style rules, cleanup  
+**Stage:** 15 complete — CV to Sonnet + JD-verification + evidence-mapping, three-tier caps enforced, Max tier  
+**Last commit:** stage 15: CV to Sonnet + JD-verification + evidence-mapping, three-tier caps enforced, Max tier  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,43 @@
 ---
 
 ## STAGE LOG
+
+### Stage 15 — CV to Sonnet + JD-verification + evidence-mapping, three-tier caps enforced, Max tier (2026-06-26)
+
+**Goal:** Five fitness-review fixes: CV quality upgrade, three-tier allowance caps wired and enforced, Max £39 tier added, prompt caching on prep routes.
+
+**Changes made:**
+
+1. **`lib/allowance.js`** (NEW) — TIER_CAPS constant (free/trial/pro/max) and `checkAllowance(userId, action)` function. Looks up `users.tier` from Supabase, counts `ai_usage` rows for current calendar month, returns `{ allowed, used, cap, tier }`. cap === 0 returns `allowed:false` immediately.
+
+2. **`app/api/cv/generate/route.js`** — Allowance gate for `'cv'` action. `quick` effort stays Haiku (JSON extraction only). `standard` and `deep` upgraded to Sonnet. cvRaw limit raised 5000→15000, JD limit 3000→8000. Prompts now require `---JD REQUIREMENTS---` (top 5 reqs + seniority target) and `---EVIDENCE MAP---` (each req → specific career history entry) before the CV content section. Verified-stats guardrail unchanged (flag-not-block).
+
+3. **`app/api/analyse/route.js`** — Allowance gate for `'analyse'` (Haiku, strategies 1+2) placed after `deterministicScore` computation so score is always available in 429 response. Separate `'analyse_search'` gate before Strategy 3 (Sonnet web-search). `trackAiUsage` now fires inside `runClaudeWithSearch` with `action: 'analyse_search'`.
+
+4. **`app/api/cv/cover-letter/route.js`** — Allowance gate for `'cover_letter'`. Free tier cap is 0 so blocked entirely; error message directs to upgrade.
+
+5. **`app/api/interview-prep/route.js`** — Allowance gate for `'interview_prep'`. Added `SYSTEM_STABLE` with `cache_control: { type: 'ephemeral' }` and `'anthropic-beta': 'prompt-caching-2024-07-31'` header for prompt caching.
+
+6. **`app/api/negotiation-prep/route.js`** — Allowance gate for `'negotiation_prep'`. Added `SYSTEM_STABLE` with prompt caching (same pattern as interview-prep).
+
+7. **`lib/stripe.js`** — Added `max` plan (£39/mo, priceIds are TODO placeholders pending Stripe dashboard creation).
+
+8. **`app/PricingSection.js`** — Added Max tier card (£39/mo, 3× limits). Grid width expanded to 960px.
+
+9. **`app/pricing/page.js`** — Added Max plan card with feature list. FAQ updated to describe Pro limits and add Max entry. Grid width expanded to 1060px.
+
+10. **`app/app/page.js`** — Added `max: 'Requite Max (£39/mo)'` to `planNames` in PlanGate.
+
+**Allowance caps wired:**
+- free: analyse 30, analyse_search 3, cv 1, cover_letter 0, interview_prep 0, negotiation_prep 0
+- pro: analyse 1000, analyse_search 60, cv 20, cover_letter 20, interview_prep 8, negotiation_prep 8
+- max: analyse 3000, analyse_search 200, cv 60, cover_letter 60, interview_prep 30, negotiation_prep 30
+
+**Self-tests:**
+- ✅ `npm run build` — clean, 103 pages, zero errors
+- ✅ Loop guard (G3) left untouched — not modified in this stage
+
+---
 
 ### Stage 14 — Rebrand, pricing consolidation, style rules, cleanup (2026-06-26)
 

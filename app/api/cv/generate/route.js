@@ -7,6 +7,7 @@ import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
 import { checkVerifiedStats } from '../../../../lib/verified-stats'
+import { checkAllowance } from '../../../../lib/allowance'
 
 
 export async function POST(request) {
@@ -18,6 +19,17 @@ export async function POST(request) {
   )
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Allowance gate — checked before any AI call
+  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'cv')
+  if (!allowed) {
+    return NextResponse.json({
+      error: cap === 0
+        ? 'CV generation is not available on your current plan. Upgrade to Pro or Max to unlock.'
+        : `CV generation limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
+      limitReached: true, used, cap, tier,
+    }, { status: 429 })
+  }
 
   const service = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -54,10 +66,13 @@ export async function POST(request) {
 
   let prompt
   let maxTokens
+  let model
 
   const STAT_GUARDRAIL = `VERIFIED-STATS RULE (hard): Every metric, number, percentage, date, and monetary figure you write MUST appear verbatim in the BASE CV. Never invent, estimate, or extrapolate any statistic. If a number is not in the CV, do not include it. This is a non-negotiable rule.`
 
   if (effort === 'quick') {
+    // Keyword analysis only — Haiku is appropriate here (no CV artifact produced)
+    model = MODELS.haiku
     prompt = `Compare the CV against the job description and return ONLY valid JSON.
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
 CV:
@@ -78,52 +93,74 @@ Rules:
 - No markdown, no explanation, just the JSON object`
     maxTokens = 600
   } else if (effort === 'standard') {
-    prompt = `Rewrite the CV below to better match the target role. Improve the profile summary, and update the most relevant experience bullets to mirror the JD's language and keywords. Keep the structure and all other content unchanged.
+    // Full CV rewrite — Sonnet for quality
+    model = MODELS.sonnet
+    prompt = `Before tailoring, work through these two steps and include them in your output:
+
+---JD REQUIREMENTS---
+From the job description below, list the top 5 core responsibilities or requirements (one line each).
+Then state: Seniority target: [the level this role is aimed at]
+
+---EVIDENCE MAP---
+For each of the 5 requirements above, cite the single most specific piece of evidence from the candidate's career history in the BASE CV. Format each line as:
+[Requirement] → [Job title, company, date range]: "[specific phrase or achievement from the CV]"
+If no direct evidence exists: [Requirement] → No direct evidence in CV: [honest note]
+
+---TAILORED CV---
+Now rewrite the CV to better match the target role.
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
 ${STAT_GUARDRAIL}
 
 BASE CV:
-${cvRaw.slice(0, 5000)}
+${cvRaw.slice(0, 15000)}
 
 TARGET ROLE: ${roleTitle}${company ? ` at ${company}` : ''}
 JOB DESCRIPTION:
-${jd.slice(0, 3000)}${answersSection}
+${jd.slice(0, 8000)}${answersSection}
 
 Rules:
 - Mark each changed section with [UPDATED] at the start
 - Do not add any metric, number, or percentage not already in the BASE CV
+- Every tailored bullet must trace to a specific role or achievement identified in your Evidence Map above
 - Keep the same formatting style
 - Return the full CV text, not just the changed sections`
-    maxTokens = 2000
+    maxTokens = 3000
   } else {
-    // deep
-    prompt = `Perform a full tailoring of the CV below for the target role.
+    // Deep — full ATS + rewrite + sift. Sonnet.
+    model = MODELS.sonnet
+    prompt = `Before tailoring, work through these two steps and include them in your output:
+
+---JD REQUIREMENTS---
+From the job description below, list the top 5 core responsibilities or requirements (one line each).
+Then state: Seniority target: [the level this role is aimed at]
+
+---EVIDENCE MAP---
+For each of the 5 requirements above, cite the single most specific piece of evidence from the candidate's career history in the BASE CV. Format each line as:
+[Requirement] → [Job title, company, date range]: "[specific phrase or achievement from the CV]"
+If no direct evidence exists: [Requirement] → No direct evidence in CV: [honest note]
+
+Then perform a full tailoring:
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
 ${STAT_GUARDRAIL}
 
 BASE CV:
-${cvRaw.slice(0, 5000)}
+${cvRaw.slice(0, 15000)}
 
 TARGET ROLE: ${roleTitle}${company ? ` at ${company}` : ''}
 JOB DESCRIPTION:
-${jd.slice(0, 3000)}${answersSection}
+${jd.slice(0, 8000)}${answersSection}
 
-Step 1: ATS simulation: list matched keywords, missing keywords, and an honest match score.
-Step 2: Full rewrite: rewrite the profile, core skills section, and all experience bullets to maximise ATS match and human readability. Do not invent any metrics not in the BASE CV.
-Step 3: Sift assessment: 2-3 sentences on strengths, concerns, and estimated interview invite probability.
-
-Format:
 ---ATS ANALYSIS---
 Matched: [comma-separated list]
 Missing: [comma-separated list]
 Match score: X/100
 
 ---TAILORED CV---
-[full CV text with [UPDATED] markers on changed sections]
+[full CV text with [UPDATED] markers on changed sections — every bullet must trace to real evidence identified above]
 
 ---SIFT ASSESSMENT---
-[2-3 sentences]`
-    maxTokens = 3000
+[2-3 sentences: strengths, concerns, estimated interview invite probability]`
+    maxTokens = 4000
   }
 
   const candidateContext = buildAiContext(profile, careerHistory, wishlists)
@@ -137,7 +174,6 @@ CANDIDATE PROFILE:
 ${candidateContext}`
 
   try {
-    const model = MODELS.haiku
     const msg = await client.messages.create({
       model,
       max_tokens: maxTokens,

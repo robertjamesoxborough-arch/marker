@@ -6,6 +6,7 @@ import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { buildAiContext } from '../../../lib/ai-context'
+import { checkAllowance } from '../../../lib/allowance'
 
 
 export async function POST(req) {
@@ -20,6 +21,16 @@ export async function POST(req) {
   )
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'interview_prep')
+  if (!allowed) {
+    return Response.json({
+      error: cap === 0
+        ? 'Interview prep is not available on your current plan. Upgrade to Pro or Max to unlock.'
+        : `Interview prep limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
+      limitReached: true, used, cap, tier,
+    }, { status: 429 })
+  }
 
   let profileCvRaw = ''
   let candidateContext = 'Candidate profile not available.'
@@ -149,17 +160,23 @@ Execute this in full. Use web search to research the company, role, and intervie
 
   content.push({ type: 'text', text: prompt })
 
+  const SYSTEM_STABLE = `You are an expert interview coach preparing job candidates for interviews. Use your web search tool to research companies, roles, and interviewers in real time. Be direct, specific, and tailored throughout. No generic advice.
+
+STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.`
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
         model: MODELS.sonnet,
         max_tokens: 2000,
+        system: [{ type: 'text', text: SYSTEM_STABLE, cache_control: { type: 'ephemeral' } }],
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content }]
       })

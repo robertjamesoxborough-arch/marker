@@ -6,6 +6,7 @@ import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { buildAiContext } from '../../../lib/ai-context'
+import { checkAllowance } from '../../../lib/allowance'
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -19,6 +20,16 @@ export async function POST(req) {
   )
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'negotiation_prep')
+  if (!allowed) {
+    return Response.json({
+      error: cap === 0
+        ? 'Negotiation prep is not available on your current plan. Upgrade to Pro or Max to unlock.'
+        : `Negotiation prep limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
+      limitReached: true, used, cap, tier,
+    }, { status: 429 })
+  }
 
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -99,6 +110,12 @@ Write 3 versions: one call/verbal script, one email, one for when they push back
 
 Be direct throughout. This candidate needs a negotiation pack they can use tomorrow morning.`
 
+  const SYSTEM_STABLE = `You are an expert negotiation coach helping UK job seekers negotiate offers. Be direct, specific, and commercially practical. No generic advice.
+
+STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.
+
+Deliver all sections requested. Be specific to the candidate and role. No padding.`
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -106,10 +123,12 @@ Be direct throughout. This candidate needs a negotiation pack they can use tomor
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
         model: MODELS.sonnet,
         max_tokens: 3000,
+        system: [{ type: 'text', text: SYSTEM_STABLE, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: prompt }],
       }),
     })

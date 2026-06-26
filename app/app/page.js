@@ -4711,7 +4711,7 @@ function buildTabs(profile, plan = 'trial') {
 
 // ── Plan gate — shown when a feature isn't on the user's plan ──────
 function PlanGate({ feature, requiredPlan, currentPlan }) {
-  const planNames = { perm: 'Free', contractor: 'Requite Pro (£19/mo)', both: 'Requite Pro (£19/mo)', free: 'Free', pro: 'Requite Pro (£19/mo)' }
+  const planNames = { perm: 'Free', contractor: 'Requite Pro (£19/mo)', both: 'Requite Pro (£19/mo)', free: 'Free', pro: 'Requite Pro (£19/mo)', max: 'Requite Max (£39/mo)' }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '56px 24px 80px', gap: 16 }}>
       <div className="kicker holo-text" style={{ marginBottom: 4 }}>Upgrade required</div>

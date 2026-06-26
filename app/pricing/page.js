@@ -31,15 +31,34 @@ export default function PricingPage() {
       features: [
         'Everything in Free',
         'Unlimited AI job scoring',
-        'CV tailoring with verified-stats guardrail',
-        'Interview prep pack for any role',
-        'Salary benchmark and negotiation rehearsal',
+        'CV tailoring with verified-stats guardrail (20/mo)',
+        'Interview prep pack for any role (8/mo)',
+        'Salary benchmark and negotiation rehearsal (8/mo)',
         'Priority freshness: daily feed refresh',
         'Advanced filters and profile controls',
       ],
       cta: 'Choose Pro',
       href: '/auth',
       highlight: true,
+    },
+    {
+      id: 'max',
+      name: 'Max',
+      price: '£39',
+      period: '/month',
+      tagline: 'For a high-intensity or multi-track search',
+      features: [
+        'Everything in Pro',
+        '3× higher AI job scoring limit (3,000/mo)',
+        'CV tailoring: 60 per month',
+        'Interview prep: 30 per month',
+        'Negotiation rehearsal: 30 per month',
+        'Cover letters: 60 per month',
+        'First access to new features',
+      ],
+      cta: 'Choose Max',
+      href: '/auth',
+      highlight: false,
     },
   ]
 
@@ -65,7 +84,7 @@ export default function PricingPage() {
       </div>
 
       {/* Plans */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', padding: '0 24px 64px', maxWidth: 720, margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', padding: '0 24px 64px', maxWidth: 1060, margin: '0 auto' }}>
         {plans.map(plan => (
           <div key={plan.id} style={{
             flex: '1 1 280px',
@@ -125,8 +144,9 @@ export default function PricingPage() {
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 28, textAlign: 'center' }}>Common questions</div>
         {[
           { q: 'Is the free tier really free?', a: 'Yes. The pipeline board, nightly job feed, Memory Card, and 3 AI scores per day are free with no trial period and no credit card required. Limits are shown upfront.' },
-          { q: 'What does Pro include?', a: 'Unlimited AI scoring, full CV tailoring with our verified-stats guardrail, interview prep packs, salary benchmarks, and negotiation rehearsal tied to your tracked roles.' },
-          { q: 'Can I cancel Pro?', a: 'Yes, at any time from Settings. Your account stays active until the end of the billing period. No cancellation fees. Refunds are available within 7 days of any charge.' },
+          { q: 'What does Pro include?', a: 'Unlimited AI scoring, CV tailoring (20/mo), interview prep packs (8/mo), salary benchmarks, and negotiation rehearsal tied to your tracked roles.' },
+          { q: 'What does Max include?', a: 'Everything in Pro at 3x the volume: 3,000 AI scores, 60 CV tailors, 30 interview packs, 30 negotiation packs, and 60 cover letters per month. Built for high-intensity or multi-track searches.' },
+          { q: 'Can I cancel Pro or Max?', a: 'Yes, at any time from Settings. Your account stays active until the end of the billing period. No cancellation fees. Refunds are available within 7 days of any charge.' },
           { q: 'Are the job scores guaranteed?', a: 'No. Scores are AI estimates based on your profile; they are a starting point for your own judgement, not a hiring prediction or professional recommendation. See the full disclaimer in our Terms.' },
           { q: 'Where does job data come from?', a: 'Live roles come from Adzuna, who aggregate listings from thousands of job boards nightly. WLB employer data is sourced from public Glassdoor scores and employer disclosures; always verify directly with the employer.' },
           { q: 'Is my CV data secure?', a: 'Your CV and profile data are stored encrypted in Supabase (AWS EU-West-1). When you use AI features, relevant portions are sent to Anthropic for processing under their API terms. We never sell your data or share it with employers.' },
