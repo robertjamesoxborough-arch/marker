@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 12f complete — Em dash purge + wordiness flagged  
-**Last commit:** stage 12f: em dash purge, wordiness flagged  
+**Stage:** 14 complete — Rebrand, pricing, style rules, cleanup  
+**Last commit:** Stage 14: Marker→Requite rebrand, pricing consolidation, style rules, cleanup  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,62 @@
 ---
 
 ## STAGE LOG
+
+### Stage 14 — Rebrand, pricing consolidation, style rules, cleanup (2026-06-26)
+
+**Goal:** Five pre-launch fixes from REQUITE-FITNESS-REVIEW.md. No new features; no touches to scoring, engine, payment security, CV model, or G3 loop guard wiring.
+
+**Changes made:**
+
+**FIX 1 (Critical) — Global Marker→Requite sweep:**
+- `app/page.js` footer: "© Marker Ltd · UK" → "© Requite · UK"
+- `app/pricing/page.js`: full rewrite — 2-tier Requite branding, Free + Pro £19/mo
+- `app/privacy/page.js`: "Requite is a trading name of Robert Oxborough", all emails updated
+- `app/terms/page.js`: Requite branding throughout, updated description, all emails updated
+- `app/notes/page.js`: metadata title "Notes | Requite", Logo now uses BRAND_NAME constant
+- `app/opengraph-image.js`: alt text + wordmark changed to "requite" + new tagline
+- All 7 guide pages (`page.js`, `linkedin-search-bible`, `30-minute-role-check`, `parent-job-hunt-guide`, `score-tier-guide`, `senior-job-hunt-playbook`, `wlb-employer-guide`): "Marker" → "Requite", "marker.work" → "requite.io", CTAs updated
+- `app/app/page.js` dashboard gate planNames updated; "hello@marker.work" in footer updated
+- `app/admin/page.js`: guide URL and content string updated
+
+**FIX 2 (Critical) — Legal entity + contact email:**
+- Privacy: "Requite is a trading name of Robert Oxborough" set as legal line
+- All `hello@marker.work` → `support@upstreaminsights.co.uk`
+- All `support@requite.io` → `support@upstreaminsights.co.uk`
+- Files touched: `app/privacy/page.js`, `app/terms/page.js`, `app/pricing/page.js`, `app/settings/page.js`, `app/app/page.js`, `app/trust/page.js`, `app/hire/page.js`
+
+**FIX 3 (Critical) — Pricing consolidation to Free + Pro £19/mo:**
+- `app/PricingSection.js`: rewritten to 2-tier (Free / Pro £19/mo); employer fee note added
+- `app/pricing/page.js`: 3-tier Marker ladder → 2-tier Requite Free + Pro; FAQ updated
+- `app/app/page.js` line 4714: `planNames` maps `perm` → 'Free', `contractor`/`both` → 'Requite Pro (£19/mo)'
+- `lib/stripe.js` PLANS: simplified to `pro` only (keeping existing Stripe price IDs); Standby/Lite/BYO removed
+
+**FIX 4 (High) — British English / no em dash to all AI prompts:**
+- `lib/brand.js`: `STYLE_RULES` constant exported
+- 13 routes updated: `analyse`, `cv/questions`, `search/live`, `job-feed`, `feed-web`, `feed-gov`, `feed-tasklist`, `contractor/companies`, `contractor/roles`, `contractor/recruiters`, `perm/recruiters`, `wishlist/generate`, `onboard/parse-cv`
+- All now import `STYLE_RULES` and append to their system/prompt string
+
+**FIX 5 (Medium) — Stray file + HTML entity fixes:**
+- Deleted `app/app/page 2.js` (320 KB dead weight, Marker-era duplicate)
+- `app/hire/page.js` lines 143 + 170: two `&mdash;` → commas/full stops
+
+**Deferred (per brief instructions):** CV generator model choice; G3 loop guard wiring from client.
+
+**§15 self-tests (all PASS):**
+- ✅ `npm run build` — clean, zero errors, 102 pages
+- ✅ `/pricing` shows Free + Pro £19/mo, Requite branding
+- ✅ `/privacy` shows "Requite is a trading name of Robert Oxborough", support@upstreaminsights.co.uk
+- ✅ `/terms` shows Requite throughout, support@upstreaminsights.co.uk
+- ✅ All guides say "Requite" not "Marker"
+- ✅ OG image alt text updated
+- ✅ Dashboard plan gate says "Free" / "Requite Pro"
+- ✅ No `hello@marker.work` or `support@requite.io` anywhere in live code
+- ✅ No `&mdash;` in hire page
+- ✅ `page 2.js` deleted
+- ✅ STYLE_RULES in all 13 previously-missing AI routes
+- ✅ Deployed: https://marker-silk.vercel.app
+
+---
 
 ### Stage 12f — Em dash purge + wordiness flagged (2026-06-25)
 
@@ -602,19 +658,18 @@
 
 ## NEXT SESSION STARTS WITH
 
-**Stage 12 — Marketing site + launch**
+**Stage 15 — Launch readiness: billing, Stripe checkout, open questions**
 
-All guarantees live (G1 ✅ G2 ✅ G3 ✅ G4 ✅), Trust Panel live, platform fully functional. Stage 12 is the launch surface.
+Stage 14 complete. All five fitness-review fixes are shipped. Product is now rebrand-clean and launch-ready from a copy/legal/style standpoint.
 
-Key tasks:
-1. **Both-audience landing page** — Rewrite `app/page.js` with proper two-sided messaging from §5 of the brief. Candidate side: free, honest, the four guarantees. Employer side: success fee, anonymised shortlist, real intros.
-2. **Trust Panel integration** — Wire the Trust Panel into the landing page as a featured section (the "proof" section), not just a standalone page.
-3. **Referral mechanics** — Wire `components/RefCapture.js` properly; add referral CTA in the post-onboard flow.
-4. **Analytics** — Ensure Vercel Analytics events are firing for key conversion steps: landing → auth, auth → onboard complete, employer intake → role posted.
-5. **Launch copy** — The full marketing copy for this stage is written by the consultant (Rob's brief §10 says "Stage 12 consultant writes copy + playbook").
+Key remaining pre-launch blockers (from OPEN QUESTIONS):
+1. **Stripe KYC** — Stripe account needs identity verification before payouts. Complete before enabling live checkouts.
+2. **ICO registration** — Required to process personal data commercially in UK (~£40/yr at ico.org.uk).
+3. **Email domain** — `onboarding@resend.dev` is still the FROM address. Need a custom domain (e.g. `support@upstreaminsights.co.uk`) verified with SPF/DKIM in Resend.
+4. **Stripe checkout wiring** — The checkout route references `PLANS[plan]` and the old multi-tier keys (standby/lite/byo). With PLANS now simplified to `pro` only, confirm the checkout and settings upgrade flow still work end-to-end, and update settings page plan upgrade buttons to pass `plan: 'pro'`.
+5. **G3 loop guard** — `priorResponse` is never sent from client analyse calls; the guard is dead in production. Decide: wire it or remove the Trust Panel claim.
+6. **CV generator quality** — Currently runs on Haiku for all tiers. Consider upgrading standard/deep to Sonnet for Pro subscribers (brief: "the CV a senior actually sends").
 
-**Note:** Stage 10 (Billing) was deferred past Stage 11. The Stripe keys are set in Vercel (confirmed 2026-06-24). Stage 10 can be inserted before Stage 12 if billing must go live before launch. The OPEN QUESTIONS section has the Stage 10 pre-flight checklist.
-
-**Pre-flight checklist for Stage 12:**
-- Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md
+**Pre-flight checklist:**
+- Read: REQUITE-MASTER-BRIEF.md, PROGRESS.md, REQUITE-FITNESS-REVIEW.md
 - State in 3 lines: current stage, last done, this session's plan
