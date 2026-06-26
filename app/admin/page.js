@@ -285,7 +285,7 @@ const ROADMAP = [
       { label: 'Indie Hackers post',                   done: false },
       { label: 'LinkedIn launch post',                 done: false },
       { label: 'First 3 SEO cornerstone articles',    done: false },
-      { label: 'Blog at marker.work/blog',             done: false },
+      { label: 'Blog at requite.io/notes',              done: false },
     ],
     blockers: [],
   },
@@ -960,7 +960,7 @@ export default function AdminPage() {
                   slug: '30-minute-role-check',
                   time: '10 min read',
                   status: 'live',
-                  content: '8 checks to run before applying for any senior role: salary sanity, WLB reality, office days, hiring manager signals, headcount growth, real benefits, role age, culture alignment. Each check includes how to do it, what to look for, and how Marker automates it.',
+                  content: '8 checks to run before applying for any senior role: salary sanity, WLB reality, office days, hiring manager signals, headcount growth, real benefits, role age, culture alignment. Each check includes how to do it, what to look for, and how Requite automates it.',
                   useFor: 'Job seeker productivity content, LinkedIn tips, newsletter leads',
                 },
                 {
@@ -997,7 +997,7 @@ export default function AdminPage() {
                   time: '8 min read',
                   status: 'live',
                   content: 'The score-tier system: 80+ = write it yourself (Tier 1), 60-79 = AI drafts, you personalise (Tier 2), 40-59 = AI handles it (Tier 3), below 40 = skip. Explains what to do at each tier, why effort allocation matters more than application volume, and what a good week looks like when you follow the system.',
-                  useFor: 'Core Marker value prop; directly ties job score to time-saving, perfect for acquisition content and LinkedIn authority posts',
+                  useFor: 'Core Requite value prop; directly ties job score to time-saving, perfect for acquisition content and LinkedIn authority posts',
                 },
               ].map(g => (
                 <div key={g.slug} style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1018,7 +1018,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <a href={`/guides/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-black)', background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '5px 10px', borderRadius: 6, textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase' }}>View guide →</a>
                     <button
-                      onClick={() => { navigator.clipboard.writeText(`https://marker.work/guides/${g.slug}`) }}
+                      onClick={() => { navigator.clipboard.writeText(`https://marker-silk.vercel.app/guides/${g.slug}`) }}
                       style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', background: 'none', border: '1px solid var(--marker-border)', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase' }}
                     >Copy URL</button>
                   </div>

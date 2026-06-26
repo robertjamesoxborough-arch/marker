@@ -223,8 +223,8 @@ export default function TrustPanel() {
           <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 24 }}>
             This is a small team, not a ticket queue. We read everything and reply within 24 hours on weekdays.
           </p>
-          <a href="mailto:support@requite.io" style={{ display: 'inline-block', background: 'var(--marker-black)', color: 'var(--marker-cream)', padding: '12px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-            Email support@requite.io →
+          <a href="mailto:support@upstreaminsights.co.uk" style={{ display: 'inline-block', background: 'var(--marker-black)', color: 'var(--marker-cream)', padding: '12px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+            Email support@upstreaminsights.co.uk →
           </a>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 14, letterSpacing: '0.04em' }}>Reply within 24h on weekdays</div>
         </div>

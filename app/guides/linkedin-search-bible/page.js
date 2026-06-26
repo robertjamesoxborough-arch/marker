@@ -107,7 +107,7 @@ export default function LinkedInBiblePage() {
       </div>
 
       <div style={{ padding: '40px 0 32px', borderBottom: '3px solid var(--marker-black)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Marker · Free guide · 2026</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Requite · Free guide · 2026</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 16px' }}>
           The LinkedIn Job Search Bible
         </h1>
@@ -119,7 +119,7 @@ export default function LinkedInBiblePage() {
           <span>·</span>
           <span>Free to share</span>
           <span>·</span>
-          <span>marker.work</span>
+          <span>requite.io</span>
         </div>
       </div>
 
@@ -193,14 +193,14 @@ export default function LinkedInBiblePage() {
           The biggest waste in a senior job search is not missing roles; it is losing track of the ones you have already found. Applying for something good and then forgetting to follow up. Finding a perfect company and never getting round to scanning their jobs properly.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
-          Marker tracks everything. You paste in the URL, get a score, and it sits in your pipeline with a timestamp. When the follow-up window opens, it flags it. You do the LinkedIn work; Marker keeps the score.
+          Requite tracks everything. You paste in the URL, get a score, and it sits in your pipeline with a timestamp. When the follow-up window opens, it flags it. You do the LinkedIn work; Requite keeps the score.
         </p>
       </div>
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Find it on LinkedIn. Score it in Marker.</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Find it on LinkedIn. Score it in Requite.</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Paste any job URL. Get an instant match score against your salary floor, WLB preferences, and role criteria. Track the whole pipeline in one place.</div>
-        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
+        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
       </div>
 
     </GuideLayout>

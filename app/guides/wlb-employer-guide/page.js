@@ -56,7 +56,7 @@ export default function WLBGuidePage() {
 
       {/* Title block */}
       <div style={{ padding: '40px 0 32px', borderBottom: '3px solid var(--marker-black)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Marker · Free guide · 2026</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Requite · Free guide · 2026</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 16px' }}>
           The Work-Life Balance<br />Employer Guide 2026
         </h1>
@@ -68,7 +68,7 @@ export default function WLBGuidePage() {
           <span>·</span>
           <span>Free to share</span>
           <span>·</span>
-          <span>marker.work</span>
+          <span>requite.io</span>
         </div>
       </div>
 
@@ -164,10 +164,10 @@ export default function WLBGuidePage() {
       <div className="no-print" style={{ padding: '40px 0 80px' }}>
         <div style={{ background: 'var(--marker-black)', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Rather not do this manually for every role?</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 10 }}>Marker checks WLB, parental leave, and office days on every role you score.</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 10 }}>Requite checks WLB, parental leave, and office days on every role you score.</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px' }}>Paste a job URL. Get an 8-factor match score (including WLB, salary fit, office days, and parental leave) in 30 seconds. Then track it all in one place.</div>
-          <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 12, letterSpacing: '0.06em' }}>7-day trial · No credit card · marker.work</div>
+          <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 12, letterSpacing: '0.06em' }}>7-day trial · No credit card · requite.io</div>
         </div>
       </div>
     </GuideLayout>

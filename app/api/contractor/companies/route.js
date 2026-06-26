@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../../lib/anthropic'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 
 export async function POST() {
@@ -74,7 +75,9 @@ Rules:
 - Tier 1 should have 2–4 companies (the clearest, most accessible targets)
 - Tier 2 should have 5–6 companies
 - Tier 3 should have the remainder
-- Return ONLY the JSON array, no markdown, no commentary`
+- Return ONLY the JSON array, no markdown, no commentary
+
+${STYLE_RULES}`
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',

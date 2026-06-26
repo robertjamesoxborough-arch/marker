@@ -120,7 +120,7 @@ export default function HirePage() {
             <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 16 }}>
               Refer another hiring team. When they make their first hire through {BRAND_NAME}, you both get a credit toward your next fee.
             </p>
-            <a href="mailto:support@requite.io?subject=Refer%20a%20team" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+            <a href="mailto:support@upstreaminsights.co.uk?subject=Refer%20a%20team" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
               Refer a team →
             </a>
           </div>
@@ -140,7 +140,7 @@ export default function HirePage() {
           <span className="chrome-text">A short list of people who fit and genuinely want it.</span>
         </h1>
         <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 600, lineHeight: 1.65, marginBottom: 28 }}>
-          Tell {BRAND_NAME} about the role and you&apos;ll get a ranked short list of candidates from our pool, scored against what you need and genuinely interested in the work. Everyone stays anonymous until you both choose to connect. You pay 8% of first-year salary only when you hire, with a three-month guarantee &mdash; and we&apos;ll always be clear about what&apos;s done by software and what&apos;s done by a person.
+          Tell {BRAND_NAME} about the role and you&apos;ll get a ranked short list of candidates from our pool, scored against what you need and genuinely interested in the work. Everyone stays anonymous until you both choose to connect. You pay 8% of first-year salary only when you hire, with a three-month guarantee, and we&apos;ll always be clear about what&apos;s done by software and what&apos;s done by a person.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
           {['No subscription. No fee unless you hire.', 'Anonymised until mutual opt-in', 'Real candidates, no fake "200 matches"'].map(f => (
@@ -167,7 +167,7 @@ export default function HirePage() {
           ))}
         </div>
         <p style={{ marginTop: 24, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em', lineHeight: 1.6 }}>
-          If we don&apos;t have the right people in your field yet, we&apos;ll tell you plainly &mdash; and let you know when we do. We&apos;d rather be honest than waste your time.
+          If we don&apos;t have the right people in your field yet, we&apos;ll tell you plainly and let you know when we do. We&apos;d rather be honest than waste your time.
         </p>
       </section>
 

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../../lib/anthropic'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 
 export async function POST() {
@@ -62,7 +63,9 @@ Rules:
 - Priority 1: most relevant to this specific field and contract type
 - The companies list must be real companies this agency genuinely works with; not generic examples
 - ATS instructions must be specific and actionable
-- Return ONLY a JSON array of 10 objects, no markdown`
+- Return ONLY a JSON array of 10 objects, no markdown
+
+${STYLE_RULES}`
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',

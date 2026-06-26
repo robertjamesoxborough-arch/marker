@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { MODELS } from '../../../../lib/anthropic'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 const TRACK_CONTEXT = {
   parent:         'Prioritise companies known for generous parental leave (20+ weeks full pay), flexible return policies, and family-friendly culture.',
@@ -78,7 +79,9 @@ Rules:
 - For parent/balanced tracks, weight toward companies publicly known for good culture
 - For returner track, weight toward companies with returnship or re-entry programmes
 - DO NOT include: generic consulting firms unless clearly relevant, companies already on their list
-- Return ONLY valid JSON: no markdown, no explanation, no code fences`
+- Return ONLY valid JSON: no markdown, no explanation, no code fences
+
+${STYLE_RULES}`
 
   try {
     const message = await client.messages.create({

@@ -7,7 +7,7 @@ const CHECKS = [
     time: '3 min',
     how: 'Open Glassdoor, Levels.fyi (for tech), or LinkedIn Salary. Search this exact title at this company. Cross-reference with two competitors in the same sector.',
     signal: 'If the ad says "competitive salary" and comparable roles pay 15-20% more elsewhere, competitive means low. If the ad gives a range, the real offer will be near the bottom unless you negotiate hard.',
-    tool: 'Marker scores the salary against your floor automatically, and flags when a role is likely below market before you spend time applying.',
+    tool: 'Requite scores the salary against your floor automatically, and flags when a role is likely below market before you spend time applying.',
   },
   {
     n: '02',
@@ -15,7 +15,7 @@ const CHECKS = [
     time: '4 min',
     how: 'Go to Glassdoor. Find the Work-Life Balance score for this company. Then read the last 20 reviews, filtered to your department where possible. Note recurring complaints.',
     signal: 'A WLB score below 3.5 is a warning. A score above 4.0 with consistent recent reviews mentioning flex hours or parental leave is a good sign. Generic praise ("great people!") tells you nothing.',
-    tool: 'Marker has a built-in WLB reference tab with Glassdoor scores, parental leave data, and office expectations for 30+ UK employers. Pre-researched.',
+    tool: 'Requite has a built-in WLB reference tab with Glassdoor scores, parental leave data, and office expectations for 30+ UK employers. Pre-researched.',
   },
   {
     n: '03',
@@ -23,7 +23,7 @@ const CHECKS = [
     time: '2 min',
     how: 'Count: how many in-office days does the ad specify? If it says "hybrid" with no number, check Glassdoor reviews for "in the office" or "WFH" in the last 6 months. Check LinkedIn for recent posts from employees.',
     signal: '"Hybrid" means 3-4 days in office at most companies until you verify otherwise. "Flexible hybrid" often means 3 days with manager discretion. "Remote-first" usually means what it says.',
-    tool: 'Marker extracts office expectations from job ads and surfaces them in your score breakdown alongside WLB signals.',
+    tool: 'Requite extracts office expectations from job ads and surfaces them in your score breakdown alongside WLB signals.',
   },
   {
     n: '04',
@@ -31,7 +31,7 @@ const CHECKS = [
     time: '4 min',
     how: 'Find the hiring manager on LinkedIn. Look at their career history: have they stayed at places long? Read their recent posts. Check if they post about "hustle" or "grind" culture. Look at their direct reports. How long have they been there?',
     signal: 'A manager who hops every 12-18 months, posts about 5am starts, or has a team of people who all left within a year is not a safe bet. A manager who\'s been in their role 3+ years with stable team tenure is a good signal.',
-    tool: 'Marker tracks company and team signals when you scan the careers page, pulling in what Google finds about the hiring team.',
+    tool: 'Requite tracks company and team signals when you scan the careers page, pulling in what Google finds about the hiring team.',
   },
   {
     n: '05',
@@ -39,7 +39,7 @@ const CHECKS = [
     time: '3 min',
     how: 'Open LinkedIn. Search for this company. Go to "People" and filter by "Past employees" then sort by most recent. Count how many people left in the last 12 months relative to the company size. Then look at "Current employees": are they growing or contracting?',
     signal: 'If 15%+ of staff turned over in the last year at a company that\'s not a startup, something is wrong. Sustained headcount growth is a positive sign. Flat headcount with lots of churn at senior levels is not.',
-    tool: 'Marker pulls company headcount signals from web sources and includes them in the employer scan.',
+    tool: 'Requite pulls company headcount signals from web sources and includes them in the employer scan.',
   },
   {
     n: '06',
@@ -47,7 +47,7 @@ const CHECKS = [
     time: '3 min',
     how: 'Ignore the bullets in the job ad. Go to Glassdoor Benefits section. Look at what employees actually say they receive versus what is listed. Pay attention to "pension contributions", "health insurance" (is it actually good?), and whether parental leave is shared or mother-only.',
     signal: '"Private medical" that turns out to be cash plan is not private medical. "Enhanced parental leave" with no numbers is a red flag; get the actual weeks. A 3% matched pension at Director level is below market.',
-    tool: 'Marker\'s scoring algorithm weights benefits against your stated priorities (parental leave, pension, health cover) and factors them into the overall match score.',
+    tool: 'Requite\'s scoring algorithm weights benefits against your stated priorities (parental leave, pension, health cover) and factors them into the overall match score.',
   },
   {
     n: '07',
@@ -55,7 +55,7 @@ const CHECKS = [
     time: '3 min',
     how: 'Search the exact job title on LinkedIn Jobs and filter by posting date. Then search on Indeed, Reed, and Google Jobs. Note the oldest date you find. Check if the same role was posted before with slightly different wording.',
     signal: 'A role open for 3+ months at a company that\'s actively hiring elsewhere suggests a problem: budget issues, internal disagreement about the hire, or the role has already been turned down by others. Under 4 weeks is normal.',
-    tool: 'Marker tracks when you first added a role to your pipeline so you can see how long it\'s taken to progress and spot stale postings before you invest more time.',
+    tool: 'Requite tracks when you first added a role to your pipeline so you can see how long it\'s taken to progress and spot stale postings before you invest more time.',
   },
   {
     n: '08',
@@ -63,7 +63,7 @@ const CHECKS = [
     time: '5 min',
     how: 'Read 5 recent LinkedIn posts from the company page. Read the last 10 Glassdoor reviews in full. Then ask: does this culture match how you want to work? Not how you can work. How you want to work.',
     signal: 'Most people apply for roles they can do, not roles that suit how they actually work. If a company is fast-paced and you want predictable hours, that\'s not a culture fit problem; it\'s a values mismatch. Better to know now.',
-    tool: 'Marker\'s profile asks about your WLB priority (high/medium/low), contract preference, and work style. The score reflects how well a role\'s culture signals match your actual preferences.',
+    tool: 'Requite\'s profile asks about your WLB priority (high/medium/low), contract preference, and work style. The score reflects how well a role\'s culture signals match your actual preferences.',
   },
 ]
 
@@ -88,7 +88,7 @@ export default function RoleCheckGuidePage() {
       </div>
 
       <div style={{ padding: '40px 0 32px', borderBottom: '3px solid var(--marker-black)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Marker · Free guide · 2026</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Requite · Free guide · 2026</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 16px' }}>
           The 30-Minute Role Assessment
         </h1>
@@ -100,7 +100,7 @@ export default function RoleCheckGuidePage() {
           <span>·</span>
           <span>Free to share</span>
           <span>·</span>
-          <span>marker.work</span>
+          <span>requite.io</span>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export default function RoleCheckGuidePage() {
                 <p style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.75, margin: 0 }}>{c.signal}</p>
               </div>
               <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '10px 14px', marginTop: 10 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-lime)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>With Marker</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-lime)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>With Requite</div>
                 <p style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.65, margin: 0 }}>{c.tool}</p>
               </div>
             </div>
@@ -153,14 +153,14 @@ export default function RoleCheckGuidePage() {
           Most people skip most of these checks, not because they do not care but because they do not have the time. They apply blind, invest weeks interviewing, and only learn the truth when they are already in the final round or worse, already in the job.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
-          Marker runs checks 1-5 automatically the moment you paste in a job URL. The salary score, WLB data, office days, and company signals come back in 30 seconds. You still need to do checks 6-8 yourself, but you start from information, not a blank page.
+          Requite runs checks 1-5 automatically the moment you paste in a job URL. The salary score, WLB data, office days, and company signals come back in 30 seconds. You still need to do checks 6-8 yourself, but you start from information, not a blank page.
         </p>
       </div>
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Do this in 30 seconds, not 30 minutes.</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Paste any job URL. Marker scores salary, WLB, office days, and culture fit against your profile, then tracks it so you always know what you applied for and when.</div>
-        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Paste any job URL. Requite scores salary, WLB, office days, and culture fit against your profile, then tracks it so you always know what you applied for and when.</div>
+        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
       </div>
 
     </GuideLayout>

@@ -7,6 +7,7 @@ import { MODELS } from '../../../lib/anthropic'
 import { scoreMatch } from '../../../lib/match-engine'
 import { buildAiContext } from '../../../lib/ai-context'
 import { checkForLoop } from '../../../lib/loop-guard'
+import { STYLE_RULES } from '../../../lib/brand'
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -116,7 +117,9 @@ ${CANDIDATE}
 
 ${SCORING}
 
-${JSON_SCHEMA}`
+${JSON_SCHEMA}
+
+${STYLE_RULES}`
 
   // Strategy 1: JD text pasted directly — most reliable
   if (jdText && jdText.trim().length > 50) {

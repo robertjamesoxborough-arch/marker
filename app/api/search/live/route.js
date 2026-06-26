@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 
 const TRACK_QUERIES = {
@@ -107,7 +108,7 @@ export async function POST(request) {
     : `Candidate looking for: ${rolesStr}. UK-based, senior level.`
 
   const summaries = toScore.map((j, i) => `[${i}] "${j.title}" at ${j.company} | ${j.location} | ${j.salary}`).join('\n')
-  const prompt = `Score these live Adzuna job listings for this candidate:\n${profileCtx}\n\nJOBS:\n${summaries}\n\nReturn JSON array. Each object: {"i":index,"score":1-10,"signal":"apply"/"maybe"/"skip","reason":"one sentence why","badge":"Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null,"office":"Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.\nScoring: 8+ use 0.2 increments (8.0, 8.2…). Only include score ≥ 5. Return ONLY the JSON array, no markdown.`
+  const prompt = `Score these live Adzuna job listings for this candidate:\n${profileCtx}\n\nJOBS:\n${summaries}\n\nReturn JSON array. Each object: {"i":index,"score":1-10,"signal":"apply"/"maybe"/"skip","reason":"one sentence why","badge":"Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null,"office":"Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.\nScoring: 8+ use 0.2 increments (8.0, 8.2…). Only include score ≥ 5. Return ONLY the JSON array, no markdown.\n\n${STYLE_RULES}`
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {

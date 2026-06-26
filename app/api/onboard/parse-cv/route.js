@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 const ROLE_FAMILIES = [
   'Partnerships', 'Product Marketing', 'Programme Lead', 'Digital Strategy',
@@ -62,7 +63,9 @@ Rules:
 - All "Reason" fields: concise one-sentence explanation, referencing specific details from the CV where possible. Use "null" (string) if genuinely no data.
 
 CV text:
-${cvText.slice(0, 4000)}`,
+${cvText.slice(0, 4000)}
+
+${STYLE_RULES}`,
       }],
     })
 

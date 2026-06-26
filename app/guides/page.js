@@ -52,7 +52,7 @@ export default function GuidesPage() {
 
       <div style={{ padding: '32px 24px 0', maxWidth: 720, margin: '0 auto' }}>
         <a href="/" style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', textDecoration: 'none' }}>
-          Marker<span style={{ display: 'inline-block', width: '0.22em', height: '0.22em', borderRadius: '50%', background: 'var(--marker-lime)', marginLeft: '0.04em', position: 'relative', top: '-0.62em', verticalAlign: 'baseline' }} />
+          Requite<span style={{ display: 'inline-block', width: '0.22em', height: '0.22em', borderRadius: '50%', background: 'var(--marker-lime)', marginLeft: '0.04em', position: 'relative', top: '-0.62em', verticalAlign: 'baseline' }} />
         </a>
       </div>
 
@@ -83,8 +83,8 @@ export default function GuidesPage() {
 
         <div style={{ marginTop: 48, padding: '24px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Rather not do all this manually?</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 16 }}>Marker scores every role against what actually matters (salary, WLB, office days, culture) in 30 seconds. Then tracks it all so you don't have to.</div>
-          <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 16 }}>Requite scores every role against what actually matters (salary, WLB, office days, culture) in 30 seconds. Then tracks it all so you don't have to.</div>
+          <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
         </div>
       </div>
     </div>

@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { BRAND_NAME } from '../../lib/brand'
 import { articles } from '../../lib/articles'
 import { getSlugImage } from '../../lib/lifestyle'
 import styles from './notes.module.css'
 
 export const metadata = {
-  title: 'Notes | Marker',
+  title: 'Notes | Requite',
   description: 'Straight talk on the experienced job hunt: flexible working, salary negotiation, CV mistakes, and what actually matters when you know what you want.',
 }
 
@@ -16,7 +17,7 @@ function Logo({ size = 20 }) {
       letterSpacing: '-0.03em', color: 'var(--marker-black)',
       display: 'inline-flex', alignItems: 'baseline', lineHeight: 1,
     }}>
-      marker
+      {BRAND_NAME.toLowerCase()}
       <span style={{
         display: 'inline-block', width: '0.32em', height: '0.32em',
         borderRadius: '50%', marginLeft: '0.05em', position: 'relative',

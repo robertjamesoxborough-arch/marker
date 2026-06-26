@@ -25,7 +25,7 @@ const TIERS = [
     time: 'Medium effort: selective attention',
     what: "There's a genuine match here but it's not perfect. Maybe the office days are slightly higher than you'd like, or the salary is at the lower end of your range. Worth applying, but not worth spending three hours on.",
     how: [
-      'Use Marker\'s CV generator to produce a first draft. It will pull from your profile and the job description.',
+      'Use Requite\'s CV generator to produce a first draft. It will pull from your profile and the job description.',
       'Read the AI output before sending. Change the opening paragraph to be specific to this company.',
       'Do not send the cover letter verbatim. AI-generated letters read as AI-generated. Add one sentence that is clearly yours.',
       'Standard prep is fine: review your relevant experience, think through one or two likely questions.',
@@ -41,7 +41,7 @@ const TIERS = [
     time: 'Low effort: volume play',
     what: "The match isn't strong, but the role isn't completely wrong either. You could get an interview. At this tier, you're playing volume, sending enough to keep options open without investing significant time in any single application.",
     how: [
-      'Use Marker\'s CV generator and send the output without heavy editing. The time cost of personalising a low-match application is rarely worth it.',
+      'Use Requite\'s CV generator and send the output without heavy editing. The time cost of personalising a low-match application is rarely worth it.',
       'No cover letter unless specifically required. If one is required, use AI to generate it and do not agonise over it.',
       'If you get a first-round interview, that is when you invest properly. Do not pre-invest in research.',
       'Track it in your pipeline. If you hear back, reassess. If you do not, it costs you nothing.',
@@ -60,7 +60,7 @@ const TIERS = [
       "A rejected application at this score level would not have been a surprise. Save the energy for roles where the odds are better.",
       "If you find yourself consistently scoring below 40, the issue is not the roles; it is the search. Go back to Discover and reassess your target companies and role criteria.",
     ],
-    signal: 'Marker flags these with a "Don\'t apply" signal not to be harsh, but because your time spent on this is genuinely better spent finding a Tier 1 or Tier 2 role.',
+    signal: 'Requite flags these with a "Don\'t apply" signal not to be harsh, but because your time spent on this is genuinely better spent finding a Tier 1 or Tier 2 role.',
   },
 ]
 
@@ -85,7 +85,7 @@ export default function ScoreTierGuidePage() {
       </div>
 
       <div style={{ padding: '40px 0 32px', borderBottom: '3px solid var(--marker-black)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Marker · Free guide · 2026</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Requite · Free guide · 2026</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 16px' }}>
           Stop Applying for Everything.<br />Start Winning the Right Ones.
         </h1>
@@ -97,7 +97,7 @@ export default function ScoreTierGuidePage() {
           <span>·</span>
           <span>Free to share</span>
           <span>·</span>
-          <span>marker.work</span>
+          <span>requite.io</span>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ export default function ScoreTierGuidePage() {
       <div style={{ padding: '36px 0 32px', borderBottom: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 8 }}>The score system</h2>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 28 }}>
-          Marker scores every role out of 10 across eight factors: salary, WLB, office days, culture, seniority match, sector fit, benefits, and growth. The overall score determines which tier the role falls into, and how much of your time it deserves.
+          Requite scores every role out of 10 across eight factors: salary, WLB, office days, culture, seniority match, sector fit, benefits, and growth. The overall score determines which tier the role falls into, and how much of your time it deserves.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -182,7 +182,7 @@ export default function ScoreTierGuidePage() {
           This strategy only works if you have a score to work from. Most people do not; they apply based on a quick read of the job title and salary and then wonder why their conversion rate is low. The whole model depends on knowing, before you write a word, how well a role actually fits.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          That is what the Marker score gives you. Paste the job URL, get a score in 30 seconds, and immediately know which tier this role falls into. No gut feeling, no guesswork.
+          That is what the Requite score gives you. Paste the job URL, get a score in 30 seconds, and immediately know which tier this role falls into. No gut feeling, no guesswork.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
           The tier system is simple enough to apply without a tool. The score just makes it objective.
@@ -191,8 +191,8 @@ export default function ScoreTierGuidePage() {
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Know your tier before you type a word.</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Marker scores any job in 30 seconds (salary, WLB, office days, culture) and tells you exactly which tier it falls into. Spend your time where it counts.</div>
-        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Requite scores any job in 30 seconds (salary, WLB, office days, culture) and tells you exactly which tier it falls into. Spend your time where it counts.</div>
+        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
       </div>
 
     </GuideLayout>

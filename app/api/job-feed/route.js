@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../lib/anthropic'
+import { STYLE_RULES } from '../../../lib/brand'
 
 
 function buildCandidateProfile(profile) {
@@ -174,7 +175,9 @@ SCORING:
 - 1 = reject, don't include
 
 Only include jobs scoring 3+. If no jobs match, return an empty array [].
-Return ONLY the JSON array.`
+Return ONLY the JSON array.
+
+${STYLE_RULES}`
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {

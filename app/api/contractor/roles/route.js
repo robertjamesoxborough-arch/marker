@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../../lib/anthropic'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 
 const CONTRACT_TITLE_MUST = ['contract', 'interim', 'ftc', 'fixed.term', 'day rate', 'freelance', 'fractional', 'maternity cover', 'parental cover', 'temporary']
@@ -140,7 +141,9 @@ ${summaries}
 Return JSON array. Each object:
 {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence explaining relevance to this specific candidate", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown", "contractType": "Day-rate"/"Interim"/"FTC"/"Freelance"/"Unknown"}
 
-Scoring: 8+ use 0.2 increments. Only include score ≥ 7. Reject perm roles, wrong-sector roles, junior roles, generic aggregator listings. Be strict: a smaller list of genuinely relevant roles is better than a long list of questionable ones. Return ONLY the JSON array.`
+Scoring: 8+ use 0.2 increments. Only include score ≥ 7. Reject perm roles, wrong-sector roles, junior roles, generic aggregator listings. Be strict: a smaller list of genuinely relevant roles is better than a long list of questionable ones. Return ONLY the JSON array.
+
+${STYLE_RULES}`
 
   const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',

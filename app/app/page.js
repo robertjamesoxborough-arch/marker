@@ -4664,7 +4664,7 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
             <a href="/pricing" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>Upgrade for unlimited AI →</a>
           )}
           <a href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>Why trust Requite</a>
-          <a href="mailto:support@requite.io" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>support@requite.io</a>
+          <a href="mailto:support@upstreaminsights.co.uk" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'none' }}>support@upstreaminsights.co.uk</a>
         </div>
       </div>
 
@@ -4711,7 +4711,7 @@ function buildTabs(profile, plan = 'trial') {
 
 // ── Plan gate — shown when a feature isn't on the user's plan ──────
 function PlanGate({ feature, requiredPlan, currentPlan }) {
-  const planNames = { perm: 'Marker (£12/mo)', contractor: 'Marker Contractor (£16/mo)', both: 'Marker Pro (£26/mo)' }
+  const planNames = { perm: 'Free', contractor: 'Requite Pro (£19/mo)', both: 'Requite Pro (£19/mo)', free: 'Free', pro: 'Requite Pro (£19/mo)' }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '56px 24px 80px', gap: 16 }}>
       <div className="kicker holo-text" style={{ marginBottom: 4 }}>Upgrade required</div>
@@ -5430,7 +5430,7 @@ export default function AppPage() {
           { label: 'Privacy', href: '/privacy' },
           { label: 'Terms', href: '/terms' },
           { label: 'Pricing', href: '/pricing' },
-          { label: 'hello@marker.work', href: 'mailto:hello@marker.work' },
+          { label: 'support@upstreaminsights.co.uk', href: 'mailto:support@upstreaminsights.co.uk' },
         ].map(({ label, href }) => (
           <a key={label} href={href} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none' }}>{label}</a>
         ))}

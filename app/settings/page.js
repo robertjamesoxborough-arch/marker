@@ -126,7 +126,7 @@ export default function SettingsPage() {
       else throw new Error(data.error || 'No checkout URL returned')
     } catch {
       setUpgrading(null)
-      setError('Checkout failed. Try again or contact support@requite.io.')
+      setError('Checkout failed. Try again or contact support@upstreaminsights.co.uk.')
     }
   }
 
@@ -140,7 +140,7 @@ export default function SettingsPage() {
       else throw new Error(data.error || 'No portal URL returned')
     } catch {
       setPortalLoading(false)
-      setError('Could not open billing portal. Try again or contact support@requite.io.')
+      setError('Could not open billing portal. Try again or contact support@upstreaminsights.co.uk.')
     }
   }
 
@@ -248,7 +248,7 @@ export default function SettingsPage() {
       await createClient().auth.signOut()
       window.location.href = '/?deleted=1'
     } catch (e) {
-      setDeleteError(e?.message || 'Deletion failed. Contact hello@marker.work')
+      setDeleteError(e?.message || 'Deletion failed. Contact support@upstreaminsights.co.uk')
       setDeleting(false)
     }
   }
@@ -495,7 +495,7 @@ export default function SettingsPage() {
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Export your data</div>
-            <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10 }}>Download everything Marker holds about you as a JSON file: your profile, CV text, and pipeline.</div>
+            <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10 }}>Download everything Requite holds about you as a JSON file: your profile, CV text, and pipeline.</div>
             <a href="/api/data-export" download style={{ display: 'inline-block', fontSize: 13, color: 'var(--marker-text)', border: '1px solid var(--marker-border)', padding: '8px 14px', borderRadius: 8, textDecoration: 'none', background: 'var(--marker-cream)' }}>Export data (JSON)</a>
           </div>
 

@@ -1,4 +1,5 @@
 import { MODELS } from '../../../lib/anthropic'
+import { STYLE_RULES } from '../../../lib/brand'
 
 const PROFILE =`Rob Oxborough, Strategic Partnership Manager EMEA at Meta. 12+ years across PlayStation, NatWest, King/Activision Blizzard, Google, B2B SEO consultancy. Won 2x Drum Awards including Best Integrated SEO Campaign. Skills: partnerships, product marketing, digital marketing, online marketing, performance marketing, SEO/organic growth, digital strategy, growth, BD, programme management. Based in Greater London.`
 const RECIPE = `MATCH: Partnerships, Product Marketing, Digital Marketing, Online Marketing, Performance Marketing, SEO, Organic Growth, Programme Lead, Digital Strategy, Growth, BD roles. Senior Manager+ at big cos, Head/Director/VP at 100-500 person cos. UK or remote, max 2 days office. Fintech, SaaS, gaming, martech, retail tech, media, energy tech. REJECT: junior, pure sales quota, 3+ office days, non-UK.`
@@ -91,7 +92,9 @@ export async function POST() {
 
 Return JSON array only. Each object: {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.
 SCORING: 1-7 use whole numbers. 8+ use increments of 0.2 (8.0, 8.2, 8.4, 8.6, 8.8, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0).
-Return ONLY JSON array, no markdown. If nothing matches, return [].`
+Return ONLY JSON array, no markdown. If nothing matches, return [].
+
+${STYLE_RULES}`
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

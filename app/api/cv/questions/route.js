@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
+import { STYLE_RULES } from '../../../../lib/brand'
 
 
 const COUNT = { light: 2, medium: 4, deep: 7 }
@@ -50,7 +51,9 @@ Rules:
 - Each answer should be completeable in 2-4 sentences
 - Questions should feel like they were written by a senior recruiter for THIS role
 
-Return ONLY a JSON array of strings: ["Q1?", "Q2?", ...]`
+Return ONLY a JSON array of strings: ["Q1?", "Q2?", ...]
+
+${STYLE_RULES}`
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {

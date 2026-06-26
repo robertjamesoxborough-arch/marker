@@ -382,7 +382,7 @@ export default async function Home() {
         <div className={styles.footerTop}>
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             <Logo size={18} />
-            <span>© Marker Ltd · UK</span>
+            <span>© Requite · UK</span>
           </div>
           <div className={styles.footerLinks}>
             {[

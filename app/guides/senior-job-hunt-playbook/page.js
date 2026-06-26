@@ -66,7 +66,7 @@ export default function SeniorPlaybookPage() {
       </div>
 
       <div style={{ padding: '40px 0 32px', borderBottom: '3px solid var(--marker-black)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Marker · Free guide · 2026</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Requite · Free guide · 2026</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 16px' }}>
           The Senior Job Hunt Playbook
         </h1>
@@ -78,7 +78,7 @@ export default function SeniorPlaybookPage() {
           <span>·</span>
           <span>Free to share</span>
           <span>·</span>
-          <span>marker.work</span>
+          <span>requite.io</span>
         </div>
       </div>
 
@@ -119,14 +119,14 @@ export default function SeniorPlaybookPage() {
           The senior job hunt is a project. It needs a pipeline, a record of what you have applied for and where you are in each process, and a score for each role so you are not making decisions based on vibes at 10pm after a long day.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
-          That is what Marker is built for. Not a CRM you have to maintain. A tool that scores roles against your priorities, tracks where you are in each process, and surfaces follow-ups before you miss them.
+          That is what Requite is built for. Not a CRM you have to maintain. A tool that scores roles against your priorities, tracks where you are in each process, and surfaces follow-ups before you miss them.
         </p>
       </div>
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Your job search. Ruthlessly efficient.</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Score any role in 30 seconds. Track everything in one place. Know exactly where you are in every process, and when to follow up.</div>
-        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
+        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
       </div>
 
     </GuideLayout>

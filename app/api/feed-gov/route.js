@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../lib/anthropic'
+import { STYLE_RULES } from '../../../lib/brand'
 
 
 function buildProfileStr(profile) {
@@ -159,7 +160,9 @@ RULES:
 
 Return ONLY a JSON array. Each object: {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.
 SCORING: 1-7 use whole numbers. 8+ use increments of 0.2 (8.0, 8.2, 8.4, 8.6, 8.8, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0).
-No markdown, no backticks.`
+No markdown, no backticks.
+
+${STYLE_RULES}`
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

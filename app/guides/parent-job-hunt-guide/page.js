@@ -74,7 +74,7 @@ export default function ParentJobHuntPage() {
       </div>
 
       <div style={{ padding: '40px 0 32px', borderBottom: '3px solid var(--marker-black)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Marker · Free guide · 2026</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 12 }}>Requite · Free guide · 2026</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 16px' }}>
           The Parent's Guide to Finding a Better Job
         </h1>
@@ -86,7 +86,7 @@ export default function ParentJobHuntPage() {
           <span>·</span>
           <span>Free to share</span>
           <span>·</span>
-          <span>marker.work</span>
+          <span>requite.io</span>
         </div>
       </div>
 
@@ -146,7 +146,7 @@ export default function ParentJobHuntPage() {
           Doing this research properly takes time you often do not have. Reading Glassdoor reviews, tracking down the actual parental leave policy, finding the right contacts to verify culture claims: it is 3-4 hours of work per role before you have even decided whether to apply.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          Marker does not do all of it for you. But it does the parts that are most mechanical and time-consuming: scoring the salary against your floor, surfacing WLB data for listed employers, checking office expectations against your preferences, and tracking everything so you are not starting from scratch every time you open a new job ad.
+          Requite does not do all of it for you. But it does the parts that are most mechanical and time-consuming: scoring the salary against your floor, surfacing WLB data for listed employers, checking office expectations against your preferences, and tracking everything so you are not starting from scratch every time you open a new job ad.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
           The questions you need to ask in interviews: no tool replaces those. But at least you can stop spending your limited time looking up Glassdoor scores and start spending it on the things that actually require your judgment.
@@ -155,8 +155,8 @@ export default function ParentJobHuntPage() {
 
       <div className="no-print" style={{ margin: '0 0 80px', padding: '32px', background: 'var(--marker-black)', borderRadius: 12, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.02em', marginBottom: 8 }}>Find the role that fits your whole life.</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Marker scores any job against your salary floor, WLB priority, office day limit, and parental leave needs, in 30 seconds. Then tracks everything so nothing slips.</div>
-        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Marker free →</a>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 20 }}>Requite scores any job against your salary floor, WLB priority, office day limit, and parental leave needs, in 30 seconds. Then tracks everything so nothing slips.</div>
+        <a href="/auth" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Try Requite free →</a>
       </div>
 
     </GuideLayout>
