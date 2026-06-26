@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = "Requite: the AI recruitment platform you can actually trust"
+export const alt = "Requite: for senior professionals who'd quite like their evenings back"
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const runtime = 'edge'
@@ -84,7 +84,7 @@ export default async function Image() {
           textAlign: 'center', maxWidth: 780, lineHeight: 1.45,
           display: 'flex',
         }}>
-  The AI recruitment platform you can actually trust. Free for candidates, honest on both sides.
+  For senior professionals who&apos;d quite like their evenings back.
         </div>
 
         {/* Bottom rainbow band */}

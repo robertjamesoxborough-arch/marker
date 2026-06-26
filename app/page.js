@@ -104,7 +104,7 @@ export default async function Home() {
             letterSpacing: '-0.015em', lineHeight: 1.4, marginBottom: 20,
             display: 'inline-block',
           }}>
-            For people who&apos;ve job-hunted before and would like it to take less of their life.
+            For senior professionals who&apos;d quite like their evenings back.
           </div>
           <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 8vw, 120px)', marginBottom: 24, textWrap: 'balance' }}>
             <span className="chrome-text">Score every job before you waste time on it.</span>
