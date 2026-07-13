@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 18 complete — feed-web is the working reference implementation (cache read + daily-capped fresh scan). feed-gov, job-feed, contractor/roles still need the same treatment (Stage 19).  
-**Last commit:** stage 18: feed-web reference implementation — cache read + daily-capped fresh scan  
+**Stage:** 19a complete — feed-gov converted to the feed-web pattern. contractor/roles confirmed as a same-pattern port (next); job-feed needs its own Rule-7 design (nightly-only, zero per-user path). feed-web's cache-read path is BUILT but not yet verified against real data — blocked on triggering the ingest crons (see below).  
+**Last commit:** stage 19a: feed-gov follows the feed-web pattern — cache read + daily-capped fresh scan  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,27 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19a — feed-gov converted; verification blocked; corrected route mapping (2026-07-13)
+
+**Goal:** Trigger the ingest crons, verify feed-web's cache-read path against real data, then convert feed-gov/job-feed/contractor-roles per cost rules 1+2+7.
+
+**Verification: BLOCKED, not done.** Attempted to trigger the nightly crons directly via curl using `CRON_SECRET`. Discovered `CRON_SECRET` (and, on closer check, `ADZUNA_API_KEY`/`ANTHROPIC_API_KEY`/even the plain `NEXT_PUBLIC_SUPABASE_URL`) all come back as empty strings from `vercel env pull` in this session — a deliberate safety redaction in the Claude Code Vercel integration, not a retrievable secret. Did not attempt to route around it (e.g. Management API, decrypting elsewhere). **Action needed from Rob:** trigger `cron/adzuna`, `cron/gov`, `cron/greenhouse` via the Vercel dashboard's Cron Jobs manual-run button (no secret exposure needed that way), then `cron/score-cache` (possibly 2-3 times if more than 240 rows are unscored — it processes in capped batches per invocation). Once run, the cache-read verification (row counts, ranking sanity check, allowance-gate check) is the immediate next step — nothing else blocks it.
+
+**Correction to Stage 18's carry-over note:** re-read all three remaining live routes before assuming anything. **`feed-gov` does NOT use `web_search`** — it's Adzuna live-fetch + Sonnet scoring only, structurally identical to feed-web pre-fix. Rule 7 doesn't apply to it. The route that genuinely needs the strict rule-7 treatment is **`job-feed`** — it calls Anthropic's `web_search_20250305` tool (up to 5 live searches) and also scrapes arbitrary company career-page URLs directly by fetch. `contractor/roles` is Adzuna + Sonnet only (no web_search) and already requires auth (401 if no user) — confirmed as a straightforward same-pattern port.
+
+**Changes made:**
+
+1. **`app/api/feed-gov/route.js`** (rewritten, same shape as Stage 18's `feed-web`) — default path `readFromCache` reads `jobs_cache` where `source='gov'` (already ingested nightly by the existing `cron/gov`) and `scored_at IS NOT NULL`, zero AI cost, ranked per-user via `lib/match-engine.js`. `{fresh:true}` is the only live path: gated by `checkAllowance(user.id,'feed_fresh_scan')`, runs the existing gov-flavoured Adzuna query set + title include/exclude filters, upserts to the shared cache (id format `gov-${job.id}`, matching `cron/gov`'s convention), scores once via the shared `lib/score-jobs-batch.js`, logs `trackAiUsage`. Unauth → 401 before any DB/AI work.
+
+**Self-test:** `node --check` clean; `node lib/scoring.test.js` + `node lib/usage-window.test.js` ALL PASS; Vercel build is the authoritative gate (see deploy log).
+
+**NOT done — carried forward:**
+- Verify feed-web's (and now feed-gov's) cache-read path against real data — blocked on the crons being triggered (see above).
+- `contractor/roles` — confirmed straightforward, same pattern as feed-web/feed-gov, not yet converted.
+- `job-feed` — needs its own design under rule 7 (must have NO per-user live path at all, not even allowance-gated, since it's `web_search`). Its current live-scrape-on-click behaviour is fundamentally incompatible with rule 7 as written; the redesign likely means converting it into a nightly-cron ingest source (a new `cron/job-feed`-style route) with the route itself becoming a pure cache reader, dropping the personalized on-demand scrape entirely or restricting it to something that isn't a live web_search call. Needs a dedicated session.
+
+---
 
 ### Stage 18 — feed-web reference implementation (2026-07-13)
 
