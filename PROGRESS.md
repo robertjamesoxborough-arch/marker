@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19f complete — gov fix confirmed working live (78 rows, was 4), full backlog cleared (953/953 scored), and the cost-rule-4 prompt-caching bug diagnosed + fixed (prefix was correctly formed but too short to be cacheable at all). Full real-data verification done for both feed-web and feed-gov. **Cannot personally confirm `cache_read_input_tokens > 0`** — no `ANTHROPIC_API_KEY` in this environment; needs Rob to re-run against fresh unscored rows to close the loop.  
-**Last commit:** fix: cost rule 4 — cache_control was correctly formed but the prefix was too short to cache  
+**Stage:** 19g complete — cost rule 4 CONFIRMED WORKING with a live Anthropic call (`cache_read_input_tokens: 4122`). Rob added `ANTHROPIC_API_KEY`/`ADZUNA_API_KEY` to `.env.local`, closing the credential gap that blocked live self-testing across Stages 18-19f. The Stage 19f fix (~2120 tokens) was itself wrong — empirically bisected the real cache threshold for `claude-haiku-4-5-20251001` at exactly ~4096 tokens, not the commonly-documented 2048 for Haiku-tier models.  
+**Last commit:** fix: cost rule 4 — the real Haiku-tier cache threshold is ~4096 tokens, not 2048  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,39 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19g — cost rule 4 CONFIRMED with a live Anthropic call; real cache threshold is ~4096 tokens (2026-07-13)
+
+**Rob closed the credential gap**: added `ANTHROPIC_API_KEY` and `ADZUNA_API_KEY` to `.env.local` — the first time in this whole feed-port arc that a live Anthropic call could be made directly, instead of every fix needing a round-trip through Rob re-running production crons.
+
+**Rob's fresh re-run showed the Stage 19f fix did NOT work**: `cron/score-cache` still returned `cacheReadTokens:0` across multiple runs. Diagnosed properly this time with real API access — wrote a script making two identical back-to-back calls to the real Anthropic API with the real production `SYSTEM_PREFIX`, printing the full `usage` object from each (per Rob's explicit instruction, using the exact suspects list: `anthropic-beta` header, `cache_control` block placement, system-prompt-as-array-vs-string).
+
+**First live result was itself revealing**: `input_tokens: 2133`, `cache_creation_input_tokens: 0` on the very FIRST call — meaning the cache wasn't even being *written*, let alone read. This ruled out the `anthropic-beta` header (tested identical behaviour with and without it) and the `cache_control`/array-of-blocks structure (both already correct, confirmed by a synthetic test below). That left only one variable: length — but at a real measured 2133 tokens, the prefix was already just above the commonly-documented 2048-token Haiku minimum, which didn't add up.
+
+**Empirically bisected the real threshold** by testing progressively larger prefixes live and reading the real `cache_creation_input_tokens` from each response (not estimated — measured):
+```
+2133 tokens -> fails (0)      2814 tokens -> fails (0)
+3340 tokens -> fails (0)      3778 tokens -> fails (0)
+4086 tokens -> fails (0, 10 tokens short)
+4122 tokens -> WORKS (cache_creation_input_tokens: 4122, then reads 4122)
+4144 tokens (synthetic 2x test) -> WORKS      6216 tokens (synthetic 3x test) -> WORKS
+```
+**The real cache threshold for `claude-haiku-4-5-20251001` is almost certainly exactly 4096 tokens — not the 2048 commonly documented for Haiku-tier models.** This model generation apparently has a higher minimum than the figure I'd been designing against in Stages 19f/19g. A synthetic 3x-duplicated prefix (~6216 tokens) was used mid-investigation purely to prove the mechanism itself was sound (cache_control shape, header, array format) before hunting for the real boundary in the actual production content.
+
+**Fix:** expanded `SYSTEM_PREFIX` in `lib/score-jobs-batch.js` further with genuine additional content across 5 more edits — more sector-calibration notes (insurance/actuarial, telecoms, PR/comms agencies, housing associations, logistics-specifically, aviation/rail) and a new section on handling partial/messy real-world listing data (missing locations, truncated descriptions, bundled/duplicate postings, ambiguous currency, terse titles) — none of it filler; all directly useful for a candidate-agnostic baseline scorer working from scraped, often-incomplete Adzuna/Greenhouse data. Final length: 17744 characters / **4122 real measured tokens**.
+
+**CONFIRMED LIVE with the actual production file content** (not a reconstruction or estimate): Call 1 → `cache_creation_input_tokens: 4122`. Call 2 (identical, back-to-back) → `cache_read_input_tokens: 4122`. This is the first genuinely closed loop in the whole prompt-caching investigation — diagnosis, fix, and proof all done directly against the real Anthropic API.
+
+**Self-test:** `node --check` clean; `node lib/scoring.test.js` + `node lib/usage-window.test.js` ALL PASS; Vercel build green (deploy in progress as this entry is written).
+
+**NOT done — carried forward:**
+- Run `cron/score-cache` against fresh unscored rows in production to see `cacheReadTokens > 0` in the deployed cron's own response (this session confirmed the mechanism directly against Anthropic; confirming it end-to-end through the deployed route with a real backlog is the natural next check, low-risk given the direct proof already in hand).
+- With `ANTHROPIC_API_KEY`/`ADZUNA_API_KEY` now in `.env.local`, future sessions can self-test Adzuna fetching and Anthropic scoring directly — the recurring credential-gap friction from Stages 17-19f should no longer apply going forward. Updated the standing memory note accordingly.
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for Greenhouse board coverage.
+- `scoreRoleFit` tuning (roleFit false-positives on generic shared words like "technical"/"lead").
+- `contractor/roles` mechanical port; `job-feed`'s Rule-7 redesign.
+
+---
 
 ### Stage 19f — cost rule 4 fixed: prompt caching wasn't firing; gov fix confirmed live; full verification (2026-07-13)
 
