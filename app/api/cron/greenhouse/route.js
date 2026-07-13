@@ -2,28 +2,19 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 
-// Companies using Greenhouse ATS with UK presence
+// Companies using Greenhouse ATS with UK presence.
+// 14 of the original 20 boards 404'd on 2026-07-13 (moved off Greenhouse
+// entirely, or changed token) — removed rather than left silently failing
+// every night. Proper fix is a multi-ATS layer (Lever, Ashby,
+// SmartRecruiters — NOT Workday, legal risk per brief) in a later session;
+// see PROGRESS.md.
 const GREENHOUSE_BOARDS = [
   { company: 'Monzo',          token: 'monzo' },
   { company: 'GoCardless',     token: 'gocardless' },
-  { company: 'Deliveroo',      token: 'deliveroo' },
   { company: 'Skyscanner',     token: 'skyscanner' },
-  { company: 'Octopus Energy', token: 'octopusenergy' },
   { company: 'Farfetch',       token: 'farfetch' },
-  { company: 'Bumble',         token: 'bumble' },
-  { company: 'Wise',           token: 'wise' },
-  { company: 'Checkout.com',   token: 'checkout' },
-  { company: 'Starling Bank',  token: 'starlingbank' },
   { company: 'SumUp',          token: 'sumup' },
-  { company: 'Gousto',         token: 'gousto' },
   { company: 'Wayve',          token: 'wayve' },
-  { company: 'OakNorth',       token: 'oaknorth' },
-  { company: 'Zopa',           token: 'zopa' },
-  { company: 'Marshmallow',    token: 'marshmallow' },
-  { company: 'Curve',          token: 'curve' },
-  { company: 'Casumo',         token: 'casumo' },
-  { company: 'Paddle',         token: 'paddle' },
-  { company: 'Phoebe',         token: 'phoebe' },
 ]
 
 const UK_PATTERN = /\b(london|uk|england|scotland|wales|remote|hybrid|manchester|edinburgh|bristol|birmingham|leeds|cardiff|belfast|sheffield|cambridge|oxford|brighton|surrey|kent|guildford|reading|milton keynes)\b/i

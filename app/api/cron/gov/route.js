@@ -2,22 +2,26 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 
-// Generic gov queries covering all our role families at senior level
+// Generic gov queries covering all our role families. Kept to 2-3 words each
+// (theme + sector) — Adzuna's `what` param ANDs every word together, so the
+// original 4-5-word queries ("director of digital public sector") were
+// hugely over-restrictive (confirmed 2026-07-13: 14 queries returned only 4
+// results). Seniority is enforced afterward by passesTitleFilter, so it does
+// not need to be baked into the search string itself.
 const GOV_QUERIES = [
-  { what: 'director of digital public sector', seniority: ['director', 'head', 'vp_plus'] },
-  { what: 'head of digital government',        seniority: ['head', 'director'] },
-  { what: 'deputy director digital strategy',  seniority: ['director', 'senior_manager'] },
-  { what: 'director partnerships public sector', seniority: ['director', 'head'] },
-  { what: 'head of marketing government',      seniority: ['head', 'director'] },
-  { what: 'director communications public sector', seniority: ['director', 'head'] },
-  { what: 'programme director government',     seniority: ['director', 'head'] },
-  { what: 'head of commercial government',     seniority: ['head', 'director'] },
-  { what: 'head of product government',        seniority: ['head', 'director'] },
-  { what: 'head of data public sector',        seniority: ['head', 'director'] },
-  { what: 'senior manager digital public sector', seniority: ['senior_manager', 'head'] },
-  { what: 'director of strategy public sector', seniority: ['director', 'head'] },
-  { what: 'head of growth public sector',      seniority: ['head', 'director'] },
-  { what: 'director product management government', seniority: ['director', 'head'] },
+  'digital government',
+  'digital strategy public sector',
+  'partnerships public sector',
+  'marketing government',
+  'communications public sector',
+  'programme government',
+  'commercial government',
+  'product government',
+  'data public sector',
+  'strategy public sector',
+  'growth public sector',
+  'product management government',
+  'digital NHS',
 ]
 
 const TITLE_MUST = ['director', 'head of', 'deputy', 'senior manager', 'programme director', 'chief', 'vp ', 'vice president', 'lead']
@@ -59,14 +63,17 @@ export async function GET(request) {
   const errors = []
   const seen = new Set()
 
-  for (const { what } of GOV_QUERIES) {
+  for (const what of GOV_QUERIES) {
     try {
       const url = new URL('https://api.adzuna.com/v1/api/jobs/gb/search/1')
       url.searchParams.set('app_id', appId)
       url.searchParams.set('app_key', apiKey)
       url.searchParams.set('results_per_page', '30')
       url.searchParams.set('what', what)
-      url.searchParams.set('salary_min', '60000')
+      // No salary_min: public sector ads frequently omit salary entirely
+      // ("competitive", pay-scale-linked, etc) and Adzuna's salary filter
+      // excludes listings with no salary data at all, not just low ones —
+      // confirmed as a second cause of the near-zero yield (2026-07-13).
       url.searchParams.set('max_days_old', '21')
       url.searchParams.set('sort_by', 'date')
       url.searchParams.set('content-type', 'application/json')
