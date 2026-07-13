@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 17 in progress — feed-port foundation: daily-cap allowance + jobs_cache shared-score schema + nightly batch-scoring cron. Wiring the 4 live routes to READ the cache is the follow-up (Stage 18).  
-**Last commit:** stage 17: feed-port foundation — daily allowance caps, jobs_cache scores, score-cache cron  
+**Stage:** 18 complete — feed-web is the working reference implementation (cache read + daily-capped fresh scan). feed-gov, job-feed, contractor/roles still need the same treatment (Stage 19).  
+**Last commit:** stage 18: feed-web reference implementation — cache read + daily-capped fresh scan  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,41 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 18 — feed-web reference implementation (2026-07-13)
+
+**Goal:** Apply cost rules 1+2 to `feed-web`, migrations 003+004 applied and verified, use it as the pattern for the remaining 3 live routes.
+
+**Blocker found and resolved before any code work:** applying migration 003 surfaced that `jobs_cache` had its Supabase Data API disabled at the table level ("API DISABLED" badge in Table Editor) — service role AND anon key both got `42501 permission denied` on the table (other tables were unaffected). Root cause confirmed as the Data API toggle, unrelated to either migration (neither contains GRANT/REVOKE). User re-enabled the Data API for the table and ran `GRANT SELECT ... TO service_role/anon/authenticated`; re-verified via PostgREST — all four new columns (`score_tier`, `match_score`, `score_breakdown_json`, `scored_at`) now readable, HTTP 200. **Note: `jobs_cache` currently has 0 rows** — the nightly ingest crons have not populated it recently, so cache-read testing needs a live cron run (or manual trigger) before it will show real jobs.
+
+**Honest correction to Stage 16:** grepped the entire client (`app/app/page.js` and the whole repo) for every `fetch('/api/...')` call. **`feed-web` is not called anywhere in the UI.** The live "Discover → Live Roles" tab calls `/api/feed-cache`, which already reads `jobs_cache` with zero AI cost at read time (deterministic hard-filter only, no score/signal/badge surfaced). Stage 16's description of feed-web as "the QUICK scorer path" was wrong — it was never wired to a button. Proceeded anyway per instruction: this makes feed-web ready to attach to a future "Fresh scan" button, and its job shape (score/signal/badge) is a real improvement over feed-cache's plain listing.
+
+**Changes made:**
+
+1. **`lib/score-jobs-batch.js`** (NEW) — extracted the nightly cron's Haiku scoring call into a shared helper (`scoreJobsBatch(apiKey, rows)`) so the nightly baseline and any live scan use the byte-identical rubric/prompt/model — a job is scored once by one method, never re-scored per user or per route.
+
+2. **`app/api/cron/score-cache/route.js`** — now imports `scoreJobsBatch` instead of inlining the same Anthropic call; behaviour unchanged, duplication removed.
+
+3. **`app/api/feed-web/route.js`** (rewritten) — 
+   - **Default path** (`readFromCache`): zero AI cost. Reads `jobs_cache` rows where `source='adzuna'` and `scored_at IS NOT NULL` (i.e. already baseline-scored by the nightly cron), applies the G2 freshness filter (`lib/freshness.js`, drops expired links), then ranks per-user with the deterministic `scoreMatch` (`lib/match-engine.js`) — a global baseline floor (`match_score >= 5`) AND a per-user relevance floor (`relevance.score >= 6`), interleaved by company.
+   - **Fresh-scan path** (`runFreshScan`, only on `{fresh: true}`): gated by `checkAllowance(user.id, 'feed_fresh_scan')` BEFORE any external call (free=0 hard-blocked, trial/pro=3/day, max=10/day — built in Stage 17). Live Adzuna fetch, upserts raw rows into the SHARED `jobs_cache` (same id format as `cron/adzuna`, so future nightly runs dedupe against it), scores the new batch ONCE via `scoreJobsBatch`, logs `trackAiUsage` after. Serves the result back through the same `readFromCache` path so the response format never diverges between cache and fresh-scan modes.
+   - Unauthenticated requests get 401 before any DB or Anthropic call.
+
+**Self-test (cost-guardrails, run against the new code):**
+- ✅ Unauth POST → 401 immediately, zero DB/AI work
+- ✅ Free tier `feed_fresh_scan` cap = 0 → hard-blocked before any external call
+- ✅ No `temperature`/`top_p`/`top_k`/`thinking:` anywhere in the new/edited files
+- ✅ `cache_control` present on the scoring prefix (`lib/score-jobs-batch.js`)
+- ✅ `.not('scored_at', 'is', null)` filter syntax matches existing precedent elsewhere in the codebase
+- ✅ `node lib/scoring.test.js` + `node lib/usage-window.test.js` — ALL PASS
+- ✅ Vercel build green (authoritative gate; local build still blocked by iCloud-dataless node_modules)
+
+**NOT done — carried to Stage 19:**
+- `feed-gov`, `job-feed`, `contractor/roles` still do live-fetch-on-click with no allowance gate. Same pattern as feed-web should apply, but `feed-gov` uses `web_search` (rule 7 — must stay nightly-cron-only, no per-user on-demand path at all, not even an allowance-gated one) so it needs its own design, not a copy-paste of the fresh-scan exception.
+- No UI wiring yet for a "Fresh scan" button — `feed-web` is ready to be called with `{fresh:true}` but nothing in `app/app/page.js` does so yet.
+- Trigger the nightly ingest + score-cache crons at least once (manually, via `CRON_SECRET`) so `jobs_cache` has real scored rows to verify the cache-read path against actual data.
+
+---
 
 ### Stage 17 — Feed-port foundation: daily caps + shared cache scoring (2026-07-13)
 
