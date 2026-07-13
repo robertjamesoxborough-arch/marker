@@ -158,7 +158,7 @@ export async function POST(req) {
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   const { data: profile } = await service
     .from('profiles')
-    .select('target_roles, seniorities, seniority, industries, postcode, salary_floor, max_office_days, hard_filters_json, tracks, track')
+    .select('target_roles, seniority, industries, postcode, salary_floor, max_office_days, hard_filters_json, track')
     .eq('user_id', user.id).single()
 
   let body = {}
