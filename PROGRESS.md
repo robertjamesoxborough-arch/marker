@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19g complete — cost rule 4 CONFIRMED WORKING with a live Anthropic call (`cache_read_input_tokens: 4122`). Rob added `ANTHROPIC_API_KEY`/`ADZUNA_API_KEY` to `.env.local`, closing the credential gap that blocked live self-testing across Stages 18-19f. The Stage 19f fix (~2120 tokens) was itself wrong — empirically bisected the real cache threshold for `claude-haiku-4-5-20251001` at exactly ~4096 tokens, not the commonly-documented 2048 for Haiku-tier models.  
-**Last commit:** fix: cost rule 4 — the real Haiku-tier cache threshold is ~4096 tokens, not 2048  
+**Stage:** 20 complete — TWO items closed out with real proof. (1) Cost rule 4 confirmed via the actual deployed cron logic, not a reconstruction: ran a synthetic 150-row backlog through the real `score-cache` handler (3 batches), `cacheReadTokens: 8244` = exactly 2×4122 — batch 1 writes the cache, batches 2 and 3 both read it. (2) `scoreRoleFit` fixed for the false-positive word-overlap bug Rob flagged (generic-modifier stripping + functional-family conflict detection) — self-tested against real scored data, all 4 real instances of the bad match dropped 8→2, all 10 genuine matches scored identically (zero regression), full existing test suite still 23/23.  
+**Last commit:** fix: scoreRoleFit false-positives on shared generic modifier words  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,37 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 20 — cache proof against the real cron logic; scoreRoleFit trust-killer fixed (2026-07-13)
+
+**Item 1: closing the cost-rule-4 loop properly.** Stage 19g proved caching works via a standalone reconstruction of `SYSTEM_PREFIX`; Rob correctly pointed out the deployed cron's own responses still showed `cacheReadTokens:0` — but only because there was never more than one batch of genuinely new jobs per run (cache reads only happen on batch 2+, and a single-batch run has nothing to read from). Not a real test of the fix.
+
+**Ran the ACTUAL route code this time, not a reconstruction.** `app/api/cron/score-cache/route.js` is a Next.js route (imports `next/server`), and this machine's local `next build`/`next dev` hang on iCloud-dataless `node_modules` (a known, longstanding issue — see earlier stages). Worked around it properly: copied the route's exact GET logic to a sibling `route.debug.mjs` in the same directory (so relative imports to `lib/score-jobs-batch.js` etc. resolve unchanged), swapping only `NextResponse.json(...)` for the standard `Response.json(...)` (`next/server` isn't available outside the Next runtime; this is a documented like-for-like substitute, nothing else touched). Hit two Node-vs-Next runtime environment differences along the way, both resolved without touching any real code: Node's ESM loader needs explicit `.js` extensions on relative imports (unlike webpack) — fixed with a tiny custom resolve hook via `node --import`, deleted after use; `@supabase/supabase-js`'s Realtime client needs a native `WebSocket` that Node 20 only has behind a flag — fixed with `--experimental-websocket`.
+
+**Inserted a synthetic 150-row unscored backlog** (confirmed 0 real unscored rows first, so nothing else was mixed in) and invoked the real route handler directly:
+```
+{ "ok": true, "scored": 150, "batches": 3, "cacheReadTokens": 8244, "errors": [] }
+```
+**8244 = exactly 2 × 4122** (the real per-batch token count confirmed in Stage 19g) — batch 1 writes the cache, batches 2 and 3 both read it back. This is the real, deployed cron logic, not a standalone script. Test rows deleted afterward (confirmed via re-query); `route.debug.mjs` and all loader/hook scratch files deleted — nothing committed.
+
+**Item 2: `scoreRoleFit` false-positive fix (the trust-killer Rob flagged).** Root cause: `jaccardOverlap` in `lib/match-engine.js` weighted every shared word equally, so a single generic modifier ("technical") shared between "Technical Sales Executive" and a "technical delivery" target inflated the overlap ratio into the "strongly aligns" tier (roleFit=8) despite the roles having nothing to do with each other.
+
+**Fix, deterministic, explainable, no model call, per the brief:**
+- `LOW_SIGNAL_WORDS` — generic modifiers (technical, senior, digital, global, regional, commercial, remote, hybrid, uk, etc.) stripped from the overlap computation entirely, so a shared modifier alone can no longer inflate a match.
+- `ROLE_FAMILIES` — functional domain buckets (sales, engineering, delivery, marketing, data, hr, finance, operations, product, design, legal). When a job and a target both have a determinable family and share none, that's a real domain mismatch: the score is capped at 3, overriding the word-overlap ratio. If either side's family can't be determined, stays silent rather than guessing (no false positives from an incomplete signal).
+
+**Self-tested against REAL scored `jobs_cache` data (1128+ rows) before vs after, using the real profile that surfaced the bug:**
+- All 4 real instances of the flagged bad match — "Head of Technical Sales", "Technical Sales Engineer" (×2), "Technical Sales Executive" — dropped from `roleFit=8` ("strongly aligns") to `roleFit=2` ("doesn't match"). The low-signal-word stripping alone already zeroes their overlap (since "technical" was the only shared word), before the family-conflict layer even applies.
+- All 10 genuine Project Manager / Programme Lead variants tested (NPD Project Manager, Operations Project Manager, plain Project Manager ×3, Senior Project Manager, HVAC/Electrical Project Manager, Lead ECC Project Manager, Water Quality Project Manager) scored **identically** before and after — zero regression.
+- Full existing `lib/match-engine.test.js` suite: 23/23 still pass.
+
+**Self-test:** `node --check` clean; `node lib/scoring.test.js` + `node lib/usage-window.test.js` + `node lib/match-engine.test.js` ALL PASS; Vercel build green for the roleFit deploy (`readyState: READY`, aliased) — no deploy needed for the cache proof itself (verification only, no code changed).
+
+**NOT done — carried forward:**
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for Greenhouse board coverage.
+- `contractor/roles` mechanical port; `job-feed`'s Rule-7 redesign.
+
+---
 
 ### Stage 19g — cost rule 4 CONFIRMED with a live Anthropic call; real cache threshold is ~4096 tokens (2026-07-13)
 
