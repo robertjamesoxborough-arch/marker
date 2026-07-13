@@ -14,6 +14,26 @@
 
 ---
 
+## COST GUARDRAILS — compliance audit (2026-07-13)
+
+Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause API spend to scale per-user-per-click. Audit of current state:
+
+**Compliant:**
+- `/api/analyse` (FULL, per-user Sonnet) — allowance check before, `cache_control` on the rubric+profile system prefix, `trackAiUsage` after. Correct per rules 4 + 6.
+- No sampling params (`temperature`/`top_p`/`top_k`) or manual `thinking:` blocks at any call site — verified. Rule 5 swap is unblocked on that front.
+
+**VIOLATIONS to fix before launch (rule 1 + rule 6) — needs the nightly-cron + shared-cache rebuild:**
+- `feed-web`, `feed-gov`, `job-feed`, `contractor/roles` each do a LIVE external fetch (Adzuna/gov/web_search) + model scoring on every authenticated call, with NO allowance gate and NO `ai_usage` log. Any free authenticated user can trigger repeated live spend. This is the personal-tracker port pattern the addendum warns about.
+- Target architecture: all feed scanning runs ONCE nightly via cron into `jobs_cache`, batch-scored with Haiku once and shared; user clicks re-read the cache + re-apply personal filters via cheap DB query. Pro "Fresh scan" = max 3 live scans/day/user, counted in `ai_usage`.
+- Plumbing gap: `lib/allowance.js` counts per calendar MONTH; the "3/day" fresh-scan cap needs a daily-window counter.
+- Rule 4: when feed scoring moves into the cron, attach `cache_control` to the shared `lib/scoring.js` rubric prefix and log `cache_read_input_tokens` once per route to prove caching fires.
+
+**Rule 5 — Sonnet 5 migration (pending, deliberate):** `lib/anthropic.js` is still `claude-sonnet-4-6`. When swapping to `claude-sonnet-5`: batch/feed scoring stays `claude-haiku-4-5-20251001`; confirm zero sampling params (done); add ~30% headroom to tightly-sized `max_tokens` (new tokenizer ~30% more tokens); do NOT loosen allowance maths.
+
+> Note: no code changed for this audit — the fixes are architectural (4 routes + daily-cap plumbing) and belong to the feed-port session. Flagged here and in memory so they are not lost.
+
+---
+
 ## STAGE LOG
 
 ### Stage 16 — Unified scoring model (2026-07-13)
