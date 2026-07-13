@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 20 complete — TWO items closed out with real proof. (1) Cost rule 4 confirmed via the actual deployed cron logic, not a reconstruction: ran a synthetic 150-row backlog through the real `score-cache` handler (3 batches), `cacheReadTokens: 8244` = exactly 2×4122 — batch 1 writes the cache, batches 2 and 3 both read it. (2) `scoreRoleFit` fixed for the false-positive word-overlap bug Rob flagged (generic-modifier stripping + functional-family conflict detection) — self-tested against real scored data, all 4 real instances of the bad match dropped 8→2, all 10 genuine matches scored identically (zero regression), full existing test suite still 23/23.  
-**Last commit:** fix: scoreRoleFit false-positives on shared generic modifier words  
+**Stage:** 21 complete — Session B, five bundled independent fixes: feed-gov query-builder seniority bug, dead buildQuickPrompt deleted, Stripe checkout settings-page tier bug found and fixed (real, live breakage — not just a stale reference), G3 Trust Panel copy corrected (loop guard investigated, found genuinely partial, copy fixed rather than half-wiring), Sonnet 5 swap confirmed live + a follow-on cost-tracking bug caught via self-testing.  
+**Last commit:** fix: five bundled fixes — feed-gov seniority, dead code, Stripe tiers, G3 copy, Sonnet 5  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,31 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 21 — Session B: five bundled independent fixes (2026-07-13)
+
+**1. feed-gov `buildGovQueries` still read `profile.seniorities` (plural).** The profile *select* was fixed for this bug back in Stage 19a/19d, but the query-builder function itself was missed — it still read the never-existent plural field, always falling back to generic `director`/`head of`/`deputy director` prefixes regardless of the user's real seniority. Real schema (`001_schema.sql`) has a single `profile.seniority` enum (`ic`/`manager`/`senior_manager`/`head`/`director`/`vp_plus`). Added `SENIORITY_TO_GOV_PREFIXES` mapping the real enum to 1-2 gov-appropriate prefixes; falls back to the generic list when unset/unmapped.
+
+**2. Deleted dead `buildQuickPrompt`** from `lib/scoring.js` — confirmed no caller anywhere (all three real Haiku scoring paths use `lib/score-jobs-batch.js` instead, since Stage 18). Updated `lib/scoring.test.js`'s rubric-parity assertion to check `score-jobs-batch.js`'s source embeds the same shared `RUBRIC`, instead of testing the now-deleted stand-in.
+
+**3. Stripe checkout tier keys — found REAL, LIVE breakage, not just a stale reference.** `lib/stripe.js` and the checkout route itself were already correct (generic `PLANS[plan]` lookup, `pro`/`max` only). The actual bug was client-side: `app/settings/page.js`'s `PLANS_UI` still showed dead **Standby (£4/mo)** and **Lite (£12/mo)** cards whose Stripe price IDs no longer exist in `lib/stripe.js` — clicking "Upgrade" on either would 400 `Invalid plan`. No Max card was offered at all. The tier-recognition checks (`['standby','lite','pro'].includes(tier)`, used twice) were missing `'max'` entirely, meaning a real Max subscriber would incorrectly see the upgrade-prompt UI instead of "Manage subscription". Fixed all three: `PLANS_UI`/`PLAN_LABELS` now show real Pro £19/mo + Max £39/mo (copy matched to `pricing/page.js` for consistency), both tier checks now include `'max'`.
+
+**4. G3 loop guard — investigated wiring, found it genuinely partial, fixed the copy instead.** `priorResponse` + `lib/loop-guard.js` work correctly server-side when a caller sends one — confirmed this is real, working code, not fake. But no client call site sends it. Checked all 4 client call sites to `/api/analyse`: 2 (the `EngineTab`-style "score a URL/JD" flows, `result` state) hold the full prior parsed response and could be wired with one line each (`priorResponse: result ? JSON.stringify(result) : null`). The other 2 (per-card re-score buttons in list/pipeline views) only track `{score, signal}` in local state — no `signalReason` or any prose text, so a Jaccard text-similarity comparison against that would be meaningless without first expanding what those components track. Wiring only the easy 2 would leave the Trust Panel's "loop guard detects AI repetition automatically" claim still false for the other 2 real user-facing flows — a half-fix that reads as done but isn't. Decision: **fixed the copy, did not wire it.** Removed the loop-guard sentence from the G3 card body and `lib/loop-guard.js` from its "built:" list on `/trust`. The rest of the G3 claim (stateless profile-fresh-per-call architecture via `lib/ai-context.js`, editable Memory Card) is untouched and independently true. **Follow-up:** properly wire all 4 call sites (the 2 harder ones need their local state expanded to track prior response text, not just score/signal) in a dedicated session, then restore the Trust Panel claim.
+
+**5. Sonnet 5 swap — confirmed live, not just a string change.** `lib/anthropic.js` `MODELS.sonnet` → `claude-sonnet-5`. Live-tested with a direct API call (not just editing the string): got HTTP 200 with `model: "claude-sonnet-5"` echoed back in the response. Re-confirmed zero sampling params (`temperature`/`top_p`/`top_k`) and no manual `thinking:` blocks anywhere in the app (unchanged from prior confirmations). Added ~30% headroom to every Sonnet-tier `max_tokens` value per the addendum (new tokenizer produces more tokens for the same text) — Haiku call sites left untouched since Haiku's model/tokenizer didn't change: `negotiation-prep` 3000→3900, `contractor/recruiters` 4000→5200, `contractor/companies` 3000→3900, `contractor/roles` 3000→3900, `feed-tasklist` 3000→3900, `perm/recruiters` 4000→5200, `job-feed` (both Sonnet sites) 2000→2600 and 4000→5200, `interview-prep` 2000→2600, `analyse`'s Sonnet web-search fallback 2000→2600, `cv/route.js` 4000→5200, `cv/generate`'s standard/deep tiers 3000→3900 and 4000→5200. `lib/allowance.js`/`TIER_CAPS` deliberately untouched per instruction.
+
+**Follow-on bug caught by self-testing, not one of the original 5:** `lib/ai-usage.js`'s `COSTS` map had no entry for `claude-sonnet-5` — every Sonnet-5 call's cost tracking would have silently fallen back to the old `claude-sonnet-4-6` rate (`$3/$15`) via the `COSTS[model] || COSTS['claude-sonnet-4-6']` fallback, corrupting `ai_usage` cost data from this deploy onward with no visible error. Added a `claude-sonnet-5` entry at the documented intro rate (`$2/$10`/million tokens), with a date check that automatically switches to `$3/$15` after 2026-08-31 per the cost-guardrails addendum — self-correcting, no second manual patch needed later.
+
+**Self-test, all five plus the follow-on fix:** `node --check` clean on every touched file (17 files); `node lib/scoring.test.js` + `node lib/usage-window.test.js` + `node lib/match-engine.test.js` all pass (23/23 on the match-engine suite); `claude-sonnet-5` confirmed callable via a direct live Anthropic API request.
+
+**Commit-message note:** the first attempt at this commit used a plain quoted `-m` string containing backticks, which bash interpreted as command substitution mid-message (one word — "result" — was silently dropped, replaced by a failed `` `result` `` command's empty output). Caught by re-reading the stored message before pushing; fixed by amending with a proper heredoc before anything was pushed.
+
+**NOT done — carried forward:**
+- Full G3 loop-guard wiring across all 4 client call sites (2 need local state expanded to track prior response text first) — restore the Trust Panel claim once done.
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for Greenhouse board coverage.
+- `contractor/roles` mechanical port; `job-feed`'s Rule-7 redesign.
+
+---
 
 ### Stage 20 — cache proof against the real cron logic; scoreRoleFit trust-killer fixed (2026-07-13)
 
