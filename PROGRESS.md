@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 16 complete — unified scoring model (lib/scoring.js), single source of truth for every scorer  
-**Last commit:** stage 16: unified scoring model — shared rubric, deterministic overall, quick/full tiers  
+**Stage:** 17 in progress — feed-port foundation: daily-cap allowance + jobs_cache shared-score schema + nightly batch-scoring cron. Wiring the 4 live routes to READ the cache is the follow-up (Stage 18).  
+**Last commit:** stage 17: feed-port foundation — daily allowance caps, jobs_cache scores, score-cache cron  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,34 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 17 — Feed-port foundation: daily caps + shared cache scoring (2026-07-13)
+
+**Goal (this session):** Lay the cost-guardrails foundation so feed scanning can stop scaling per-user-per-click. Split per instruction — foundation this session, wire the 4 live routes to read the cache next session.
+
+**Done and shipped:**
+
+1. **`lib/usage-window.js`** (NEW, CJS) — pure, dependency-free usage-window maths. `ACTION_PERIOD` (feed_fresh_scan → 'day', everything else → 'month'), `windowStart(period, now)` (UTC-based — matches ai_usage.created_at and cron UTC; a local-time boundary drifted the daily reset, caught by the test), `periodFor(action)`.
+
+2. **`lib/usage-window.test.js`** (NEW, `node lib/usage-window.test.js`) — ALL PASS. Proves daily window = 00:00 UTC today, monthly = 1st 00:00 UTC, same-day scans share one window, next-day opens a fresh one.
+
+3. **`lib/allowance.js`** — now period-aware. Added `feed_fresh_scan` caps: free 0 (cache only, no live scans), trial 3/day, pro 3/day, max 10/day. `checkAllowance` counts usage within the action's window (`windowStart(periodFor(action))`) instead of always monthly, and returns `period`. This is the daily-cap counter for the Pro "3 fresh scans/day" rule.
+
+4. **`supabase/migrations/004_jobs_cache_scores.sql`** (NEW, NOT APPLIED) — adds `match_score`, `score_breakdown_json`, `scored_at` to `jobs_cache` + a partial index on unscored rows. Held for backup (§14). Depends on 003.
+
+5. **`app/api/cron/score-cache/route.js`** (NEW) + **`vercel.json`** (schedule `30 5 * * *`, after the ingest crons) — nightly cron that scores unscored `jobs_cache` rows ONCE with Haiku and writes a shared, candidate-AGNOSTIC baseline score (`match_score`, `score_tier: 'quick'`, `scored_at`) onto the row. CRON_SECRET auth; batches of 40, max 6/run; `cache_control` on the shared `lib/scoring.js` rubric prefix (rule 4) with `cacheReadTokens` surfaced in the response as caching proof. Every batch row gets `scored_at` stamped (skipped rows fall back to neutral 6) so nothing reprocesses forever.
+
+**Design note (needs your confirmation):** the nightly score is candidate-AGNOSTIC (generic role quality / seniority / legitimacy), shared across all users per rule 2. Per-user relevance (target roles, salary floor, office days, track allowlists) is intended to be applied deterministically at read time via `lib/match-engine.js` — zero AI. If you meant the shared score to be something else, flag it before Stage 18.
+
+**Self-tests:** `node lib/usage-window.test.js` ALL PASS; `node lib/scoring.test.js` ALL PASS. Vercel build = the authoritative gate (local build blocked by iCloud-dataless node_modules).
+
+**NOT done — carried to Stage 18 (the actual per-user spend fix):**
+- Wire `feed-web`, `feed-gov`, `job-feed`, `contractor/roles` to READ the scored cache + apply per-user deterministic filters, instead of live fetch + live scoring on every click. Add the `feed_fresh_scan` gate to a Pro-only "Fresh scan" button (the only live path).
+- **Apply migrations 003 + 004** (after Supabase backup) — until applied, the score-cache cron will error nightly on the missing columns (harmless, no user impact) and no scores are written.
+- Verify `cacheReadTokens > 0` on a live cron run (rule 4 proof).
+- Sonnet 5 migration (rule 5) still pending, separate.
+
+---
 
 ### Stage 16 — Unified scoring model (2026-07-13)
 

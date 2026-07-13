@@ -17,6 +17,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/score-cache",
+      "schedule": "30 5 * * *"
+    },
+    {
       "path": "/api/cron/email-trials",
       "schedule": "0 8 * * *"
     },
