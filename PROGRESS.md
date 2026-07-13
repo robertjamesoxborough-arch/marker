@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19d complete — cache-read path VERIFIED end-to-end against real production Supabase (script-based, self-run, not handed back untested). Dedupe-before-upsert fix shipped to all 5 writers; a second real bug found and fixed (profile select referenced non-existent columns, silently nulling personalisation for every user). Real crons (Adzuna/gov/greenhouse content + Anthropic scoring) still untested locally — no ADZUNA/ANTHROPIC keys in .env.local — but the schema/upsert/ranking machinery underneath them is now proven correct.  
-**Last commit:** fix: feed-web/feed-gov profile select referenced non-existent columns  
+**Stage:** 19e complete — real crons ran successfully (680 adzuna / 4 gov / 195 greenhouse ingested). Fixed score-cache's FUNCTION_INVOCATION_TIMEOUT (bulk writes, found a second real NOT-NULL bug mid-fix), removed 14 dead Greenhouse boards, fixed gov's near-zero yield (salary filter + over-restrictive queries). Verified against REAL production data throughout — real row counts, real Anthropic-scored ranking (surfaced a genuine roleFit tuning weakness), real allowance gate.  
+**Last commit:** fix: score-cache timeout, dead greenhouse boards, gov feed low yield  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,34 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19e — real crons ran, score-cache timeout fixed, greenhouse/gov quality fixes, full real-data verification (2026-07-13)
+
+**Real crons finally worked:** `adzuna` → 680 inserted, `gov` → 4 inserted, `greenhouse` → 195 inserted (14 board 404s), `score-cache` → `FUNCTION_INVOCATION_TIMEOUT` on the 879-row backlog. Three fixes, in the priority order requested, then full verification.
+
+**Fix 1 — score-cache timeout.** Root cause: 6 batches × up to 40 sequential row-by-row `UPDATE` calls, plus 6 sequential Anthropic calls, all in one invocation. Fixed: `BATCH` 40→50, `MAX_BATCHES` 6→3 (safely re-runnable — a large backlog just takes a few extra invocations, then the nightly cron keeps up from there); the write step is now ONE bulk upsert per batch instead of up to 50 individual updates.
+
+**Tested against the real backlog myself, iterated on a real failure:** the first version of the bulk-write fix was itself broken — Postgres validates NOT NULL constraints against the full proposed row *before* it resolves `ON CONFLICT`, and `jobs_cache.source` (the only NOT NULL column with no default) was omitted from the update payload, so every upsert failed with `null value in column "source" violates not-null constraint`, regardless of the conflict path. Found this by actually running the fix against 5 real unscored production rows before deploying — exactly what "test until it completes" was for. Fixed by fetching `source` in the same SELECT and including it in every update row. Re-tested at production batch size: **50 real rows scored and reverted to unscored in 209ms via one bulk call** (was up to 50 sequential calls before). maxDuration left at 60 (no evidence of a Pro/Fluid plan to justify raising it; the reduced per-invocation workload is the real fix and doesn't need a bigger window).
+
+**Fix 2 — 14 of 20 Greenhouse boards 404'd.** Deliveroo, Bumble, Octopus Energy, Wise, Checkout.com, Starling Bank, Gousto, OakNorth, Zopa, Marshmallow, Curve, Casumo, Paddle, Phoebe — moved off Greenhouse or changed token. Removed; kept the 6 that returned real jobs: Monzo, GoCardless, Skyscanner, Farfetch, SumUp, Wayve. **Follow-up for a later session:** a multi-ATS layer (Lever, Ashby, SmartRecruiters — NOT Workday, per the brief's legal-risk exclusion) is the proper fix for board coverage, not just curating the Greenhouse list.
+
+**Fix 3 — gov feed near-zero yield (4 results from 14 queries).** Confirmed both of Rob's hypothesised causes by reading the actual query construction: (a) `salary_min=60000` hardcoded on every query — public sector ads frequently omit salary entirely, and Adzuna's salary filter excludes listings with no salary data at all, not just low ones; removed. (b) `GOV_QUERIES` were 4-5 words each (e.g. `"director of digital public sector"`), all AND-matched by Adzuna's `what` param — hugely over-restrictive. Shortened to 2-3 words each (theme + sector); seniority is still enforced afterward by the existing `passesTitleFilter`/`TITLE_MUST`, so no filtering strength was lost, only the search-query restrictiveness. **Not independently re-tested** — no `ADZUNA_API_KEY` locally (confirmed absent again this session); needs Rob to re-run `cron/gov` to confirm the yield actually improves.
+
+**Verification against REAL production data (the original ask, finally complete):**
+- **Row counts per source:** adzuna 680, gov 4, greenhouse 195 = 879 total; 158 already `scored_at` (leftover partial progress from the pre-fix timeout run — some batches completed before the function died on a later one).
+- **Ranking sanity, against real Anthropic-scored rows** (not synthetic — used the 142 real already-scored adzuna rows and the real match-engine code): 6 of 142 passed the relevance floor for the test profile (target_roles: Programme Lead/project management/delivery lead/etc). **Genuine finding, not a bug in this session's code:** `scoreRoleFit`'s Jaccard word-overlap (`lib/match-engine.js`) is too loose for short target-role phrases — "Technical Sales Executive" and "Technical Sales Engineer" (×2) scored `roleFit=8` ("strongly aligns") purely because they share the single word "technical" with the target "technical delivery"; genuinely different job families getting false-positive high scores. Flagged, not fixed — a scoring-quality tuning problem (e.g. requiring multi-word overlap, downweighting generic words like "manager"/"lead"/"technical"), out of scope for this session's time budget.
+- **Fresh-scan allowance gate:** reconfirmed the same real user (`tier='free'`, trial expired 2026-05-29) — `TIER_CAPS.free.feed_fresh_scan=0`, hard-blocked, zero live cost, as designed.
+
+**Self-test:** all three fixed files syntax-check clean; `node lib/scoring.test.js` + `node lib/usage-window.test.js` ALL PASS; Vercel build green (`readyState: READY`, aliased).
+
+**NOT done — carried forward:**
+- Re-run `cron/gov` to confirm the query/salary-filter fix actually raises yield (couldn't self-test — no `ADZUNA_API_KEY` locally).
+- Run `cron/score-cache` a few more times to clear the remaining ~721 unscored rows (fixed cron, safely re-runnable).
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for board coverage beyond Greenhouse.
+- `scoreRoleFit` tuning (roleFit false-positives on generic shared words) — flagged above.
+- `contractor/roles` mechanical port; `job-feed`'s Rule-7 redesign — both still carried from Stage 19a.
+
+---
 
 ### Stage 19d — dedupe fix, self-run verification, and a second real bug found (2026-07-13)
 
