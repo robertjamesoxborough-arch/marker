@@ -124,7 +124,7 @@ Rules:
 - Every tailored bullet must trace to a specific role or achievement identified in your Evidence Map above
 - Keep the same formatting style
 - Return the full CV text, not just the changed sections`
-    maxTokens = 3000
+    maxTokens = 3900
   } else {
     // Deep — full ATS + rewrite + sift. Sonnet.
     model = MODELS.sonnet
@@ -160,7 +160,7 @@ Match score: X/100
 
 ---SIFT ASSESSMENT---
 [2-3 sentences: strengths, concerns, estimated interview invite probability]`
-    maxTokens = 4000
+    maxTokens = 5200
   }
 
   const candidateContext = buildAiContext(profile, careerHistory, wishlists)

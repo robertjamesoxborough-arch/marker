@@ -17,16 +17,25 @@ import { MODELS } from '../../../lib/anthropic'
 const TITLE_MUST = ['director', 'head of', 'deputy', 'senior manager', 'programme director', 'chief', 'vp', 'vice president', 'lead']
 const TITLE_REJECT = ['engineer', 'software', 'developer', 'data sci', 'data analy', 'finance', 'accountant', 'legal', 'compliance', 'hr ', 'human resource', 'security', 'infrastructure', 'devops', 'nurse', 'doctor', 'clinical', 'cleaner', 'driver', 'warehouse', 'logistics', 'procurement', 'admin', 'assistant', 'apprentice', 'graduate', 'intern', 'trainee', 'helpdesk', 'support analyst', 'junior']
 
+// profiles.seniority is a single enum column (ic/manager/senior_manager/head/
+// director/vp_plus, per 001_schema.sql) — there is no plural "seniorities"
+// array on the table. Map the real singular value to 1-2 gov-appropriate
+// title prefixes; unmapped/unset seniority falls back to the generic list.
+const SENIORITY_TO_GOV_PREFIXES = {
+  manager: ['senior manager'],
+  senior_manager: ['senior manager', 'head of'],
+  head: ['head of', 'director'],
+  director: ['director', 'deputy director'],
+  vp_plus: ['director general', 'director'],
+}
+
 function buildGovQueries(profile) {
   const roles = profile?.target_roles || []
-  const seniorities = (profile?.seniorities || [])
-    .map(s => ({ senior_manager: 'senior manager', head_of: 'head of', director: 'director', vp: 'deputy director', c_suite: 'director general' }[s]))
-    .filter(Boolean)
 
   if (roles.length === 0) {
     return ['director of digital public sector', 'head of digital government', 'deputy director digital strategy', 'director partnerships public sector', 'programme director government digital']
   }
-  const govPrefixes = seniorities.length ? seniorities.slice(0, 3) : ['director', 'head of', 'deputy director']
+  const govPrefixes = SENIORITY_TO_GOV_PREFIXES[profile?.seniority] || ['director', 'head of', 'deputy director']
   const queries = []
   for (const prefix of govPrefixes) {
     for (const role of roles.slice(0, 5)) queries.push(`${prefix} ${role} public sector`)

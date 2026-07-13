@@ -113,7 +113,7 @@ export async function POST(req) {
         },
         body: JSON.stringify({
           model: MODELS.sonnet,
-          max_tokens: 2000,
+          max_tokens: 2600,
           tools: [{ type: 'web_search_20250305', name: 'web_search' }],
           messages: [{ role: 'user', content: `Search for current UK job listings: "${query}". Find specific job postings with direct application URLs. Focus on roles posted in the last 30 days. Return the job titles, companies, and URLs you find.` }],
         }),
@@ -189,7 +189,7 @@ ${STYLE_RULES}`
       },
       body: JSON.stringify({
         model: MODELS.sonnet,
-        max_tokens: 4000,
+        max_tokens: 5200,
         messages: [{ role: 'user', content: prompt }],
       }),
     })

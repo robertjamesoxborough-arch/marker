@@ -23,7 +23,7 @@ Requirements:
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 5200, messages: [{ role: 'user', content: prompt }] }),
   })
 
   const data = await res.json()

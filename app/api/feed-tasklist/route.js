@@ -99,7 +99,7 @@ ${STYLE_RULES}`
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 3900, messages: [{ role: 'user', content: prompt }] }),
     })
     const aiData = await aiRes.json()
     const text = aiData.content?.map(c => c.text || '').join('') || '[]'

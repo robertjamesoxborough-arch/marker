@@ -127,7 +127,7 @@ Deliver all sections requested. Be specific to the candidate and role. No paddin
       },
       body: JSON.stringify({
         model: MODELS.sonnet,
-        max_tokens: 3000,
+        max_tokens: 3900,
         system: [{ type: 'text', text: SYSTEM_STABLE, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: prompt }],
       }),

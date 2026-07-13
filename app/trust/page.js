@@ -40,9 +40,9 @@ const GUARANTEES = [
     kills: 'Kills "it forgot me / rolling glitch."',
     body: [
       'Your profile is a structured database record, not a chat log. Every AI call reads your profile fresh from Supabase on every request. It does not rely on what you said in a previous message. Close the browser, return in a month: your profile, pipeline, CV, and career history are byte-identical.',
-      'The Memory Card in your Profile tab shows everything Requite knows about you. Every field is editable. Nothing is inferred from conversation: only what you\'ve explicitly set. A loop guard detects AI repetition automatically and switches to a structured fallback.',
+      'The Memory Card in your Profile tab shows everything Requite knows about you. Every field is editable. Nothing is inferred from conversation: only what you\'ve explicitly set.',
     ],
-    built: 'Supabase profiles table (source of truth) · lib/ai-context.js (bounded, stateless) · lib/loop-guard.js · Memory Card component',
+    built: 'Supabase profiles table (source of truth) · lib/ai-context.js (bounded, stateless) · Memory Card component',
   },
   {
     id: 'G4',

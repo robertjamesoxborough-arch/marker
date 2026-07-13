@@ -63,11 +63,10 @@ function Label({ children, sub }) {
   )
 }
 
-const PLAN_LABELS = { free: 'Free', standby: 'Standby', lite: 'Lite', pro: 'Pro', trial: 'Trial' }
+const PLAN_LABELS = { free: 'Free', pro: 'Pro', max: 'Max', trial: 'Trial' }
 const PLANS_UI = [
-  { id: 'standby', name: 'Standby', price: '£4/mo', desc: 'Passive scanning for employed professionals' },
-  { id: 'lite',    name: 'Lite',    price: '£12/mo', desc: 'Full access for active job seekers' },
-  { id: 'pro',     name: 'Pro',     price: '£24/mo', desc: 'Everything in Lite, higher limits' },
+  { id: 'pro', name: 'Pro', price: '£19/mo', desc: 'Full access for active job seekers' },
+  { id: 'max', name: 'Max', price: '£39/mo', desc: '3× higher limits across scoring, CV, interview and negotiation packs' },
 ]
 
 export default function SettingsPage() {
@@ -298,14 +297,14 @@ export default function SettingsPage() {
                 {tier === 'trial' && ' · 7 days free'}
               </div>
             </div>
-            {['standby', 'lite', 'pro'].includes(tier) && (
+            {['pro', 'max'].includes(tier) && (
               <button onClick={openPortal} disabled={portalLoading} style={{ fontSize: 12, padding: '7px 14px', background: 'none', border: '1px solid var(--marker-border)', borderRadius: 8, cursor: 'pointer', color: 'var(--marker-text)', fontFamily: 'var(--font-body)' }}>
                 {portalLoading ? 'Loading…' : 'Manage subscription'}
               </button>
             )}
           </div>
 
-          {!['standby', 'lite', 'pro'].includes(tier) && (
+          {!['pro', 'max'].includes(tier) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {PLANS_UI.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', border: '1px solid var(--marker-border)', borderRadius: 10, background: 'var(--marker-cream-2)' }}>
