@@ -9,6 +9,7 @@ import { buildAiContext } from '../../../lib/ai-context'
 import { checkForLoop } from '../../../lib/loop-guard'
 import { STYLE_RULES } from '../../../lib/brand'
 import { checkAllowance } from '../../../lib/allowance'
+import { RUBRIC, computeOverall } from '../../../lib/scoring'
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -101,7 +102,9 @@ export async function POST(req) {
     ...TRACK_FILTERS,
   ].filter(Boolean).join('\n')
 
-  const SCORING = `SCORING: Whole numbers 1-7. Increments of 0.2 for 8+ (8.0, 8.2, 8.4... 10.0). The overall score is a weighted average of all factors below.${HARD_FILTERS ? '\n\nHARD FILTERS (apply before scoring):\n' + HARD_FILTERS : ''}`
+  // Shared, unified rubric (lib/scoring.js) — identical text is embedded in the
+  // feed quick-scan prompt, so both tiers mean the same thing by a given number.
+  const SCORING = `${RUBRIC}${HARD_FILTERS ? '\n\nHARD FILTERS (apply before scoring):\n' + HARD_FILTERS : ''}`
 
   const JSON_SCHEMA = `Return ONLY a valid JSON object, no markdown, no backticks:
 {
@@ -322,10 +325,23 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministic
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return Response.json({ error: 'Could not parse response', deterministicScore }, { status: 500 })
-    return Response.json({ ...JSON.parse(jsonMatch[0]), deterministicScore })
+    const parsed = JSON.parse(jsonMatch[0])
+    return Response.json({ ...finaliseFull(parsed), deterministicScore })
   } catch (err) {
     return Response.json({ error: 'Analysis failed: ' + err.message, deterministicScore }, { status: 500 })
   }
+}
+
+// FULL tier: overall is computed in code from factors x WEIGHTS (lib/scoring.js).
+// The model never sets its own overall. Tags the result as a full-analysis score.
+function finaliseFull(result) {
+  if (result?.factors && typeof result.factors === 'object' && Object.keys(result.factors).length) {
+    const overall = computeOverall(result.factors)
+    result.score = overall.score
+    result.overallRaw = overall.raw
+  }
+  result.score_tier = 'full'
+  return result
 }
 
 async function runClaudeWithSearch(apiKey, prompt, deterministicScore, userId) {
@@ -353,7 +369,7 @@ async function runClaudeWithSearch(apiKey, prompt, deterministicScore, userId) {
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return Response.json({ error: 'Could not parse response', deterministicScore }, { status: 500 })
-    const result = JSON.parse(jsonMatch[0])
+    const result = finaliseFull(JSON.parse(jsonMatch[0]))
     // Hard filter — strip any hallucinated availability language
     const filledPatterns = /filled|no longer available|unavailable|closed|already taken|not accepting|expired|position taken/i
     if (result.signalReason && filledPatterns.test(result.signalReason)) {

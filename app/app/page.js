@@ -24,14 +24,31 @@ function AdzunaBadge() {
   return <div className="adzuna-badge">Jobs by Adzuna</div>
 }
 
-function ScoreBadge({ score }) {
+// Which scoring tier produced a job's score: 'full' if a real analysis
+// stored factor breakdowns, else 'quick' for a fast feed scan.
+function scoreTierOf(job) {
+  if (job?.score_tier) return job.score_tier
+  try {
+    const bd = typeof job?.scoreBreakdown === 'string' ? JSON.parse(job.scoreBreakdown) : (job?.scoreBreakdown || {})
+    if (bd && bd.factors) return 'full'
+  } catch {}
+  return job?.score ? 'quick' : null
+}
+
+function ScoreBadge({ score, tier }) {
   const n = parseFloat(score) || 0
   const top = n >= 9
   const high = n >= 7 && n < 9
   const bg = top ? undefined : high ? 'rgba(198,244,50,0.22)' : n >= 5 ? 'var(--marker-cream)' : 'var(--marker-border)'
   const border = top ? 'transparent' : high ? 'rgba(198,244,50,0.7)' : 'var(--marker-border)'
+  const quick = tier === 'quick'
+  const full = tier === 'full'
   return (
-    <div className={top ? 'holo-foil' : ''} style={{ background: bg, border: `1px solid ${border}`, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, padding: '2px 8px', borderRadius: 5, color: 'var(--marker-black)', flexShrink: 0 }}>
+    <div
+      className={top ? 'holo-foil' : ''}
+      title={quick ? 'Quick score, from a fast title scan. Run a full analysis for a verified score.' : full ? 'Verified score, from a full job description analysis.' : undefined}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: bg, border: `1px solid ${border}`, boxShadow: quick && n > 0 ? '0 0 0 2px rgba(147,197,253,0.65)' : 'none', fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, padding: '2px 8px', borderRadius: 5, color: 'var(--marker-black)', flexShrink: 0 }}>
+      {full && n > 0 && <span style={{ color: '#15803D', fontSize: 12, fontWeight: 700, lineHeight: 1 }}>✓</span>}
       {n > 0 ? <span className={high ? 'chrome-text' : ''}>{score}</span> : '–'}
     </div>
   )
@@ -108,7 +125,7 @@ function PipelineCard({ job, onEditDetails, onDelete, onScore, onTailorCv, onSta
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
         </div>
-        <ScoreBadge score={job.score} />
+        <ScoreBadge score={job.score} tier={scoreTierOf(job)} />
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -935,7 +952,7 @@ function StatsTab({ jobs }) {
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 2 }}>{job.company}</div>
                 </div>
-                <ScoreBadge score={job.score} />
+                <ScoreBadge score={job.score} tier={scoreTierOf(job)} />
               </div>
             ))}
           </div>

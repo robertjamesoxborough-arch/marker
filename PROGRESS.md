@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 15 complete — CV to Sonnet + JD-verification + evidence-mapping, three-tier caps enforced, Max tier  
-**Last commit:** stage 15: CV to Sonnet + JD-verification + evidence-mapping, three-tier caps enforced, Max tier  
+**Stage:** 16 complete — unified scoring model (lib/scoring.js), single source of truth for every scorer  
+**Last commit:** stage 16: unified scoring model — shared rubric, deterministic overall, quick/full tiers  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -15,6 +15,38 @@
 ---
 
 ## STAGE LOG
+
+### Stage 16 — Unified scoring model (2026-07-13)
+
+**Goal:** One source of truth for how ANY job is scored anywhere in Requite. Everything downstream depends on this.
+
+**Changes made:**
+
+1. **`lib/scoring.js`** (NEW) — the single source of truth. Exports:
+   - `WEIGHTS` — 8 factors summing to 1.0: Skills 30, Seniority 15, Office flexibility 15, Industry 10, Salary 10, Growth 10, Culture 5, Parental leave 5. Keys match the analyse route factors and the UI FACTOR_LABELS.
+   - `buildCandidateProfile(profile, careerHistory)` — plain-English profile string built at request time from the signed-in user's Supabase rows. No hardcoded names or history (multi-tenant safe).
+   - `RUBRIC` — verbatim block combining the scale rule, the weight table, the four calibration anchors (9.0 / 8.4 / 7.0 / 5.0) and the missing-information rule (any un-judgeable factor scores a neutral 6, never guess generously).
+   - `computeOverall(factors)` — deterministic weighted average from the 8 factors; missing factors fall back to neutral 6. Returns `{ raw, score }`.
+   - `buildFullSystem(...)` / `buildQuickPrompt(...)` — both embed `RUBRIC` unchanged so the two tiers mean the same thing by a number.
+   - `TIER_MODEL` — quick → Haiku, full → Sonnet.
+
+2. **`lib/scoring.test.js`** (NEW, `node lib/scoring.test.js`) — self-test, ALL PASS: weights sum to 1.0; candidate profile carries no hardcoded name; the quick prompt and the full prompt for the same job contain the identical rubric text; the deterministic overall raw equals the hand-computed weighted average (8.05 == 8.05); absent factors default to neutral.
+
+3. **`app/api/analyse/route.js`** (FULL tier) — imports `RUBRIC` + `computeOverall`. The ad-hoc SCORING text is replaced by the shared `RUBRIC` (hard filters still appended). New `finaliseFull()` recomputes the overall in code from the model's factors and OVERWRITES the model's own overall; stamps `score_tier: 'full'`. Applied on the JD-paste, page-fetch and web-search paths.
+
+4. **`app/api/feed-web/route.js`** (QUICK tier) — scoring prompt now built by `buildQuickPrompt` (embeds the identical `RUBRIC`); model switched Sonnet → Haiku; each returned job stamped `score_tier: 'quick'`.
+
+5. **`app/app/page.js`** — `ScoreBadge` now shows the tier: green tick for a full analysis, blue ring + "Quick score" hover for a quick scan. `scoreTierOf(job)` derives the tier (explicit `score_tier`, else inferred from whether a factor breakdown is stored). Green always wins because a full analysis overwrites the tier. Both call sites updated.
+
+6. **`supabase/migrations/003_score_tier.sql`** (NEW, NOT YET APPLIED) — adds nullable `score_tier` to `jobs_cache` + `pipeline_items`. Held back per the §14 backup rule (take a backup first). App degrades gracefully without it: tier flows through payloads and is inferred in the UI.
+
+**Build note:** local `next build` could not complete this session — `node_modules/next` is iCloud "dataless" and each webpack file read stalls on materialisation (known environment issue, see memory). `lib/scoring.js` syntax-checks clean and the scoring self-test passes. The authoritative build gate for this session is the Vercel production build (clean infrastructure).
+
+**Deferred to next session (honest gaps):**
+- Wire the shared `RUBRIC` into the remaining feed scorers: `feed-gov`, `job-feed`, `feed-tasklist` (still use their own inline scoring text). `feed-web` and `/api/analyse` are done.
+- Persist `score_tier` on pipeline_items writes from the client once migration 003 is applied.
+- Apply migration 003 (after a Supabase backup).
+
 
 ### Stage 15 — CV to Sonnet + JD-verification + evidence-mapping, three-tier caps enforced, Max tier (2026-06-26)
 

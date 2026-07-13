@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../lib/anthropic'
 import { STYLE_RULES } from '../../../lib/brand'
+import { buildQuickPrompt } from '../../../lib/scoring'
 
 
 function buildProfileStr(profile) {
@@ -160,12 +161,14 @@ export async function POST() {
       ? `FIELD: Candidate works in "${profile.hard_filters_json.field}". A role with a matching title but in an unrelated sector (e.g. logistics, warehousing, manufacturing, retail if candidate is in tech/media/finance) must score 1-4; title alone is not enough. Score the whole role context, not just the job title.`
       : ''
 
-    const prompt = `Score these Adzuna job search results for: ${PROFILE}\nCriteria: ${RECIPE}\n${fieldLine}\n\nJOBS:\n${summaries}\n\nReturn JSON array only. Each object: {"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence explaining relevance to this specific candidate", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown"}.\nSCORING: 1-7 use whole numbers. 8+ use increments of 0.2 (8.0, 8.2, 8.4, 8.6, 8.8, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0).\nOnly include 7+ scores. Max 3 per company. Be strict: reject junior, sales-quota, 3+ days mandatory office, wrong sector, generic aggregator listings. Return ONLY JSON array, no markdown.\n\n${STYLE_RULES}`
+    // QUICK tier — shared rubric (lib/scoring.js), Haiku. Identical rubric text
+    // to the full /api/analyse scorer, so both tiers mean the same by a number.
+    const prompt = buildQuickPrompt(PROFILE, RECIPE, summaries, fieldLine, STYLE_RULES)
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODELS.haiku, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] }),
     })
     const aiData = await aiRes.json()
     const text = aiData.content?.map(c => c.text || '').join('') || '[]'
@@ -178,7 +181,7 @@ export async function POST() {
     const now = new Date().toISOString()
     const jobs = scored.filter(s => s.score >= 7).map((s) => {
       const orig = toScore[s.i] || {}
-      return { id: `az-${(orig.title||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,30).toLowerCase()}-${(orig.company||'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase()}`, title: orig.title || 'Unknown', company: orig.company || 'Unknown', url: orig.url || '', score: s.score, signal: s.signal, reason: s.reason, badge: s.badge, office: s.office, source: 'web_search', salary: orig.salary || '', created: orig.created || '', foundAt: now }
+      return { id: `az-${(orig.title||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,30).toLowerCase()}-${(orig.company||'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase()}`, title: orig.title || 'Unknown', company: orig.company || 'Unknown', url: orig.url || '', score: s.score, score_tier: 'quick', signal: s.signal, reason: s.reason, badge: s.badge, office: s.office, source: 'web_search', salary: orig.salary || '', created: orig.created || '', foundAt: now }
     })
 
     // Interleave companies
