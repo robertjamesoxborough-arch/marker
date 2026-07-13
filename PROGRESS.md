@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19b complete — root-cause bug fixed: jobs_cache.id/uuid mismatch meant EVERY cron insert had been silently failing since the table was created. Migration 005 written, NOT YET APPLIED (waiting on Rob to run it — see below). Verification of the cache-read path is unblocked as soon as it's applied and the crons are re-run.  
-**Last commit:** fix: jobs_cache id/uuid mismatch — root cause of empty cache table  
+**Stage:** 19c complete — migration 005's partial unique index couldn't be targeted by ON CONFLICT; migration 006 fixes it with a full unique index. No app code changes this round. Verification of the cache-read path is unblocked as soon as 006 is applied and the crons are re-run.  
+**Last commit:** fix: jobs_cache external_id needs a full (non-partial) unique index for ON CONFLICT  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,21 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19c — migration 005 fix: partial index can't serve ON CONFLICT (2026-07-13)
+
+**What happened:** Rob applied migration 005 in the SQL Editor (external_id column + partial unique index `where external_id is not null` both created successfully) and re-ran `cron/adzuna`. The uuid error was gone (005's actual fix worked), but got a new error: `"there is no unique or exclusion constraint matching the ON CONFLICT specification"`. Root cause: Postgres's `ON CONFLICT (column)` — which is what supabase-js's `.upsert(rows, {onConflict:'external_id'})` compiles to — can only target a **full** unique index/constraint, never a partial one. 005's `where external_id is not null` predicate, added defensively, was the actual bug.
+
+**Fix — migration 006 (`supabase/migrations/006_jobs_cache_external_id_full_unique.sql`), NOT YET APPLIED:** drops the partial index and recreates it as a full (non-partial) unique index on `external_id`. Re-verified (per Rob's explicit request) that all 5 writers — `cron/adzuna`, `cron/gov`, `cron/greenhouse`, `feed-web`/`feed-gov` fresh-scan — set `external_id` unconditionally on every pushed row (template-literal string; even a hypothetical missing `job.id` would produce the literal string `"adzuna-undefined"`, never a SQL null), so a full unique index is safe. `jobs_cache` is still empty (0 rows) — no existing data to reconcile.
+
+**No app code changes this round** — schema-only fix, so no deploy was needed.
+
+**NOT done — immediate next steps:**
+1. Rob needs to run migration 006 in the Supabase SQL Editor.
+2. Re-run the 4 crons again (`cron/adzuna`, `cron/gov`, `cron/greenhouse`, `cron/score-cache`) — this should be the one that finally works end-to-end.
+3. Then: the original verification ask (row counts, ranking sanity, fresh-scan allowance gate against real data) — still outstanding across three sessions now, purely blocked on schema/infra issues that turned out to predate this work.
+
+---
 
 ### Stage 19b — root-cause fix: jobs_cache id/uuid mismatch (2026-07-13)
 
