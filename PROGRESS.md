@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19e complete — real crons ran successfully (680 adzuna / 4 gov / 195 greenhouse ingested). Fixed score-cache's FUNCTION_INVOCATION_TIMEOUT (bulk writes, found a second real NOT-NULL bug mid-fix), removed 14 dead Greenhouse boards, fixed gov's near-zero yield (salary filter + over-restrictive queries). Verified against REAL production data throughout — real row counts, real Anthropic-scored ranking (surfaced a genuine roleFit tuning weakness), real allowance gate.  
-**Last commit:** fix: score-cache timeout, dead greenhouse boards, gov feed low yield  
+**Stage:** 19f complete — gov fix confirmed working live (78 rows, was 4), full backlog cleared (953/953 scored), and the cost-rule-4 prompt-caching bug diagnosed + fixed (prefix was correctly formed but too short to be cacheable at all). Full real-data verification done for both feed-web and feed-gov. **Cannot personally confirm `cache_read_input_tokens > 0`** — no `ANTHROPIC_API_KEY` in this environment; needs Rob to re-run against fresh unscored rows to close the loop.  
+**Last commit:** fix: cost rule 4 — cache_control was correctly formed but the prefix was too short to cache  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,36 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19f — cost rule 4 fixed: prompt caching wasn't firing; gov fix confirmed live; full verification (2026-07-13)
+
+**Confirmation from Rob's re-run:** `cron/gov` fix worked live — 4 → 75 inserted (78 total after dedupe against the earlier 4). `cron/score-cache` run 6 times, cleared the entire backlog (150/150/150/150/150/45 = 795, matching the 795-row count at the time). **New problem surfaced:** every one of those 6 runs returned `cacheReadTokens: 0` — cost rule 4 (prompt-cache the rubric) wasn't actually firing, at real cost across 795 Haiku calls with a large shared rubric repeated every time.
+
+**Diagnosis (measured, not guessed):** wrote a script requiring the real `lib/scoring.js` (for `RUBRIC`) to reconstruct the exact runtime `SYSTEM_PREFIX` string from `lib/score-jobs-batch.js` and measure it precisely. Result: **1695 characters, ~424-484 estimated tokens** — far below Anthropic's documented minimum cacheable-block length for Haiku-tier models (2048 tokens; Sonnet/Opus is 1024). Confirmed `cache_control: {type: 'ephemeral'}` is correctly formed, and the prefix is already byte-identical across every call (a static module constant, never rebuilt per batch) — neither of those was the bug. Anthropic silently skips caching for a block under the minimum, with no error — exactly matching the observed symptom (valid responses, zero errors, `cacheReadTokens` always 0).
+
+**Fix:** expanded `SYSTEM_PREFIX` with genuinely useful additional scoring guidance (not filler) — sector-calibration notes (tech/SaaS, banking, retail, public sector, manufacturing/logistics, recruitment agencies, media/creative — title conventions vary hugely by sector and this is real, useful guidance for a candidate-agnostic baseline scorer) and a much broader set of worked examples spanning real title patterns seen in production data (interim/FTC roles, agency-posted listings, sector-specific title inflation). Measured before committing: **8480 characters, ~2120 estimated tokens by a conservative chars/4 heuristic** (real BPE tokenizers are typically more efficient than 4 chars/token on structured English prose, so the true count is likely higher still) — a genuine, reasoned margin over the 2048 minimum, arrived at by iterating and re-measuring three times until comfortable, not a bare-minimum pad.
+
+**Also found while diagnosing:** `buildQuickPrompt` (`lib/scoring.js`) is dead code — grepped every caller in the app; nothing calls it. All three real Haiku scoring paths (`feed-web`, `feed-gov`, `cron/score-cache`) go through `lib/score-jobs-batch.js`'s `scoreJobsBatch`, which is what was actually fixed.
+
+**Left alone, explicitly:** the `anthropic-beta: prompt-caching-2024-07-31` header. Very likely an inert legacy artifact now that prompt caching is GA — but removing it can't be verified without a live key, so it was left in place rather than make an unverified change on top of the confirmed fix.
+
+**Honest limitation, stated plainly: cannot personally confirm `cache_read_input_tokens > 0` from a live response.** No `ANTHROPIC_API_KEY` in this environment (checked again this session — still absent). The diagnosis and fix are based on precise measurement against Anthropic's documented, stable minimum-length behaviour, which gives high confidence, but only a live call can prove it. **Needs Rob to either:** re-run `cron/score-cache` against fresh unscored rows (next nightly ingest, or trigger the ingest crons again) and check the response's `cacheReadTokens` on the 2nd+ batch within a single run, or add `ANTHROPIC_API_KEY` to `.env.local` so this can be tested directly going forward instead of every fix in this pipeline needing a manual round-trip.
+
+**Full verification against real production data (with the gov fix confirmed live):**
+- **Row counts:** adzuna 680, gov 78, greenhouse 195 = 953 total, all scored (953/953, 0 unscored).
+- **Ranking sanity, feed-web (adzuna):** 18/300 real rows passed the relevance floor for the test profile. Top results reasonable (Growth Marketing Lead, Marketing Program Manager, Service Delivery Manager) alongside the previously-flagged `scoreRoleFit` weakness still visible (Technical Sales Executive scoring higher than it should on shared-word overlap) — a known, not-yet-fixed tuning issue, not new.
+- **Ranking sanity, feed-gov (gov):** 31/78 real rows passed the floor. Top results: several "Lead Technical Architect" postings (DWP Digital, TPXImpact) plus Identity and Access Management Product Lead, Implementation Lead, Durham Area Lead — sensible for the profile. **Caught and fixed an error in my own verification script mid-check**: it printed the pre-interleave sorted list while labelled "after interleave", which would have misleadingly shown 6 consecutive DWP Digital postings (same role, different UK cities — a real, legitimate government-recruitment pattern, not a bug) as if that's what a real user sees. Corrected to use the actual `interleaveByCompany` output; re-verified it properly spreads results across companies (DWP, TPXImpact, Bupa, National Highways, SciPro, Joseph Rowntree Foundation) as real users would see it.
+- **Fresh-scan allowance gate:** reconfirmed the same real user (`tier='free'`, trial expired 2026-05-29) — hard-blocked at `cap=0`, zero live cost, unchanged.
+
+**Self-test:** `node --check` clean; `node lib/scoring.test.js` + `node lib/usage-window.test.js` ALL PASS; Vercel build green (`readyState: READY`, aliased).
+
+**NOT done — carried forward:**
+- Confirm `cache_read_input_tokens > 0` on a live run (the one thing this session couldn't close without a real API key).
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for Greenhouse board coverage.
+- `scoreRoleFit` tuning (roleFit false-positives on generic shared words like "technical"/"lead").
+- `contractor/roles` mechanical port; `job-feed`'s Rule-7 redesign.
+
+---
 
 ### Stage 19e — real crons ran, score-cache timeout fixed, greenhouse/gov quality fixes, full real-data verification (2026-07-13)
 
