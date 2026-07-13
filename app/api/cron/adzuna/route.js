@@ -76,9 +76,8 @@ export async function GET(request) {
       const data = await fetchAdzuna(appId, apiKey, what)
       const results = Array.isArray(data.results) ? data.results : []
       results.forEach(job => {
-        const id = `adzuna-${job.id}`
         rows.push({
-          id,
+          external_id: `adzuna-${job.id}`,
           company: job.company?.display_name || 'Unknown',
           role_title: job.title,
           link: job.redirect_url,
@@ -104,7 +103,7 @@ export async function GET(request) {
   if (rows.length > 0) {
     const { error } = await supabase
       .from('jobs_cache')
-      .upsert(rows, { onConflict: 'id' })
+      .upsert(rows, { onConflict: 'external_id' })
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 

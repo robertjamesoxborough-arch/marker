@@ -80,11 +80,11 @@ export async function GET(request) {
 
       for (const job of (data.results || [])) {
         if (!passesTitleFilter(job.title || '')) continue
-        const id = `gov-${job.id}`
-        if (seen.has(id)) continue
-        seen.add(id)
+        const externalId = `gov-${job.id}`
+        if (seen.has(externalId)) continue
+        seen.add(externalId)
         rows.push({
-          id,
+          external_id: externalId,
           company: job.company?.display_name || 'Unknown',
           role_title: job.title,
           link: job.redirect_url,
@@ -107,7 +107,7 @@ export async function GET(request) {
   if (rows.length > 0) {
     const { error } = await supabase
       .from('jobs_cache')
-      .upsert(rows, { onConflict: 'id' })
+      .upsert(rows, { onConflict: 'external_id' })
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 

@@ -108,7 +108,7 @@ async function runFreshScan(service, apiKey, userId, profile) {
         const title = (job.title || '').toLowerCase()
         if (!TITLE_MUST.some(k => title.includes(k)) || TITLE_REJECT.some(k => title.includes(k))) continue
         raw.push({
-          id: `gov-${job.id}`,
+          external_id: `gov-${job.id}`,
           company: job.company?.display_name || 'Unknown',
           role_title: job.title,
           link: job.redirect_url,
@@ -124,10 +124,10 @@ async function runFreshScan(service, apiKey, userId, profile) {
   }
 
   const seen = new Set()
-  const deduped = raw.filter(r => (seen.has(r.id) ? false : (seen.add(r.id), true))).slice(0, 100)
+  const deduped = raw.filter(r => (seen.has(r.external_id) ? false : (seen.add(r.external_id), true))).slice(0, 100)
   if (deduped.length === 0) return { jobs: 0, total: 0 }
 
-  await service.from('jobs_cache').upsert(deduped, { onConflict: 'id' })
+  await service.from('jobs_cache').upsert(deduped, { onConflict: 'external_id' })
 
   try {
     const { scores, usage } = await scoreJobsBatch(apiKey, deduped)
@@ -137,7 +137,7 @@ async function runFreshScan(service, apiKey, userId, profile) {
       await service.from('jobs_cache').update({
         match_score: score, score_tier: 'quick', scored_at: nowIso,
         score_breakdown_json: { tier: 'quick', model: 'haiku', baseline: true, source: 'fresh_scan' },
-      }).eq('id', deduped[i].id)
+      }).eq('external_id', deduped[i].external_id)
     }
     if (userId && usage) after(() => trackAiUsage({ userId, model: MODELS.haiku, action: 'feed_fresh_scan', usage }))
   } catch { /* rows stay cached unscored; the nightly cron will pick them up */ }

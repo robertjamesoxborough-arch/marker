@@ -65,7 +65,7 @@ export async function GET(request) {
           const location = job.location?.name || ''
           if (!isUkRole(location)) return
           rows.push({
-            id: `greenhouse-${job.id}`,
+            external_id: `greenhouse-${job.id}`,
             company,
             role_title: job.title,
             link: job.absolute_url,
@@ -89,7 +89,7 @@ export async function GET(request) {
   if (rows.length > 0) {
     const { error } = await supabase
       .from('jobs_cache')
-      .upsert(rows, { onConflict: 'id' })
+      .upsert(rows, { onConflict: 'external_id' })
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 
