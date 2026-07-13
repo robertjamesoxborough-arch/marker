@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19a complete — feed-gov converted to the feed-web pattern. contractor/roles confirmed as a same-pattern port (next); job-feed needs its own Rule-7 design (nightly-only, zero per-user path). feed-web's cache-read path is BUILT but not yet verified against real data — blocked on triggering the ingest crons (see below).  
-**Last commit:** stage 19a: feed-gov follows the feed-web pattern — cache read + daily-capped fresh scan  
+**Stage:** 19b complete — root-cause bug fixed: jobs_cache.id/uuid mismatch meant EVERY cron insert had been silently failing since the table was created. Migration 005 written, NOT YET APPLIED (waiting on Rob to run it — see below). Verification of the cache-read path is unblocked as soon as it's applied and the crons are re-run.  
+**Last commit:** fix: jobs_cache id/uuid mismatch — root cause of empty cache table  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,28 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19b — root-cause fix: jobs_cache id/uuid mismatch (2026-07-13)
+
+**What happened:** Rob manually ran `cron/adzuna` in production with the real `CRON_SECRET` (I couldn't retrieve it myself — see Stage 19a note below) and got back: `{"error":"invalid input syntax for type uuid: \"adzuna-5798988308\""}`. Root cause found immediately: `jobs_cache.id` has always been `uuid primary key default gen_random_uuid()` (`001_schema.sql`), but **every writer** — `cron/adzuna`, `cron/gov`, `cron/greenhouse`, and the Stage 18/19a fresh-scan paths in `feed-web`/`feed-gov` — has always supplied a TEXT id like `"adzuna-5798988308"` for upsert dedupe. Every insert has been rejected by Postgres since `jobs_cache` was created. **This predates the Stage 17-19 feed-port work entirely** — it's why the table was empty even before any cache-read code existed, not a regression I introduced.
+
+**Fix — migration 005 (`supabase/migrations/005_jobs_cache_external_id.sql`), NOT YET APPLIED:** adds `jobs_cache.external_id` (text, partial unique index where not null) as the natural key for upsert dedupe. `id` stays the opaque uuid primary key, DB-generated — deliberately chosen over migrating `id` itself to text, because that would also require changing `pipeline_items.job_cache_id`'s type to match the FK, a second-table migration with more blast radius. This fix is scoped to `jobs_cache` alone.
+
+**Code changes (5 files, all writers + fresh-scan paths):**
+- `app/api/cron/adzuna/route.js`, `app/api/cron/gov/route.js`, `app/api/cron/greenhouse/route.js` — `id: '<source>-${job.id}'` → `external_id: '<source>-${job.id}'`; `upsert(rows, {onConflict:'id'})` → `{onConflict:'external_id'}`.
+- `app/api/feed-web/route.js`, `app/api/feed-gov/route.js` (`runFreshScan`) — same rename; the post-score UPDATE loop now matches `.eq('external_id', ...)` instead of `.eq('id', ...)` (since we no longer supply `id` ourselves and don't know the DB-generated uuid without a re-fetch — matching on `external_id` avoids needing one).
+- Verified no other `jobs_cache` writer exists (grepped every file touching the table — `lib/db.js`, `cron/freshness`, `freshness/recheck`, `admin/status` all only ever read/update by a real `id` already fetched from the DB, untouched).
+- Verified no client code parses the id's text format (only an unrelated CSS class `"adzuna-badge"` matched the grep) — safe for `id` to become an opaque uuid once rows actually insert.
+
+**Self-test:** `node --check` clean on all 5 route files; `node lib/scoring.test.js` + `node lib/usage-window.test.js` ALL PASS; Vercel build is the authoritative gate (see deploy log).
+
+**NOT done — immediate next steps, blocking real-data verification:**
+1. Rob needs to run migration 005 in the Supabase SQL Editor (backup already taken 2026-07-13).
+2. Once applied, re-run the same 4 curl commands (`cron/adzuna`, `cron/gov`, `cron/greenhouse`, `cron/score-cache`) — this time they should actually insert and score rows.
+3. Then: verify row counts, ranking sanity, and the fresh-scan allowance gate against real data (the original ask from this session, still outstanding).
+4. `contractor/roles` mechanical port and `job-feed`'s Rule-7 redesign remain carried from Stage 19a.
+
+---
 
 ### Stage 19a — feed-gov converted; verification blocked; corrected route mapping (2026-07-13)
 
