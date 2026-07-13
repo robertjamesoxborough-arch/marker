@@ -104,10 +104,16 @@ export async function GET(request) {
     }
   }
 
-  if (rows.length > 0) {
+  // Defensive dedupe by external_id immediately before upsert (the `seen` Set
+  // above already prevents this during collection, but every writer gets the
+  // same final guard so a single batch can never touch one ON CONFLICT
+  // target row twice).
+  const deduped = [...new Map(rows.map(r => [r.external_id, r])).values()]
+
+  if (deduped.length > 0) {
     const { error } = await supabase
       .from('jobs_cache')
-      .upsert(rows, { onConflict: 'external_id' })
+      .upsert(deduped, { onConflict: 'external_id' })
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 
@@ -120,7 +126,7 @@ export async function GET(request) {
 
   return NextResponse.json({
     ok: true,
-    inserted: rows.length,
+    inserted: deduped.length,
     queries: GOV_QUERIES.length,
     errors,
   })

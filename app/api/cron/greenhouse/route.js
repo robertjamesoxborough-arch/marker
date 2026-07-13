@@ -86,10 +86,14 @@ export async function GET(request) {
     })
   )
 
-  if (rows.length > 0) {
+  // Dedupe by external_id before upsert — Postgres rejects a batch that would
+  // touch the same ON CONFLICT target row twice.
+  const deduped = [...new Map(rows.map(r => [r.external_id, r])).values()]
+
+  if (deduped.length > 0) {
     const { error } = await supabase
       .from('jobs_cache')
-      .upsert(rows, { onConflict: 'external_id' })
+      .upsert(deduped, { onConflict: 'external_id' })
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 
@@ -100,5 +104,5 @@ export async function GET(request) {
     .eq('source', 'greenhouse')
     .lt('cached_at', new Date(Date.now() - 7 * 86400000).toISOString())
 
-  return NextResponse.json({ ok: true, inserted: rows.length, companies: GREENHOUSE_BOARDS.length, errors })
+  return NextResponse.json({ ok: true, inserted: deduped.length, companies: GREENHOUSE_BOARDS.length, errors })
 }
