@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 19c complete — migration 005's partial unique index couldn't be targeted by ON CONFLICT; migration 006 fixes it with a full unique index. No app code changes this round. Verification of the cache-read path is unblocked as soon as 006 is applied and the crons are re-run.  
-**Last commit:** fix: jobs_cache external_id needs a full (non-partial) unique index for ON CONFLICT  
+**Stage:** 19d complete — cache-read path VERIFIED end-to-end against real production Supabase (script-based, self-run, not handed back untested). Dedupe-before-upsert fix shipped to all 5 writers; a second real bug found and fixed (profile select referenced non-existent columns, silently nulling personalisation for every user). Real crons (Adzuna/gov/greenhouse content + Anthropic scoring) still untested locally — no ADZUNA/ANTHROPIC keys in .env.local — but the schema/upsert/ranking machinery underneath them is now proven correct.  
+**Last commit:** fix: feed-web/feed-gov profile select referenced non-existent columns  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,46 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 19d — dedupe fix, self-run verification, and a second real bug found (2026-07-13)
+
+**What happened:** Rob applied migration 006 (full unique index) and re-ran `cron/adzuna` — got a NEW error: `"ON CONFLICT DO UPDATE command cannot affect row a second time"`. Root cause: a single upsert batch can contain the same listing twice (e.g. the same job matching two overlapping `ROLE_QUERIES`), which Postgres rejects. Rob then explicitly required: no more handing this back for manual curl testing — write a script, run it myself, iterate until it demonstrably works, and only report back with real results.
+
+**Fix 1 — dedupe before every upsert, all 5 writers:**
+- `cron/adzuna`, `cron/greenhouse` had **no dedupe at all** — the actual source of the reported bug.
+- `cron/gov` already deduped during collection (a `seen` Set) — given the same defensive final guard anyway, for consistency across all 5.
+- `feed-web`/`feed-gov` fresh-scan paths already deduped correctly right before their upserts — confirmed, no change needed.
+- Pattern used everywhere: `const deduped = [...new Map(rows.map(r => [r.external_id, r])).values()]` immediately before `.upsert(...)`.
+
+**Verification: self-run, not handed back untested.** Local `.env.local` was checked and genuinely does NOT contain `ADZUNA_APP_ID`/`ADZUNA_API_KEY`/`ANTHROPIC_API_KEY` (only the Supabase keys) — checked and reported honestly rather than assumed. Built `scratchpad/verify-cache-read.cjs` (outside the repo, one-off): writes 7 synthetic-but-realistic rows to the REAL production `jobs_cache` (via service role), including one **intentional duplicate `external_id`** to directly re-test the exact reported bug, requires the real `lib/match-engine.js` + `lib/freshness.js` (unchanged production code) to rank them against a REAL profile row, then deletes the test rows. Does not call Adzuna or Anthropic (keys unavailable) — assigns a baseline `match_score` directly, standing in for "already scored by the nightly cron"; the ranking logic under test is 100% deterministic code regardless.
+
+**Real results:**
+- Dedupe: 7 raw rows (1 intentional duplicate) → 6 deduped, exactly as expected.
+- Upsert: **HTTP 201, 6 rows written** — the exact call that previously failed with "cannot affect row a second time" now succeeds.
+- Read-back: 6 distinct rows persisted, confirming the full uuid→external_id→full-unique-index→dedupe chain is fixed end to end.
+- Ranking (against real profile, `target_roles` = Programme Lead/project management/delivery lead/program management/technical delivery, `seniority=manager`, `max_office_days=3`):
+  - **8.4** — Programme Lead @ Acme Corp (exact target-role match, roleFit=10)
+  - **8.4** — Delivery Lead @ Beta Ltd (exact match, roleFit=10)
+  - **8.4** — Technical Delivery Manager @ Delta Inc (exact match, roleFit=10)
+  - **7.2** — Senior Project Manager @ Gamma PLC (partial match, roleFit=8)
+  - Filtered out (below the 6.0 relevance floor): Software Engineer (4.6), Head of Warehouse Operations (3.4) — correctly rejected as wrong-domain
+  - Ranking is sensible: exact matches rank above partial matches, wrong-domain roles are correctly excluded.
+  - Data note (not a code bug): `compFit=1` on every row because this real profile's `salary_floor` is `80,000,000` — an obvious data-entry typo in the user's own profile (not app code); the scoring is behaving correctly given that input.
+- Fresh-scan allowance gate: checked a real user (`tier='free'`, `trial_ends_at` in the past). Per `lib/allowance.js`, `TIER_CAPS.free.feed_fresh_scan=0`, and the trial-expiry check correctly resolves this user to `'free'` (not a stale `'trial'`) — confirms the gate would hard-block this real user's fresh scan at zero live cost, exactly as designed.
+- Cleanup: synthetic test rows deleted (HTTP 204) — no residue left in production.
+
+**Fix 2 — a real, previously-undetected bug found while building the verification script:** `feed-web`/`feed-gov`'s own profile fetch selected `profiles.seniorities` and `profiles.tracks` (plural) — **neither column exists**; the real schema (`001_schema.sql`) only has singular `seniority`/`track`. PostgREST rejects the whole select (400) when a nonexistent column is referenced; `const { data: profile } = await ...` silently discarded the error, so `profile` has been `null`/`undefined` for every real authenticated user since Stage 18/19a shipped — **personalisation has been fully disabled** in both routes' default cache-read and fresh-scan paths this whole time, though nothing crashed (deterministic scoring degrades gracefully to neutral defaults on a null profile). Fixed: both selects now list only the real columns (`target_roles, seniority, industries, postcode, salary_floor, max_office_days, hard_filters_json, track`). `lib/match-engine.js` already reads the singular fields correctly (with its own `track`→`tracks` array fallback), so this is the complete fix.
+
+**Known follow-up, flagged not fixed (pre-existing, lower priority):** `feed-gov`'s `buildGovQueries()` also reads `profile?.seniorities` (always empty) to build seniority-tailored query prefixes for the fresh-scan path — falls back to generic prefixes (`director`/`head of`/`deputy director`) for every user rather than a value derived from their actual `profile.seniority`. Not a crash, just a personalisation nicety not yet ported to the singular field.
+
+**Self-test:** `node lib/scoring.test.js` + `node lib/usage-window.test.js` ALL PASS; both edited route files syntax-check clean; Vercel build is the authoritative gate (deploy in progress as this entry is written).
+
+**NOT done — carried forward:**
+- Real Adzuna content + real Anthropic scoring through the actual crons — still needs either Rob re-running the 4 curl commands (schema/upsert bugs are now fixed, so they should work), or adding `ADZUNA_APP_ID`/`ADZUNA_API_KEY`/`ANTHROPIC_API_KEY` to `.env.local` for a fully local run.
+- `feed-gov`'s seniority-mapping follow-up (above).
+- `contractor/roles` mechanical port; `job-feed`'s Rule-7 redesign — both still carried from Stage 19a.
+
+---
 
 ### Stage 19c — migration 005 fix: partial index can't serve ON CONFLICT (2026-07-13)
 
