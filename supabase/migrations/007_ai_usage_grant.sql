@@ -1,0 +1,28 @@
+-- ai_usage has been missing table-level grants for service_role since it was
+-- created -- the same class of issue jobs_cache and wishlists both hit
+-- earlier. Confirmed live via the REST API (2026-07-14): both a plain SELECT
+-- and an INSERT against public.ai_usage return
+--   {"code":"42501","message":"permission denied for table ai_usage"}
+-- using the real service role key, with the exact GRANT needed given back in
+-- the error's own hint field.
+--
+-- Impact, confirmed real not theoretical: lib/ai-usage.js's trackAiUsage()
+-- wraps its insert in try/catch and silently swallows the error ("never
+-- surface tracking errors to the user"), so every AI call across the whole
+-- app has been logging zero rows into ai_usage, invisibly, since the table
+-- was created. lib/allowance.js's checkAllowance() counts rows in the same
+-- blocked table to enforce monthly caps; when that count query 403s, the
+-- Supabase client returns count:null, and `used = count || 0` silently reads
+-- 0 -- meaning every tier's nonzero-cap action (analyse, cv, tidy-up's own
+-- entry gate, etc.) has never actually been capped by real usage, only by
+-- the cap===0 hard blocks (free tier's cover_letter/interview_prep/
+-- negotiation_prep/feed_fresh_scan), which are a separate check unaffected
+-- by this bug. This predates Session H; Session H's "1 analyse credit"
+-- design is logically correct but was never actually being enforced or
+-- counted because of this.
+--
+-- Run this in the Supabase SQL Editor, then confirm live via:
+--   curl -s "$SUPA_URL/rest/v1/ai_usage?select=id&limit=1" -H "apikey: $SUPA_KEY" -H "Authorization: Bearer $SUPA_KEY"
+-- should return [] or real rows, not a 42501 permission error.
+
+GRANT SELECT, INSERT ON public.ai_usage TO service_role, anon, authenticated;

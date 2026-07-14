@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import { loadJobs, saveJobs, updateJobInDb, deleteJobFromDb, getProfile } from '../../lib/db'
 import { createClient } from '../../lib/supabase/client'
+import { Packer } from 'docx'
+import { buildCvDocx } from '../../lib/cv-docx'
 import FreshnessPulse from '../../components/FreshnessPulse'
 import MemoryCard from '../../components/MemoryCard'
 import s from './dashboard.module.css'
@@ -1899,6 +1901,17 @@ function DirectCvPanel({ allJobs, profile }) {
 
   const selectedJob = eligibleJobs.find(j => j.id === selectedJobId) || eligibleJobs[0]
 
+  async function downloadDocx(text) {
+    const doc = buildCvDocx(text)
+    const blob = await Packer.toBlob(doc)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `CV - ${selectedJob?.company || 'tailored'}.docx`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function generate() {
     if (!selectedJob?.roleTitle || !selectedJob?.jdRaw) {
       setError('Selected role has no job description stored. Add it from the pipeline.')
@@ -1983,10 +1996,38 @@ function DirectCvPanel({ allJobs, profile }) {
           )}
           <textarea readOnly value={result.type === 'keywords' ? JSON.stringify(result.data, null, 2) : result.text}
             style={{ width: '100%', minHeight: 320, padding: 12, borderRadius: 8, border: '1px solid var(--marker-border)', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-text)', background: 'var(--marker-cream-2)', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
-          <button onClick={() => navigator.clipboard.writeText(result.type === 'keywords' ? JSON.stringify(result.data, null, 2) : result.text)}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'transparent', fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', color: 'var(--marker-text)', alignSelf: 'flex-start' }}>
-            Copy to clipboard
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={() => navigator.clipboard.writeText(result.type === 'keywords' ? JSON.stringify(result.data, null, 2) : result.text)}
+              style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'transparent', fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', color: 'var(--marker-text)' }}>
+              Copy to clipboard
+            </button>
+            {result.type === 'cv' && (
+              <button onClick={() => downloadDocx(result.text)}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-black)', background: 'var(--marker-black)', fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', color: 'var(--marker-cream)' }}>
+                Download as Word (.docx)
+              </button>
+            )}
+          </div>
+          {result.gapAnalysis && result.gapAnalysis.length > 0 && (
+            <div style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.06em', color: 'var(--marker-mid)', textTransform: 'uppercase' }}>Honest gap check</div>
+              {result.gapAnalysis.map((g, i) => (
+                <div key={i} style={{ paddingTop: i > 0 ? 10 : 0, borderTop: i > 0 ? '1px solid var(--marker-border)' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 7px', borderRadius: 4, background: g.severity === 'hard' ? '#FCA5A5' : '#F5E4A0', color: 'var(--marker-black)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{g.severity || 'note'}</span>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)' }}>{g.requirement}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.5, marginBottom: 4 }}>{g.note}</div>
+                  <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.5, fontStyle: 'italic' }}>{g.reframe}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {result.gapAnalysis && result.gapAnalysis.length === 0 && (
+            <div style={{ padding: '8px 12px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #86efac', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#166534', letterSpacing: '0.06em' }}>
+              NO SIGNIFICANT GAPS FOUND AGAINST THIS JD
+            </div>
+          )}
         </div>
       )}
     </div>
