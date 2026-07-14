@@ -7,6 +7,7 @@ import { checkAllowance } from '../../../../lib/allowance'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { scoreJobsBatch } from '../../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../../lib/freshness'
+import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { MODELS } from '../../../../lib/anthropic'
 
 // Cost rules 1 + 2, same pattern as /api/feed-web and /api/feed-gov. Default
@@ -126,6 +127,7 @@ async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
       for (const job of (data.results || [])) {
         if (!job.id) continue
         if (!passesContractFilter(job.title || '', job.description || '')) continue
+        if (!isUkEligible(job.location?.display_name)) continue
         raw.push({
           external_id: `adzuna-${job.id}`,
           company: job.company?.display_name || 'Unknown',

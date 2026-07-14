@@ -7,6 +7,7 @@ import { checkAllowance } from '../../../lib/allowance'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { scoreJobsBatch } from '../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
+import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
 
 // Cost rules 1 + 2: default behaviour reads the shared, nightly-scored
@@ -110,6 +111,7 @@ async function runFreshScan(service, apiKey, userId, maxDaysOld) {
       const data = await res.json()
       for (const job of (data.results || [])) {
         if (!job.id) continue
+        if (!isUkEligible(job.location?.display_name)) continue
         rows.push({
           external_id: `adzuna-${job.id}`,
           company: job.company?.display_name || 'Unknown',

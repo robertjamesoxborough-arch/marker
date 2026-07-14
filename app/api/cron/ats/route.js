@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { fetchFromAnyProvider } from '../../../../lib/ats'
+import { isUkEligible } from '../../../../lib/uk-eligibility'
 
 // Multi-ATS nightly ingest — replaces cron/greenhouse. 14 of the previous
 // 20 Greenhouse-only boards had 404'd (companies silently migrated ATS
@@ -77,15 +78,6 @@ const COMPANIES = [
   { company: 'Wallapop',         slug: 'wallapop',          provider: 'greenhouse' },
 ]
 
-const UK_PATTERN = /\b(london|uk|england|scotland|wales|remote|hybrid|manchester|edinburgh|bristol|birmingham|leeds|cardiff|belfast|sheffield|cambridge|oxford|brighton|surrey|kent|guildford|reading|milton keynes)\b/i
-const NON_UK_PATTERN = /\b(united states|canada|australia|germany|france|spain|netherlands|india|singapore|new york|san francisco|berlin|amsterdam|paris|toronto|sydney|bangalore|dublin(?! road)|warsaw|prague|bucharest|florida|poland|portugal|italy)\b/i
-
-function isUkRole(location) {
-  if (!location || location.trim() === '') return true
-  if (NON_UK_PATTERN.test(location)) return false
-  return UK_PATTERN.test(location)
-}
-
 export async function GET(request) {
   const auth = request.headers.get('authorization')
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -110,7 +102,7 @@ export async function GET(request) {
         if (found.provider !== provider) moved.push(`${company}: recorded ${provider} -> now ${found.provider}`)
 
         for (const job of found.jobs) {
-          if (!isUkRole(job.location)) continue
+          if (!isUkEligible(job.location)) continue
           rows.push({
             external_id: `${found.provider}-${slug}-${job.id}`,
             company,

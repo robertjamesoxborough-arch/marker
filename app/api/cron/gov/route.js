@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { isUkEligible } from '../../../../lib/uk-eligibility'
 
 
 // Generic gov queries covering all our role families. Kept to 2-3 words each
@@ -87,6 +88,7 @@ export async function GET(request) {
 
       for (const job of (data.results || [])) {
         if (!passesTitleFilter(job.title || '')) continue
+        if (!isUkEligible(job.location?.display_name)) continue
         const externalId = `gov-${job.id}`
         if (seen.has(externalId)) continue
         seen.add(externalId)

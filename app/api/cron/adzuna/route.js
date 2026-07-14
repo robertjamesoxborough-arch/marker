@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { isUkEligible } from '../../../../lib/uk-eligibility'
 
 
 // Queries mapped to our role families — each runs as a separate Adzuna search
@@ -76,6 +77,7 @@ export async function GET(request) {
       const data = await fetchAdzuna(appId, apiKey, what)
       const results = Array.isArray(data.results) ? data.results : []
       results.forEach(job => {
+        if (!isUkEligible(job.location?.display_name)) return
         rows.push({
           external_id: `adzuna-${job.id}`,
           company: job.company?.display_name || 'Unknown',

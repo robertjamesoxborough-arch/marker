@@ -98,6 +98,10 @@ function usePostedWithin(defaultDays = 14) {
   return [days, setAndPersist]
 }
 
+// dateStr is foundAt/cached_at, refreshed on every cron upsert -- this filters
+// by "last touched by our ingest", not true original posting date, for a
+// listing that keeps reappearing in scans. Same limitation the freshness
+// system (lib/freshness.js) already has; documented, not a bug to fix here.
 function withinPostedWindow(dateStr, days) {
   if (days == null) return true
   if (!dateStr) return true // no date info — don't hide, matches missing-info-neutral pattern used elsewhere
@@ -116,6 +120,54 @@ function PostedWithinSelect({ days, onChange }) {
         <option key={o.label} value={o.days === null ? 'anytime' : String(o.days)}>Posted within: {o.label}</option>
       ))}
     </select>
+  )
+}
+
+// ── Weekly preferences box — free text weighted into lib/match-engine.js's
+// weeklyFocus dimension at read time (deterministic keyword parsing server-
+// side, zero model calls). Saved via a dedicated endpoint that only ever
+// touches hard_filters_json.weeklyPreference, not the whole profile.
+function WeeklyPreferenceBox() {
+  const [value,   setValue]   = useState('')
+  const [saved,   setSaved]   = useState(true)
+  const [loaded,  setLoaded]  = useState(false)
+
+  useEffect(() => {
+    fetch('/api/profile/weekly-preference')
+      .then(r => r.json())
+      .then(d => setValue(d.weeklyPreference || ''))
+      .catch(() => {})
+      .finally(() => setLoaded(true))
+  }, [])
+
+  async function save() {
+    setSaved(false)
+    try {
+      await fetch('/api/profile/weekly-preference', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weeklyPreference: value }),
+      })
+    } catch {}
+    setSaved(true)
+  }
+
+  if (!loaded) return null
+
+  return (
+    <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+      <input
+        value={value}
+        onChange={e => { setValue(e.target.value); setSaved(false) }}
+        onBlur={save}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        placeholder="What do you want this week? e.g. remote only, no fintech"
+        maxLength={300}
+        style={{ flex: 1, padding: '7px 10px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: 'var(--marker-cream)', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+      />
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', flexShrink: 0, minWidth: 42, textAlign: 'right' }}>
+        {saved ? 'SAVED' : 'SAVING…'}
+      </span>
+    </div>
   )
 }
 
@@ -2210,6 +2262,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
             </div>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={feedSource === 'gov' ? 'Filter civil service roles…' : 'Filter by role, company, or location…'}
               style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: 'var(--marker-cream)', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
+            <WeeklyPreferenceBox />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 6 }}>
               <PostedWithinSelect days={postedWithinDays} onChange={setPostedWithinDays} />
               <button onClick={handleRefresh} disabled={refreshing}

@@ -7,6 +7,7 @@ import { checkAllowance } from '../../../lib/allowance'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { scoreJobsBatch } from '../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
+import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
 
 // Cost rules 1 + 2, same pattern as /api/feed-web. Default reads the shared,
@@ -121,6 +122,7 @@ async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
         if (!job.id) continue
         const title = (job.title || '').toLowerCase()
         if (!TITLE_MUST.some(k => title.includes(k)) || TITLE_REJECT.some(k => title.includes(k))) continue
+        if (!isUkEligible(job.location?.display_name)) continue
         raw.push({
           external_id: `gov-${job.id}`,
           company: job.company?.display_name || 'Unknown',
