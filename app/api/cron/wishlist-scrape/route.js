@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
 import { safeFetch } from '../../../../lib/safe-fetch'
+import { isAllowedByRobots, REQUITE_USER_AGENT } from '../../../../lib/robots'
+import { isSourceEnabled } from '../../../../lib/source-flags'
 
 // Nightly, shared ingest for job-feed's career-page discovery. Was
 // previously a per-user, on-demand career-page scrape + web_search combo
@@ -18,8 +20,21 @@ import { safeFetch } from '../../../../lib/safe-fetch'
 // The generic Sonnet web_search fallback (job-feed's old "senior manager UK
 // remote"-style queries) is NOT carried over here — see PROGRESS.md for why
 // it was cut rather than converted.
+//
+// Session O legal hardening: this is the one cron that fetches arbitrary
+// third-party HTML (every other ingest hits a structured API). Before this
+// becomes a paid product: check robots.txt per company and skip+log any
+// page we're told not to crawl; identify ourselves honestly with a UA that
+// names Requite and a contact email, so a company that wants us to stop
+// can just email instead of escalating; pace requests with a real delay
+// instead of hammering company sites back-to-back; and store only the
+// fields scoring actually needs (title/company/location/salary/link), never
+// the full page text -- see the raw_json below, deliberately empty.
+const REQUEST_DELAY_MS = 1500
 
-export const maxDuration = 60
+// Bumped from 60s: polite pacing (REQUEST_DELAY_MS between requests) alone
+// costs up to MAX_COMPANIES * REQUEST_DELAY_MS = 45s before any fetch time.
+export const maxDuration = 120
 
 const MAX_COMPANIES = 30 // bounds runtime/cost per run; a larger wishlist union just takes a few nights to fully cycle
 
@@ -45,6 +60,9 @@ export async function GET(request) {
   const auth = request.headers.get('authorization')
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!await isSourceEnabled('wishlist_scrape')) {
+    return NextResponse.json({ ok: true, skipped: 'source_wishlist_scrape disabled via admin kill switch' })
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -77,11 +95,19 @@ export async function GET(request) {
   const toScrape = targets.slice(0, MAX_COMPANIES)
 
   const snippets = []
+  const robotsSkipped = []
   for (const { company, careers_url } of toScrape) {
     try {
+      const robots = await isAllowedByRobots(careers_url)
+      if (!robots.allowed) {
+        console.log(`[wishlist-scrape] skipping ${company}: ${robots.reason}`)
+        robotsSkipped.push({ company, reason: robots.reason })
+        continue
+      }
+
       const res = await safeFetch(careers_url, {
         signal: AbortSignal.timeout(8000),
-        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+        headers: { 'User-Agent': REQUITE_USER_AGENT },
       })
       if (!res.ok) { errors.push(`${company}: HTTP ${res.status}`); continue }
       const html = await res.text()
@@ -90,10 +116,15 @@ export async function GET(request) {
     } catch (e) {
       errors.push(`${company}: ${e.message}`)
     }
+    // Polite pacing -- one company's career page per REQUEST_DELAY_MS, not
+    // back-to-back. A crawler that paces itself and identifies honestly
+    // almost never gets complained about; this cron only runs once a night
+    // so the extra minutes cost nothing real.
+    await new Promise(r => setTimeout(r, REQUEST_DELAY_MS))
   }
 
   if (snippets.length === 0) {
-    return NextResponse.json({ ok: true, companies: toScrape.length, scraped: 0, extracted: 0, errors })
+    return NextResponse.json({ ok: true, companies: toScrape.length, scraped: 0, extracted: 0, errors, robotsSkipped })
   }
 
   // ONE shared, candidate-agnostic extraction call for the whole batch —
@@ -176,5 +207,6 @@ ${STYLE_RULES}`
     scraped: snippets.length,
     extracted: deduped.length,
     errors,
+    robotsSkipped,
   })
 }

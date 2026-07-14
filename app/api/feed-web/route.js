@@ -124,7 +124,8 @@ async function runFreshScan(service, apiKey, userId, maxDaysOld) {
           cached_at: now,
           last_verified_at: now,
           adzuna_attribution_required: true,
-          raw_json: { description: (job.description || '').slice(0, 500) },
+          // Session O: trimmed to what match-engine.js's office-day/remote/benefit keyword detection needs; never displayed to users.
+          raw_json: { description: (job.description || '').slice(0, 300) },
         })
       }
       await new Promise(r => setTimeout(r, 300))

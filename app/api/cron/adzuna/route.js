@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
+import { isSourceEnabled } from '../../../../lib/source-flags'
 
 
 // Queries mapped to our role families — each runs as a separate Adzuna search
@@ -56,6 +57,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (!await isSourceEnabled('adzuna')) {
+    return NextResponse.json({ ok: true, skipped: 'source_adzuna disabled via admin kill switch' })
+  }
+
   const appId = process.env.ADZUNA_APP_ID
   const apiKey = process.env.ADZUNA_API_KEY
   if (!appId || !apiKey) {
@@ -93,7 +98,8 @@ export async function GET(request) {
           raw_json: {
             family,
             category: job.category?.label || null,
-            description: (job.description || '').slice(0, 500),
+            // Session O: trimmed to what match-engine.js's office-day/remote/benefit keyword detection needs; never displayed to users.
+            description: (job.description || '').slice(0, 300),
           },
         })
       })

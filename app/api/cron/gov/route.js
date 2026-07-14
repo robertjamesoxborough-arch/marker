@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
+import { isSourceEnabled } from '../../../../lib/source-flags'
 
 
 // Generic gov queries covering all our role families. Kept to 2-3 words each
@@ -46,6 +47,9 @@ export async function GET(request) {
   const auth = request.headers.get('authorization')
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!await isSourceEnabled('gov')) {
+    return NextResponse.json({ ok: true, skipped: 'source_gov disabled via admin kill switch' })
   }
 
   const appId = process.env.ADZUNA_APP_ID
@@ -104,7 +108,8 @@ export async function GET(request) {
           adzuna_attribution_required: true,
           raw_json: {
             category: job.category?.label || null,
-            description: (job.description || '').slice(0, 400),
+            // Session O: trimmed to what match-engine.js's office-day/remote/benefit keyword detection needs; never displayed to users.
+            description: (job.description || '').slice(0, 300),
           },
         })
       }

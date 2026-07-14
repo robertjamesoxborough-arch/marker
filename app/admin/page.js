@@ -400,6 +400,8 @@ export default function AdminPage() {
   const [metrics, setMetrics]       = useState(null)
   const [accounts, setAccounts]     = useState(null)
   const [status, setStatus]         = useState(null)
+  const [sourceFlags, setSourceFlags] = useState(null)
+  const [flagsSaving, setFlagsSaving] = useState('')
   const [acctSearch, setAcctSearch] = useState('')
   const [access, setAccess]         = useState('loading')
   const [signedInAs, setSignedInAs] = useState('')
@@ -442,7 +444,19 @@ export default function AdminPage() {
       // Always refresh status on every visit
       fetch('/api/admin/status').then(r => r.ok ? r.json() : null).then(d => d && setStatus(d)).catch(() => {})
     }
+    if (section === 'flags' && !sourceFlags) {
+      fetch('/api/admin/source-flags').then(r => r.ok ? r.json() : null).then(d => d && setSourceFlags(d.flags || [])).catch(() => {})
+    }
   }, [section])
+
+  async function toggleSourceFlag(source, enabled) {
+    setFlagsSaving(source)
+    setSourceFlags(prev => prev.map(f => f.source === source ? { ...f, enabled } : f))
+    try {
+      await fetch('/api/admin/source-flags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source, enabled }) })
+    } catch {}
+    setFlagsSaving('')
+  }
 
   const handleStatusChange = useCallback(async (id, newStatus) => {
     const r = await fetch('/api/admin/todos', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: newStatus }) })
@@ -852,10 +866,37 @@ export default function AdminPage() {
 
         {/* ── FEATURE FLAGS STUB ── */}
         {section === 'flags' && (
-          <div style={{ padding: '60px 0', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.08em', marginBottom: 12 }}>COMING SOON</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Feature flags</div>
-            <div style={{ fontSize: 14, color: 'var(--marker-mid)' }}>Needs a feature_flags table; building in a future sprint.</div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Source kill switches</div>
+            <div style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 20, lineHeight: 1.6 }}>
+              If a provider complains, disable it here instantly, no deploy needed. Every cron checks its own flag before doing anything.
+            </div>
+            {!sourceFlags ? (
+              <div style={{ padding: '40px 0', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.08em' }}>LOADING...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {sourceFlags.map(f => (
+                  <div key={f.source} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: '12px 16px' }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)' }}>{f.flag_key}</div>
+                      <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2 }}>{f.notes}</div>
+                    </div>
+                    <button
+                      onClick={() => toggleSourceFlag(f.source, !f.enabled)}
+                      disabled={flagsSaving === f.source}
+                      style={{
+                        flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em',
+                        padding: '8px 16px', borderRadius: 20, border: `1px solid ${f.enabled ? 'var(--marker-black)' : '#FCA5A5'}`,
+                        background: f.enabled ? 'var(--marker-lime)' : '#FEE2E2', color: f.enabled ? 'var(--marker-black)' : '#B91C1C',
+                        cursor: flagsSaving === f.source ? 'default' : 'pointer',
+                      }}
+                    >
+                      {flagsSaving === f.source ? 'SAVING…' : f.enabled ? 'ENABLED' : 'DISABLED'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

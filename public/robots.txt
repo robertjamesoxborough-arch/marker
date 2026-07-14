@@ -1,0 +1,16 @@
+# Requite (marker-silk.vercel.app) — a UK job-search tool that indexes and
+# scores third-party job listings (Adzuna, public ATS providers, and
+# company career pages). We never republish full listings or intermediate
+# applications — every job links straight to its original source.
+#
+# Questions or a takedown request about how we crawl or index your site?
+# support@upstreaminsights.co.uk
+
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /api
+Disallow: /settings
+Disallow: /auth
+Disallow: /onboard

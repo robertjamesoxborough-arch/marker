@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { fetchFromAnyProvider } from '../../../../lib/ats'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
+import { isSourceEnabled } from '../../../../lib/source-flags'
 
 // Multi-ATS nightly ingest — replaces cron/greenhouse. 14 of the previous
 // 20 Greenhouse-only boards had 404'd (companies silently migrated ATS
@@ -82,6 +83,9 @@ export async function GET(request) {
   const auth = request.headers.get('authorization')
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!await isSourceEnabled('ats')) {
+    return NextResponse.json({ ok: true, skipped: 'source_ats disabled via admin kill switch' })
   }
 
   const supabase = createClient(

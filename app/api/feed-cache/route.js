@@ -66,6 +66,7 @@ export async function GET(request) {
     salary:                    row.salary,
     location:                  row.location,
     source:                    row.source,
+    trackTags:                 row.track_tags || [],
     foundAt:                   row.cached_at,
     freshness:                 row.freshness,
     relativeTime:              row.relativeTime,

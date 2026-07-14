@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
+import { isSourceEnabled } from '../../../../lib/source-flags'
 
 // Nightly, shared ingest for contract/interim roles — no existing cron
 // covered this source before Stage 22. Same pattern as cron/adzuna: generic,
@@ -63,6 +64,9 @@ export async function GET(request) {
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (!await isSourceEnabled('contract')) {
+    return NextResponse.json({ ok: true, skipped: 'source_contract disabled via admin kill switch' })
+  }
 
   const appId = process.env.ADZUNA_APP_ID
   const apiKey = process.env.ADZUNA_API_KEY
@@ -101,7 +105,8 @@ export async function GET(request) {
           raw_json: {
             family,
             category: job.category?.label || null,
-            description: (job.description || '').slice(0, 500),
+            // Session O: trimmed to what match-engine.js's office-day/remote/benefit keyword detection needs; never displayed to users.
+            description: (job.description || '').slice(0, 300),
           },
         })
       })

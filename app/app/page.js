@@ -8,6 +8,17 @@ import { createClient } from '../../lib/supabase/client'
 import { Packer } from 'docx'
 import { buildCvDocx } from '../../lib/cv-docx'
 import FreshnessPulse from '../../components/FreshnessPulse'
+
+// HARD, NON-REMOVABLE RULE (Session O legal hardening): Requite indexes and
+// scores third-party job listings. It never republishes or intermediates
+// the application itself. Every job link anywhere in this file MUST open
+// in a new tab, straight to the original posting: target="_blank"
+// rel="noopener noreferrer", href pointing at the source's own URL (job.url/
+// job.link/job.jobLink/job.careersUrl), never an internal route. There is
+// no in-app "submit application" flow anywhere in this codebase and there
+// must never be one added -- that would cross the line from indexing into
+// operating as the recruiter of record. Audited 2026-07-14: all job-link
+// anchors in this file already satisfy this; any new one must too.
 import MemoryCard from '../../components/MemoryCard'
 import s from './dashboard.module.css'
 
@@ -24,6 +35,29 @@ function Logo({ size = 18 }) {
 
 function AdzunaBadge() {
   return <div className="adzuna-badge">Jobs by Adzuna</div>
+}
+
+// Session O legal hardening: transparent provenance on every card. Every
+// job on Requite comes from indexing a real external source -- an ATS
+// provider's public API, Adzuna, or a company's own career page -- never
+// from Requite itself. Showing where it actually came from is both better
+// UX and legally safer than presenting third-party listings as if they
+// were ours.
+const ATS_PROVIDER_LABELS = { greenhouse: 'Greenhouse', lever: 'Lever', ashby: 'Ashby', smartrecruiters: 'SmartRecruiters' }
+function sourceLabel(job) {
+  if (job.source === 'wishlist_scrape' || job.source === 'manual') return `from ${job.company || 'the employer'} careers page`
+  if (job.source === 'adzuna' || job.adzunaAttributionRequired) return 'via Adzuna'
+  if (job.source === 'gov' || job.source === 'gov_search') return 'via Adzuna'
+  if (job.source === 'contract_search') return 'via Adzuna'
+  const atsProvider = Array.isArray(job.trackTags) ? job.trackTags.find(t => ATS_PROVIDER_LABELS[t]) : null
+  if (atsProvider) return `via ${ATS_PROVIDER_LABELS[atsProvider]}`
+  if (job.source === 'greenhouse') return 'via Greenhouse' // fallback if trackTags didn't reach the client
+  return null
+}
+function SourceLabel({ job }) {
+  const label = sourceLabel(job)
+  if (!label) return null
+  return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.02em' }}>{label}</span>
 }
 
 // Which scoring tier produced a job's score: 'full' if a real analysis
@@ -2269,6 +2303,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.company}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.roleTitle || '–'}</div>
+            <div style={{ marginTop: 2 }}><SourceLabel job={job} /></div>
           </div>
           {/* Score + score button */}
           <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
@@ -2706,6 +2741,7 @@ function WishlistJobsTab({ jobs: pipelineJobs, addJob }) {
             {(job.location || job.salary) && (
               <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 2 }}>{[job.location, job.salary].filter(Boolean).join(' · ')}</div>
             )}
+            <div style={{ marginTop: 2 }}><SourceLabel job={job} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             {job.score != null && (
