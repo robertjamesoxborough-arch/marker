@@ -5227,7 +5227,7 @@ function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, plan })
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {plan && plan !== 'trial' && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.06em', color: 'var(--marker-mid)', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', padding: '2px 7px', borderRadius: 3 }}>
-              {plan === 'free' ? 'Free plan · 3 AI analyses/day' : `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan`}
+              {plan === 'free' ? 'Free plan · 30 AI analyses/month' : `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan`}
             </span>
           )}
           {plan === 'free' && (

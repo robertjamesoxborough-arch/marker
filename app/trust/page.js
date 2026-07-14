@@ -18,7 +18,7 @@ const GUARANTEES = [
     kills: 'Kills "Jill doesn\'t exist."',
     body: [
       'Every employer role on Requite carries a mandatory source label: requite_managed (an employer on the platform; you can request a real introduction) or public_listing (aggregated from Adzuna or Gov.uk). This is enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after posting.',
-      'The "Request intro" button appears only on requite_managed roles; structurally disabled on public listings. The Live Network Meter shows you the exact live count of managed roles in your field right now. When it\'s low, we tell you. Every successful introduction is permanently logged in intro_receipts: an immutable, timestamped record.',
+      'The "Request intro" button appears only on requite_managed roles; structurally disabled on public listings. The Live Network Meter shows you the exact live network-wide count of managed roles, hiring partners, and candidates in the pool right now (not filtered to your specific field). When it\'s low, we tell you. Every successful introduction is permanently logged in intro_receipts: an immutable, timestamped record.',
     ],
     built: 'source_type CHECK constraint · Live Network Meter · intro_receipts timestamped log',
   },
@@ -29,9 +29,9 @@ const GUARANTEES = [
     kills: 'Kills "that role closed months ago."',
     body: [
       'Every cached role has a last_verified_at timestamp. Freshness is computed at read time (not from a stored value) every time you open the feed. Fresh: under 48 hours. Aging: 2–7 days. Stale: 7–14 days, demoted and badged. Expired: removed from your default view.',
-      'A daily cron at 06:00 UTC re-verifies every role. The Freshness Pulse dot on each card shows exactly when it was last confirmed active. "Still open?" lets you trigger a live re-check in seconds.',
+      'A daily cron at 06:00 UTC sends a real HTTP request to a batch of roles most likely to have gone stale, honouring each site\'s robots.txt and identifying itself honestly, and genuinely updates last_verified_at from what it finds; a larger cache cycles through in full over a few nights rather than all at once. The Freshness Pulse dot on each card shows exactly when it was last confirmed active, and "Still open?" lets you trigger that same live check yourself in seconds.',
     ],
-    built: 'lib/freshness.js (read-time enforcement) · Freshness Pulse badge · daily cron 06:00 UTC · "Still open?" one-tap recheck',
+    built: 'lib/freshness.js (read-time enforcement) · lib/robots.js (robots.txt + polite crawling) · Freshness Pulse badge · daily cron 06:00 UTC (real HTTP verification) · "Still open?" one-tap recheck',
   },
   {
     id: 'G3',
@@ -40,7 +40,7 @@ const GUARANTEES = [
     kills: 'Kills "it forgot me / rolling glitch."',
     body: [
       'Your profile is a structured database record, not a chat log. Every AI call reads your profile fresh from Supabase on every request. It does not rely on what you said in a previous message. Close the browser, return in a month: your profile, pipeline, CV, and career history are byte-identical.',
-      'The Memory Card in your Profile tab shows everything Requite knows about you. Every field is editable. Nothing is inferred from conversation: only what you\'ve explicitly set.',
+      'The Memory Card in your Profile tab shows everything Requite knows about you. Most fields are editable right there; career history is summarised on the card (most recent 5 roles) and edited in full in Settings. Nothing is inferred from conversation: only what you\'ve explicitly set.',
     ],
     built: 'Supabase profiles table (source of truth) · lib/ai-context.js (bounded, stateless) · Memory Card component',
   },
@@ -50,7 +50,7 @@ const GUARANTEES = [
     headline: 'Tracking isn\'t a feature. It\'s the spine.',
     kills: 'Kills "no way to keep track."',
     body: [
-      'Your pipeline is the default landing screen, not a bonus tab you have to find. Analysing any role auto-adds it to your Watchlist. No manual step. No extra click. Your pipeline is stored in Supabase, not browser memory; it survives logout, cache clears, and device changes.',
+      'Your pipeline is the default landing screen, not a bonus tab you have to find. Analyse a role by pasting its URL and it auto-adds to your Watchlist the moment it\'s scored: no manual step there. Scoring a role from the job feed itself still takes one "Add to pipeline" click, since a feed score is a quick check, not yet a signal you want it tracked. Your pipeline is stored in Supabase, not browser memory; it survives logout, cache clears, and device changes.',
       'The momentum strip at the top of your pipeline shows live counts: roles applied to, interviews active, offers in. Losing your place is structurally impossible; your place is the data.',
     ],
     built: 'pipeline_items table (Supabase-backed) · auto-capture from Analyse tab · Pipeline as default landing · momentum strip',
@@ -65,7 +65,7 @@ const AI_ROWS = [
   },
   {
     what: 'Employer shortlist scores',
-    how: 'Deterministic algorithm: 6 weighted dimensions, no AI, no hallucination risk',
+    how: 'Deterministic algorithm: 7 weighted dimensions, no AI, no hallucination risk',
     human: 'n/a',
   },
   {
@@ -85,7 +85,7 @@ const AI_ROWS = [
   },
   {
     what: 'Role sourcing',
-    how: 'Automated from licensed sources (Adzuna, Gov.uk) + employer-posted managed roles',
+    how: 'Automated from Adzuna (which also supplies Gov.uk-listed roles, not a separate source), four ATS providers (Greenhouse, Lever, Ashby, SmartRecruiters), nightly checks of wishlisted companies\' own career pages, and employer-posted managed roles',
     human: 'n/a',
   },
 ]
@@ -180,10 +180,10 @@ export default function TrustPanel() {
             <p style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 20, lineHeight: 1.6 }}>Full pipeline, job feed, scored discovery, Memory Card, career history, wishlist tracker.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                'AI role scoring: 3 analyses/day on free tier',
+                'AI role scoring: 30 analyses/month on free tier',
                 'Unlimited pipeline tracking',
-                'Memory Card: everything we know about you, editable',
-                'Pro (£12–19/mo): unlimited AI, interview prep, CV tailoring',
+                'Memory Card: everything we know about you, most of it editable',
+                'Pro (£19/mo) or Max (£39/mo): unlimited AI, interview prep, CV tailoring',
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ color: i === 0 ? '#F59E0B' : i === 3 ? 'var(--marker-mid)' : 'var(--marker-lime)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>{i === 3 ? '→' : '✓'}</span>
@@ -193,24 +193,16 @@ export default function TrustPanel() {
             </div>
           </div>
 
-          {/* Employer */}
+          {/* Why candidate-pays */}
           <div style={{ border: '1px solid var(--marker-border)', borderRadius: 14, padding: 24, background: 'var(--marker-cream-2)' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Employer</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 4 }}>8% on hire.</div>
-            <p style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 20, lineHeight: 1.6 }}>Matched, anonymised, opted-in shortlist. Real warm intros. Per-role ATS. Pay only on confirmed hire.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                'No upfront fee; success fee only',
-                '8% of first-year base salary',
-                '3-month leaver refund',
-                'Undercuts traditional agencies (20–30%) and J&J (10%)',
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--marker-lime)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
-                  <span style={{ fontSize: 12, color: 'var(--marker-text-soft)', lineHeight: 1.5 }}>{item}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Why candidate-pays</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 4 }}>You pay us. Not the employer.</div>
+            <p style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 20, lineHeight: 1.6 }}>
+              Employer-paid job platforms are paid by the company you&apos;re trying to get past, which is a structural conflict of interest. Requite is paid by you, so it has no reason to do anything except help you find the right role.
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--marker-text-soft)', lineHeight: 1.6 }}>
+              An employer-side marketplace (post a role, pay only on hire) exists in the codebase but has no employers on it yet. When it&apos;s genuinely live, we&apos;ll say so here, honestly, with real numbers.
+            </p>
           </div>
         </div>
       </section>
@@ -232,7 +224,7 @@ export default function TrustPanel() {
 
       {/* ── CTA footer ── */}
       <section className="aurora-bg" style={{ background: 'var(--marker-black)', padding: 'clamp(56px,8vw,80px) clamp(20px,5vw,48px)', textAlign: 'center' }}>
-        <div className="kicker holo-text" style={{ marginBottom: 16, fontSize: 11, letterSpacing: '0.14em' }}>Free for candidates. Pay on hire for employers.</div>
+        <div className="kicker holo-text" style={{ marginBottom: 16, fontSize: 11, letterSpacing: '0.14em' }}>You pay us. So we work for you, not the employer.</div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px,4vw,48px)', fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 32 }}>
           The only AI recruitment platform<br />honest enough to show you how it works.
         </h2>

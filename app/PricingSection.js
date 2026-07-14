@@ -8,7 +8,7 @@ const tiers = [
     name: 'Free',
     sub: 'Start searching',
     monthly: 0,
-    detail: 'Pipeline board · 3 AI scores/day · job feed · Memory Card',
+    detail: 'Pipeline board · 30 AI scores/month · job feed · Memory Card',
     cta: 'Start free',
     flag: false,
   },
@@ -37,8 +37,8 @@ export default function PricingSection() {
         <div>
           <div className="kicker holo-text" style={{ marginBottom: 16 }}>Pricing</div>
           <h2 className="display-lg" style={{ fontSize: 'clamp(36px, 4vw, 56px)', color: 'var(--marker-black)' }}>
-            Free for candidates.<br />
-            <span style={{ color: 'var(--marker-mid)' }}>We make money when you're hired.</span>
+            You pay us.<br />
+            <span style={{ color: 'var(--marker-mid)' }}>So we work for you, not the employer.</span>
           </h2>
         </div>
       </div>
@@ -51,15 +51,6 @@ export default function PricingSection() {
             borderRadius: 12, padding: 28, display: 'flex', flexDirection: 'column',
             gap: 18, minHeight: 320, position: 'relative',
           }}>
-            {p.flag && (
-              <div className="holo-foil" style={{
-                position: 'absolute', top: -1, right: -1,
-                color: 'var(--marker-black)', fontFamily: 'var(--font-mono)',
-                fontSize: 10, padding: '4px 10px', borderRadius: '0 12px 0 8px', letterSpacing: '0.06em',
-              }}>
-                MOST CHOSEN
-              </div>
-            )}
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500 }}>{p.name}</div>
               <div style={{ fontSize: 13, opacity: p.flag ? 0.6 : 0.7, color: p.flag ? 'var(--marker-cream)' : 'var(--marker-mid)' }}>{p.sub}</div>
@@ -84,7 +75,7 @@ export default function PricingSection() {
         ))}
       </div>
       <div style={{ marginTop: 24, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', textAlign: 'center' }}>
-        Employers pay 8% of first-year salary on a successful hire. No subscription, no upfront cost.
+        No employer subscriptions, no ad slots, no data sold. Your fee is the only thing that keeps this running.
       </div>
     </section>
   )

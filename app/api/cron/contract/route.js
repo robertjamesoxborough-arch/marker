@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
+import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 
 // Nightly, shared ingest for contract/interim roles — no existing cron
 // covered this source before Stage 22. Same pattern as cron/adzuna: generic,
@@ -43,7 +44,7 @@ async function fetchAdzuna(appId, apiKey, what) {
   url.searchParams.set('sort_by', 'date')
 
   const res = await fetch(url.toString(), {
-    headers: { 'User-Agent': 'Marker/1.0' },
+    headers: { 'User-Agent': REQUITE_USER_AGENT },
     signal: AbortSignal.timeout(12000),
   })
   if (!res.ok) throw new Error(`Adzuna HTTP ${res.status}`)

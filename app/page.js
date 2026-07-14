@@ -38,7 +38,7 @@ const PROMISES = [
   },
   {
     title: 'A score you can actually read.',
-    body: "Every role gets scored across six things you care about: salary, seniority fit, location, office days, freshness, and culture signals. You can see the reasoning behind each one. Not a mystery rating you're meant to take on faith.",
+    body: "Every role gets scored across eight things you care about: skills and role fit, seniority match, industry fit, office/remote flexibility, company culture, parental leave, salary versus market, and career growth. You can see the reasoning behind each one. Not a mystery rating you're meant to take on faith.",
   },
   {
     title: 'It remembers you.',
@@ -179,34 +179,7 @@ export default async function Home() {
         <RotatingLifestyle priority />
       </section>
 
-      {/* Holo divider, ambient → stats */}
-      <div className="holo-hairline" />
-
-      {/* ── THE REALITY STATS ── */}
-      <section className={styles.statsSection}>
-        <div className={styles.statsCopy}>
-          <div className="kicker" style={{ marginBottom: 16 }}>The reality</div>
-          <h2 className="display-lg" style={{ fontSize: 'clamp(32px, 4vw, 52px)', color: 'var(--marker-black)', marginBottom: 20, textWrap: 'balance' }}>
-            Experienced job hunting<br />plays by different rules.
-          </h2>
-          <p style={{ fontSize: 16, color: 'var(--marker-mid)', lineHeight: 1.7, maxWidth: 400 }}>
-            At this stage, you know exactly what you will not compromise on. The problem is that most job boards are not built for people who have standards.
-          </p>
-        </div>
-        <div className={styles.statsCards}>
-          <div className={styles.statCard} style={{ '--rot': '-2.5deg' }}>
-            <Image src="/brand/05-linkedin-stat-1.jpg" alt="74% of senior professionals aren't actively looking but are open to the right opportunity" width={400} height={400} style={{ width: '100%', height: 'auto', borderRadius: 12, display: 'block' }} />
-          </div>
-          <div className={styles.statCard} style={{ '--rot': '1.5deg' }}>
-            <Image src="/brand/06-linkedin-stat-2.jpg" alt="3x shortlisted rate increase when your CV is tailored to the role" width={400} height={400} style={{ width: '100%', height: 'auto', borderRadius: 12, display: 'block' }} />
-          </div>
-          <div className={styles.statCard} style={{ '--rot': '-1deg' }}>
-            <Image src="/brand/07-linkedin-stat-3.jpg" alt="82% of senior hires come from network, not job boards" width={400} height={400} style={{ width: '100%', height: 'auto', borderRadius: 12, display: 'block' }} />
-          </div>
-        </div>
-      </section>
-
-      {/* Holo divider, stats → promises */}
+      {/* Holo divider, ambient → promises */}
       <div className="holo-hairline" />
 
       {/* ── THREE PROMISES ── */}
@@ -305,7 +278,7 @@ export default async function Home() {
               Companies where work-life balance is a fact, not a slide.
             </h2>
             <p style={{ fontSize: 16, color: 'var(--marker-cream)', opacity: 0.7, marginBottom: 32, lineHeight: 1.6, maxWidth: 480 }}>
-              Anchored to verified public data. We don&apos;t take companies&apos; word for it. We check.
+              A curated list of large, stable employers, built from publicly available data (Glassdoor, published parental leave policies, company reporting) as of June 2026, not a live feed.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {['Public sector', 'Education / EdTech', 'Large stable corporates', 'Remote-first w/ culture'].map(t => (
@@ -373,7 +346,7 @@ export default async function Home() {
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
           <div className="kicker" style={{ color: 'rgba(250,247,242,0.35)', marginBottom: 20 }}>Your next move</div>
           <h2 className="display-xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)', marginBottom: 28, textWrap: 'balance' }}>
-            <span className="chrome-text">Score every job before you waste time on it.</span>
+            <span className="chrome-text">Stop wasting evenings on roles that aren&apos;t right.</span>
           </h2>
           <div className="iris-divider" style={{ margin: '0 auto 28px', maxWidth: 240 }} />
           <p className={styles.ctaSub}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</p>

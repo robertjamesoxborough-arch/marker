@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
+import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 
 
 // Queries mapped to our role families — each runs as a separate Adzuna search
@@ -35,7 +36,7 @@ async function fetchAdzuna(appId, apiKey, what) {
   url.searchParams.set('sort_by', 'date')
 
   const res = await fetch(url.toString(), {
-    headers: { 'User-Agent': 'Marker/1.0' },
+    headers: { 'User-Agent': REQUITE_USER_AGENT },
     signal: AbortSignal.timeout(12000),
   })
   if (!res.ok) throw new Error(`Adzuna HTTP ${res.status}`)

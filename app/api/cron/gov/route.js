@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
+import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 
 
 // Generic gov queries covering all our role families. Kept to 2-3 words each
@@ -84,7 +85,7 @@ export async function GET(request) {
       url.searchParams.set('content-type', 'application/json')
 
       const res = await fetch(url.toString(), {
-        headers: { 'User-Agent': 'Marker/1.0' },
+        headers: { 'User-Agent': REQUITE_USER_AGENT },
         signal: AbortSignal.timeout(10000),
       })
       if (!res.ok) { errors.push(`${what}: HTTP ${res.status}`); continue }

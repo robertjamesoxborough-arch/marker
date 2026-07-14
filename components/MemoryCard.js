@@ -124,7 +124,7 @@ export default function MemoryCard() {
       <div style={{ marginBottom: 20 }}>
         <div className="kicker holo-text" style={{ marginBottom: 6 }}>G3: We never forget you</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 6 }}>Everything Requite knows about you</div>
-        <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Every field below is used to personalise your scores, feed, and AI tools. Click any field to edit; changes save instantly and take effect on your next AI call.</div>
+        <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Everything below is used to personalise your scores, feed, and AI tools. Most fields are click-to-edit and save instantly; career history is summarised here and edited in full in Settings.</div>
       </div>
 
       {/* Role preferences */}

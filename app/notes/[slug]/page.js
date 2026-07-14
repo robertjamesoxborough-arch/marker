@@ -13,7 +13,7 @@ export async function generateMetadata({ params }) {
   const article = articles.find(a => a.slug === params.slug)
   if (!article) return {}
   return {
-    title: `${article.title} | Marker`,
+    title: `${article.title} | Requite`,
     description: article.excerpt,
     openGraph: {
       title: article.title,
@@ -192,7 +192,7 @@ function ContentBlock({ block, accent, accentLight }) {
             display: 'inline-block', textDecoration: 'none',
             letterSpacing: '-0.01em',
           }}>
-            Try Marker free →
+            Try Requite free →
           </Link>
         </div>
       )
@@ -339,7 +339,7 @@ export default function ArticlePage({ params }) {
               fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600,
               color: 'var(--marker-black)', letterSpacing: '-0.025em',
               marginBottom: 32,
-            }}>More from Marker</h2>
+            }}>More from Requite</h2>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 
 
 const KNOWN_SLUGS = {
@@ -147,7 +148,7 @@ async function trySlug(slug) {
   try {
     const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs`, {
       signal: AbortSignal.timeout(7000),
-      headers: { 'User-Agent': 'Marker/1.0' },
+      headers: { 'User-Agent': REQUITE_USER_AGENT },
     })
     if (!res.ok) return null
     const data = await res.json()
