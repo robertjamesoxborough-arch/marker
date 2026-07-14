@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 29 complete — Session J, ai_usage fix verified end-to-end + a full-schema GRANT sweep found 19 MORE broken tables + fail-closed allowance + error-logging pass started. Proved (not assumed) that the `ai_usage` GRANT actually restores enforcement: a real `checkAllowance`/`trackAiUsage` cycle against the live database went `used:0,allowed:true` → real insert → `used:1,allowed:false`. Then swept all 27 tables the Data API exposes and found 19 more with the identical missing-GRANT bug, including `career_history` — confirmed live that 6 different AI routes (`analyse`, `cv/generate`, `cv/cover-letter`, `cv/questions`, `interview-prep`, `negotiation-prep`) have been building AI context with zero career history this whole time. Migration `008_grants_full_sweep.sql` written, **not yet applied**. `checkAllowance()` now fails closed (blocks) on a query error instead of silently reading `used:0` and allowing everything; `trackAiUsage()` and the 4 highest-traffic routes now log Supabase errors instead of swallowing them. ~15 more files still need the same error-logging treatment — listed explicitly below, not silently skipped.  
-**Last commit:** fix: Session J — verify ai_usage GRANT, full-schema GRANT sweep, fail-closed allowance, error logging  
+**Stage:** 30 complete — Session K, migration 008 verified (all 27 tables now 200 for service_role), career_history's real story clarified, error-logging sweep finished across 13 more files. Confirmed live that `career_history` has zero rows for every user and no write path anywhere in the codebase — its GRANT fix was still correct, but the actual carrier of real candidate work history has always been `profile.hard_filters_json.cvRaw`, proven by running the real `buildAiContext()` against Rob's real profile and confirming Meta/NatWest/PlayStation all appear in the output. `tier_allowances` checked: it's not consulted anywhere (`lib/allowance.js` uses a hardcoded `TIER_CAPS` object instead), so it can't be silently broken — it's just disconnected. Error-logging (`logIfError`) now applied across 17 total files (4 from Session J + 13 this session); 2 files intentionally flagged rather than silently skipped (`app/page.js`, `referral/capture`'s RLS-policy question). Job-feed UI wiring still not reached.  
+**Last commit:** fix: Session K — verify migration 008, career_history reality check, finish error-logging sweep  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,31 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 30 — Session K: migration 008 verified, career_history's real story, error-logging sweep finished (2026-07-14)
+
+**1. Verified migration 008.** Rob applied it. Re-swept all 27 tables the Data API exposes with a plain `select=*&limit=1` against `service_role` — every one now returns 200 (was 19 at 403 before this migration).
+
+**2. Proved `buildAiContext()` carries real career substance — with an important correction along the way.** Queried `career_history` for any rows at all: `[]`, for every user. Grepped the whole codebase for any write to that table: none exist. `/api/onboard/parse-cv` (the CV-parsing step during onboarding) only extracts role-family/seniority/industry/salary suggestions into `profiles.hard_filters_json`, never into `career_history`. So the table's GRANT bug, while real and correctly fixed, was narrower in practical impact than Stage 29's writeup implied: the table was always going to return empty regardless of permissions, since nothing has ever populated it for any user.
+
+The actual carrier of a candidate's real work history has always been `profile.hard_filters_json.cvRaw` — `lib/ai-context.js`'s `buildAiContext()` uses up to 3 `career_history` rows for a compact "Recent experience" line (which has simply never had anything to show), then always falls through to a CV excerpt built from `cvRaw` regardless. Proved this directly by running the real `buildAiContext()` function against Rob's real, live `profiles` row:
+```
+Contains real employer names? Meta: true | NatWest: true | PlayStation: true
+```
+This is the actual context every AI route sends today, and it has always contained the candidate's genuine work history via `cvRaw`, unaffected by the `career_history` GRANT bug the whole time. The GRANT fix remains correct (every table should have correct grants regardless of current usage), but `ai_usage` stays the one table from this whole investigation with real, confirmed financial/enforcement consequences — `career_history`'s consequence was much smaller: a compact summary line that was always going to be empty, not a loss of real career substance.
+
+**A genuinely separate, smaller finding worth a future session**: `career_history` is a real schema table with no write path anywhere — if structured per-role history (rather than a single CV blob) is wanted for richer AI context or a future CV-builder UI, that's a real feature gap, not a bug, and would need an onboarding flow that parses `cvRaw` into individual role rows.
+
+**3. Checked `tier_allowances` against `lib/allowance.js`, as flagged.** It is referenced exactly once in the whole codebase: a static line in `app/admin/page.js`'s launch checklist claiming "tier_allowances table seeded, done: true". `lib/allowance.js`'s actual cap logic uses a hardcoded `TIER_CAPS` JS object, never this table. It has no live consumer anywhere, so unlike `ai_usage` it cannot be silently returning wrong data to a real feature — it's simply disconnected from any enforcement path currently in use.
+
+**4. Finished the error-logging sweep started in Stage 29.** Applied `logIfError()` (and, in several places, corrected a null/undefined check that was conflating a genuine "not found"/"not authorised" result with an actual query error) across 13 more files: `cv/cover-letter`, `cv/questions`, `profile/memory`, `network-meter`, `admin/taglines`, `admin/todos`, `candidate/intros`, `employer/intro`, `employer/profile`, `employer/role`, `employer/shortlist`, `referral/capture`, `tagline`. `cron/freshness` was checked and already handled every query's error correctly — no change needed there. Combined with the 4 files fixed in Stage 29, error logging now covers 17 files total across every route touching the tables this whole investigation found broken.
+
+**NOT done — carried forward, explicitly, not silently dropped:**
+- `app/page.js` (the marketing homepage) still has at least one unguarded query (a tagline/stat read) — lower risk (public, cached, non-financial) but not yet touched.
+- `referral/capture` uses the anon-key client (not service role) for its `referrals` insert. Migration 008 granted table-level access to `authenticated`, but whether RLS policies on `referrals` also permit an authenticated user to read/insert their own row is a separate, unverified question — worth a direct test with a real authenticated session next time this table matters.
+- **Job-feed UI wiring** — still not reached, third session running. It remains a built, unreachable route.
+
+---
 
 ### Stage 29 — Session J: ai_usage verified, full-schema GRANT sweep (19 more tables), fail-closed allowance (2026-07-14)
 
