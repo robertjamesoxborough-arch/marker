@@ -70,7 +70,7 @@ export default function EmployerDashboard() {
             <div className="kicker" style={{ marginBottom: 8 }}>{profile.company_name}</div>
             <h1 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 42px)', color: 'var(--marker-black)' }}>Your hiring pipeline</h1>
           </div>
-          <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 14 }}>+ Post a new role</Link>
+          <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 14 }}>+ Register a new role</Link>
         </div>
 
         {/* Live Network Meter */}
@@ -265,7 +265,7 @@ function CandidateCard({ candidate, rank }) {
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--marker-border)' }}>
           {/* Dimension breakdown — deterministic score, no AI */}
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
-            Score breakdown · deterministic algorithm · 6 dimensions · no AI
+            Score breakdown · deterministic algorithm · 7 dimensions · no AI
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginBottom: 12 }}>
             {Object.entries(candidate.dimensions || {}).map(([key, dim]) => (
@@ -343,8 +343,8 @@ function EmptyState() {
   return (
     <div style={{ textAlign: 'center', padding: '80px 24px' }}>
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, marginBottom: 12, color: 'var(--marker-black)' }}>No roles yet</div>
-      <p style={{ color: 'var(--marker-mid)', marginBottom: 24, fontSize: 15 }}>Post your first role to get a matched, anonymised candidate shortlist.</p>
-      <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600 }}>Post a role →</Link>
+      <p style={{ color: 'var(--marker-mid)', marginBottom: 24, fontSize: 15 }}>Register your first role. The candidate marketplace is early, so a shortlist may be thin or empty until we have genuine matches.</p>
+      <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600 }}>Register a role →</Link>
     </div>
   )
 }
@@ -359,7 +359,7 @@ function DashNav({ companyName }) {
         {companyName && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>{companyName}</span>}
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <Link href="/hire" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>+ Post role</Link>
+        <Link href="/hire" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>+ Register role</Link>
         <Link href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Why trust us</Link>
       </div>
     </div>
@@ -379,6 +379,7 @@ const DIM_LABELS = {
   compFit: 'Comp fit',
   freshness: 'Role freshness',
   cultureWlb: 'Culture / WLB',
+  weeklyFocus: 'Weekly focus',
 }
 
 const PAGE = { width: '100%', minHeight: '100vh', background: 'var(--marker-cream)', fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }

@@ -12,18 +12,18 @@ const SIZES = ['1–10', '11–50', '51–200', '201–500', '501–2000', '2000
 const HOW_STEPS = [
   {
     n: '01',
-    title: 'Describe the role.',
-    body: 'In plain language. We\'ll turn it into a brief.',
+    title: 'Register your interest.',
+    body: 'Tell us who you\'re hoping to hire. Two minutes, no commitment.',
   },
   {
     n: '02',
-    title: 'Review your shortlist.',
-    body: 'Real candidates from our pool, scored against your role and anonymised until you both say yes.',
+    title: 'We build the candidate pool honestly.',
+    body: 'We\'re early: the candidate marketplace isn\'t live yet. Registering now means we can tell you, honestly, when there\'s a genuine match in your sector.',
   },
   {
     n: '03',
-    title: 'Pay only when you hire.',
-    body: '8% of first-year base, with a three-month leaver guarantee.',
+    title: 'Nothing to pay, nothing live yet.',
+    body: 'No subscription, no fee for registering. If this becomes a real, working introduction service, you\'ll know the terms upfront before anything is charged.',
   },
 ]
 
@@ -104,24 +104,23 @@ export default function HirePage() {
         <Nav />
         <div style={{ maxWidth: 560, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
           <div className="holo-dot" style={{ width: 48, height: 48, borderRadius: '50%', margin: '0 auto 24px' }} />
-          <h1 style={H1} className="display-lg">Role posted.</h1>
+          <h1 style={H1} className="display-lg">Thanks. You&apos;re registered.</h1>
           <p style={{ fontSize: 16, color: 'var(--marker-mid)', marginBottom: 32, lineHeight: 1.6 }}>
-            Your role is live in the {BRAND_NAME} network. We&apos;re matching candidates now. Anonymised shortlist ready in your dashboard.
+            {BRAND_NAME}&apos;s candidate marketplace isn&apos;t live yet, so there&apos;s no shortlist to show you today. We&apos;ll email you the moment we have genuine, matched candidates for this role, not before.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/employer" className="btn btn-lime" style={{ fontWeight: 600, fontSize: 15 }}>View shortlist →</Link>
             <button onClick={() => { setDone(false); setTitle(''); setDescription(''); setLocation(''); setSalaryMin(''); setSalaryMax('') }}
-              className="btn btn-ghost" style={{ fontSize: 14 }}>Post another role</button>
+              className="btn btn-lime" style={{ fontWeight: 600, fontSize: 15 }}>Register another role</button>
           </div>
           <div style={{ marginTop: 48, padding: '24px 0', borderTop: '1px solid var(--marker-border)' }}>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginBottom: 12 }}>
-              REFER ANOTHER HIRING TEAM
+              KNOW ANOTHER HIRING TEAM?
             </p>
             <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 16 }}>
-              Refer another hiring team. When they make their first hire through {BRAND_NAME}, you both get a credit toward your next fee.
+              We&apos;re early, and every genuine team who registers helps us build real demand signal faster. No referral reward exists yet; if that changes, we&apos;ll tell you plainly.
             </p>
             <a href="mailto:support@upstreaminsights.co.uk?subject=Refer%20a%20team" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
-              Refer a team →
+              Tell a team about us →
             </a>
           </div>
         </div>
@@ -135,15 +134,15 @@ export default function HirePage() {
 
       {/* Hero */}
       <section style={{ padding: '72px 64px 48px', maxWidth: 1100, margin: '0 auto' }}>
-        <div className="kicker holo-text" style={{ marginBottom: 16 }}>For teams who want to hire well without an agency retainer.</div>
+        <div className="kicker holo-text" style={{ marginBottom: 16 }}>Early access for teams who want to hire well, without an agency retainer.</div>
         <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 6vw, 80px)', marginBottom: 20, maxWidth: 760 }}>
-          <span className="chrome-text">A short list of people who fit and genuinely want it.</span>
+          <span className="chrome-text">We&apos;re building this. Register your interest.</span>
         </h1>
         <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 600, lineHeight: 1.65, marginBottom: 28 }}>
-          Tell {BRAND_NAME} about the role and you&apos;ll get a ranked short list of candidates from our pool, scored against what you need and genuinely interested in the work. Everyone stays anonymous until you both choose to connect. You pay 8% of first-year salary only when you hire, with a three-month guarantee, and we&apos;ll always be clear about what&apos;s done by software and what&apos;s done by a person.
+          {BRAND_NAME}&apos;s candidate marketplace, matched shortlists, anonymised intros, isn&apos;t live yet: we have no employers and no completed hires to point to. What we do have is a growing pool of real candidates on the platform. Registering interest now costs nothing and helps us tell you honestly when there&apos;s a genuine match for your role.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          {['No subscription. No fee unless you hire.', 'Anonymised until mutual opt-in', 'Real candidates, no fake "200 matches"'].map(f => (
+          {['Early access, not a live marketplace yet', 'No fee to register', 'We only reach out with a genuine match'].map(f => (
             <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '7px 12px' }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--marker-lime)', flexShrink: 0 }} />
               <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500 }}>{f}</span>
@@ -176,8 +175,8 @@ export default function HirePage() {
       {/* Credibility band */}
       <section style={{ padding: '32px 64px', background: 'var(--marker-cream-2)', display: 'flex', justifyContent: 'center' }}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--marker-mid)', textAlign: 'center', maxWidth: 640, lineHeight: 1.65, margin: 0 }}>
-          <strong style={{ color: 'var(--marker-text)' }}>Built for lean teams.</strong>{' '}
-          No long contract, no platform fee, no pressure. You try it on a real role, and it either earns the hire or it doesn&apos;t.
+          <strong style={{ color: 'var(--marker-text)' }}>Built for lean teams, honestly early.</strong>{' '}
+          No long contract, no platform fee, no pressure. We&apos;d rather register your interest now and earn a real shortlist later than oversell one today.
         </p>
       </section>
 
@@ -278,11 +277,11 @@ export default function HirePage() {
               disabled={saving || !canSubmit}
               className="btn btn-lime btn-iris-sheen"
               style={{ marginTop: 8, padding: '14px 24px', fontSize: 15, fontWeight: 600, opacity: canSubmit ? 1 : 0.4 }}>
-              {saving ? 'Posting…' : 'Post a role: see your shortlist →'}
+              {saving ? 'Registering…' : 'Register interest →'}
             </button>
 
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', lineHeight: 1.6 }}>
-              By posting, you agree to our terms. Roles are matched to opted-in candidates. Candidate identities are anonymised until mutual interest. Success fee: 8% of first-year base, due only on hire.
+              By registering, you agree to our terms. This is an expression of interest, not a live shortlist: {BRAND_NAME}&apos;s employer marketplace has not launched yet, so no fee applies today and no candidate introductions happen automatically.
             </p>
           </div>
         )}
