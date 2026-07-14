@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 25 complete — Session F, feed UX bundle shipped. Posted-within filter (1/3/7/14 days/anytime) added to FeedTab + ContractorTab, persisted to localStorage, threaded into Adzuna's native `max_days_old` for all three live-scan routes. Bulk select/move/delete added to the pipeline (per-card checkboxes, select-all-in-column, bulk action bar). Expired-jobs banner + one-click bulk archive (flag-based, not delete) for dead-linked active-stage roles. All client-side/plain-DB-write — zero new AI/API cost paths.  
-**Last commit:** feat: Session F — feed UX bundle (posted-within filter, bulk pipeline actions, expired-jobs archive)  
+**Stage:** 26 complete — Session G, personalisation bundle shipped. Weekly free-text preference box (FeedTab) now weights `lib/match-engine.js`'s ranking via a new deterministic `weeklyFocus` dimension — no model calls. Shared `lib/uk-eligibility.js` (allowlist-wins logic, ported from the personal tracker) now filters every feed ingest source (`cron/adzuna`, `cron/gov`, `cron/contract`, `cron/ats`, plus the 3 live fresh-scan paths) — "Remote" kept, "Remote – US" rejected. Self-test against real `jobs_cache` caught and fixed a genuine false-negative (bare "new york"/"portland" rejecting real English place names). Housekeeping: committed the Session-E `cron/greenhouse` deletion that was left uncommitted.  
+**Last commit:** feat: Session G — personalisation bundle (weekly preference ranking, shared UK-eligibility filter)  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,37 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 26 — Session G: personalisation bundle — weekly preference ranking, shared UK-eligibility filter (2026-07-14)
+
+**Housekeeping first.** `app/api/cron/greenhouse/route.js` had been deleted on disk in Session E but the deletion was never committed — `vercel.json` and every live code reference already treated it as gone (confirmed via grep: no live code references it, only historical PROGRESS.md log entries and pre-feed-port audit docs do). Committed the deletion. Also added a code comment in `app/app/page.js` above `withinPostedWindow()` documenting the Session F nuance already noted in PROGRESS.md — filters on `cached_at` ("last touched by cron"), not true original posting date.
+
+**1. Weekly preferences box.** Free-text field ("remote only", "no fintech", "I'd take a pay cut for fewer office days") — new `WeeklyPreferenceBox` component in `FeedTab`, save-on-blur to a new dedicated endpoint `app/api/profile/weekly-preference/route.js`. Deliberately NOT reusing `/api/profile/save`: that route always re-derives every top-level profile column (`target_roles`, `seniority`, `salary_floor`, etc.) from its full payload, so a quick save with just `{weeklyPreference}` would have silently nulled out the rest of the user's profile. The new route only ever reads-merges-writes `hard_filters_json.weeklyPreference` (capped 300 chars), nothing else.
+
+Wired into `lib/match-engine.js` as a new `weeklyFocus` dimension, weight 0.08 (rebalanced from `roleFit` 0.30→0.25 and `freshness` 0.10→0.07 to keep weights summing to 1.0). `scoreWeeklyPreference(profile, job)` is pure keyword parsing, same idiom as the existing `scoreCultureWlb`:
+- Explicit exclusion ("no fintech") is a hard veto (score 1), overriding everything else.
+- "Remote only" is a hard preference (9 if the job is remote, 2 if not).
+- A "pay cut for fewer office days" phrase gets an informational nudge (the actual office-day scoring already lives in `locationFit` — not duplicated here).
+- Anything else falls back to a soft keyword match against the job's title/company/location/raw_json (score 7 if a non-trivial word from the note appears in the job, else neutral 5).
+- No preference set → neutral 5, contributes nothing.
+
+The box lives once in `FeedTab` — the ranking effect applies everywhere `scoreMatch` runs (feed-web, feed-gov, contractor/roles) since they all read the same `profiles.hard_filters_json.weeklyPreference`, not just the tab the box is shown in.
+
+**2. UK filter hardening.** New shared `lib/uk-eligibility.js`, `isUkEligible(location)` ported from the personal tracker's `app/lib/feeds.js` — same allowlist-wins logic proven there: an explicit UK signal always wins even when a non-UK place is also named ("London or New York" → kept); bare "remote" is kept (feeds are GB-scoped); "remote" pinned to a named non-UK region ("Remote - US", "Remote (Americas)") is rejected; an explicit non-UK place with no UK signal is rejected; fully ambiguous strings ("EMEA", "Global") are kept. Applied as a single shared function across every feed ingest source — not per-route: `cron/adzuna`, `cron/gov`, `cron/contract`, `cron/ats` (replacing its own local `isUkRole`/`UK_PATTERN` duplicate from Session E), and the three live fresh-scan paths inside `feed-web`, `feed-gov`, `contractor/roles`.
+
+**Self-test against real data caught a genuine bug before shipping.** Ran every distinct `location` string from real `jobs_cache` (1000 rows sampled via the REST API, 459 unique values) through `isUkEligible`. First pass: 3 false rejections — "Weston, Portland", "Fortuneswell, Portland", "New York, Lincoln". These are real English place names (the Isle of Portland, Dorset; a hamlet called New York near Lincoln) that the ported blocklist's bare `'new york'`/`'portland'` US-city entries were incorrectly catching — not an issue for the personal tracker this was ported from (a single-user, London-based search that never surfaced either place), but a real miss for Marker's UK-wide company/location coverage. Removed both bare entries from `NON_UK_LOCS` (documented in-code), added regression tests proving they're now kept while an explicit qualifier alongside them ("New York, USA", "Portland, Oregon") still correctly rejects via `usa`/`oregon`. Re-ran against the same 1000 rows after the fix: **0 false rejections**.
+
+**Full test coverage:**
+- `lib/uk-eligibility.test.js` (new): 26 cases across 7 groups — plain UK, bare remote, remote-pinned-to-non-UK, UK-wins-over-named-non-UK, explicit non-UK, ambiguous-kept, and the Portland/New-York regression group.
+- `lib/match-engine.test.js`: new Group 7, 5 cases for `weeklyFocus` (hard veto triggered, hard veto not triggered, remote-only match, remote-only mismatch, no-preference-neutral) — all pass; the existing 23-case suite still passes unchanged after the weight rebalance, confirming zero regression.
+- Vercel production build: `Build Completed`, `readyState: READY`, aliased to `marker-silk.vercel.app`.
+
+**NOT done — carried forward:**
+- The weekly-preference box's live save/load round-trip could only be code-reviewed, not curl-tested end-to-end (the route requires a real authenticated session cookie) — worth a manual click-test in the browser next session.
+- The `wishlists` Data-API/GRANT issue from Stage 23 remains outstanding.
+- No UI surface added to ContractorTab for the weekly-preference box — the ranking effect reaches it automatically via the shared profile field, but there's no visible input there; low priority since FeedTab is the primary discovery surface.
+
+---
 
 ### Stage 25 — Session F: feed UX bundle — posted-within filter, bulk pipeline actions, expired-jobs archive (2026-07-14)
 
