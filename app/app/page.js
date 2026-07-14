@@ -70,6 +70,73 @@ function SignalBadge({ signal }) {
   return <span style={{ background: bg, fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.06em', color }}>{label}</span>
 }
 
+// ── Fresh Scan — Pro/Max live re-scan, gated by lib/allowance.js's
+// feed_fresh_scan daily cap. Shows real allowance state before the click
+// (fetched read-only, spends nothing); free tier (cap 0) is disabled with
+// an upgrade hint instead of hidden. Posts {fresh:true} to one or more
+// routes (feed-web/feed-gov/contractor-roles), which live-scan and write
+// the shared cache, then calls onScanComplete to reload the passive view.
+function FreshScanButton({ endpoints, onScanComplete }) {
+  const [allowance, setAllowance] = useState(null)
+  const [scanning, setScanning]   = useState(false)
+  const [err, setErr]             = useState('')
+
+  useEffect(() => {
+    fetch('/api/profile/fresh-scan-allowance').then(r => r.ok ? r.json() : null).then(setAllowance).catch(() => {})
+  }, [])
+
+  if (!allowance) return null
+
+  const locked = allowance.cap === 0
+  const exhausted = !locked && allowance.used >= allowance.cap
+
+  async function runScan() {
+    setErr(''); setScanning(true)
+    try {
+      const results = await Promise.all(endpoints.map(ep =>
+        fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fresh: true }) })
+          .then(async r => ({ status: r.status, data: await r.json().catch(() => ({})) }))
+      ))
+      const limited = results.find(r => r.status === 429)
+      if (limited) {
+        setErr(limited.data.error || 'Fresh scan limit reached today.')
+        setAllowance(a => a ? { ...a, used: limited.data.used ?? a.used, cap: limited.data.cap ?? a.cap } : a)
+      } else {
+        setAllowance(a => a ? { ...a, used: a.used + 1 } : a)
+        await onScanComplete?.()
+      }
+    } catch {
+      setErr('Fresh scan failed. Try again.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <button
+        onClick={locked || exhausted || scanning ? undefined : runScan}
+        disabled={scanning}
+        title={locked ? 'Upgrade to Pro for live Fresh Scans — free plans read the shared daily-refreshed feed' : exhausted ? 'Fresh scan limit reached today' : undefined}
+        style={{
+          background: locked ? 'var(--marker-cream-2)' : exhausted ? 'var(--marker-border)' : 'var(--marker-lime)',
+          border: locked ? '1px solid var(--marker-border)' : 'none',
+          color: 'var(--marker-black)', fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600,
+          letterSpacing: '0.04em', padding: '5px 11px', borderRadius: 6,
+          cursor: locked || exhausted || scanning ? 'default' : 'pointer', opacity: scanning ? 0.6 : 1,
+        }}>
+        {scanning ? 'SCANNING…' : locked ? '⚡ FRESH SCAN · PRO' : '⚡ FRESH SCAN'}
+      </button>
+      {!locked && (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+          {Math.max(0, allowance.cap - allowance.used)} of {allowance.cap} left today
+        </span>
+      )}
+      {err && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#B91C1C' }}>{err}</span>}
+    </div>
+  )
+}
+
 // ── Pipeline card — matches ProductMobileUI.jsx exactly ───────────
 
 const FACTOR_LABELS = {
@@ -2098,6 +2165,9 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
               </button>
               {refreshCooldownMsg && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Refreshed &lt;1h ago. Check back later.</span>}
             </div>
+            <div style={{ marginTop: 8 }}>
+              <FreshScanButton endpoints={['/api/feed-web', '/api/feed-gov']} onScanComplete={onRefreshFeed} />
+            </div>
           </div>
           {feedLoading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -3848,9 +3918,12 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
           )}
           {roles && !rolesLoading && (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{roles.length} contract roles · scored</div>
-                <button onClick={scanRoles} style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer', color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>↻ Rescan</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button onClick={scanRoles} style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer', color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>↻ Rescan</button>
+                  <FreshScanButton endpoints={['/api/contractor/roles']} onScanComplete={scanRoles} />
+                </div>
               </div>
               {roles.length === 0 ? (
                 <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: '20px', textAlign: 'center' }}>

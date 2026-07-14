@@ -13,6 +13,10 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/contract",
+      "schedule": "30 4 * * *"
+    },
+    {
       "path": "/api/cron/archive-inactive",
       "schedule": "0 5 * * *"
     },

@@ -1,20 +1,169 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { after } from 'next/server'
+import { scoreMatch } from '../../../../lib/match-engine'
+import { checkAllowance } from '../../../../lib/allowance'
+import { trackAiUsage } from '../../../../lib/ai-usage'
+import { scoreJobsBatch } from '../../../../lib/score-jobs-batch'
+import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../../lib/freshness'
 import { MODELS } from '../../../../lib/anthropic'
-import { STYLE_RULES } from '../../../../lib/brand'
 
+// Cost rules 1 + 2, same pattern as /api/feed-web and /api/feed-gov. Default
+// reads the shared, nightly-scored jobs_cache (source='adzuna', tagged
+// track_tags @> ['contract'] by cron/adzuna's contract-flavoured sibling —
+// see app/api/cron/contract/route.js) with zero AI cost; a live contract-
+// flavoured Adzuna scan only runs on {fresh:true}, gated by the Pro/Max
+// feed_fresh_scan daily cap.
 
 const CONTRACT_TITLE_MUST = ['contract', 'interim', 'ftc', 'fixed.term', 'day rate', 'freelance', 'fractional', 'maternity cover', 'parental cover', 'temporary']
 const CONTRACT_TITLE_REJECT = ['permanent', ' perm ', 'graduate', 'apprentice', 'junior', 'intern ']
 
-export async function POST() {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const adzunaId = process.env.ADZUNA_APP_ID
-  const adzunaKey = process.env.ADZUNA_API_KEY
+function passesContractFilter(title, description) {
+  const text = (title + ' ' + (description || '')).toLowerCase()
+  return CONTRACT_TITLE_MUST.some(k => text.includes(k)) && !CONTRACT_TITLE_REJECT.some(k => text.includes(k))
+}
 
-  if (!adzunaId || !adzunaKey) return Response.json({ jobs: [], error: 'Adzuna not configured' })
+function buildContractQueries(profile) {
+  const hfj = profile?.hard_filters_json || {}
+  const roles = profile?.target_roles || []
+  const contractTypes = hfj.contractTypes || ['interim']
+  const field = hfj.contractorField || hfj.field || ''
 
+  const queries = new Set()
+  for (const role of roles.slice(0, 5)) {
+    queries.add(`interim ${role}`)
+    queries.add(`contract ${role}`)
+    if (field) queries.add(`interim ${role} ${field}`)
+  }
+  if (contractTypes.includes('day_rate')) for (const role of roles.slice(0, 3)) queries.add(`day rate ${role}`)
+  if (contractTypes.includes('ftc')) for (const role of roles.slice(0, 3)) queries.add(`fixed term ${role}`)
+  if (contractTypes.includes('freelance')) for (const role of roles.slice(0, 2)) queries.add(`freelance ${role}`)
+  if (queries.size === 0) {
+    queries.add(`interim ${field || 'manager'}`)
+    queries.add(`contract ${field || 'director'} UK`)
+    queries.add(`interim senior manager UK`)
+  }
+  return [...queries].slice(0, 12)
+}
+
+function formatSalary(job) {
+  const min = job.salary_min, max = job.salary_max
+  if (!min && !max) return null
+  if (min && max) return `£${Math.round(min / 1000)}k–£${Math.round(max / 1000)}k`
+  if (min) return `£${Math.round(min / 1000)}k+`
+  return null
+}
+
+function rowToJob(row) {
+  return {
+    id: row.id, title: row.role_title, company: row.company, url: row.link,
+    salary: row.salary, location: row.location, score: row.match_score ?? null,
+    score_tier: row.score_tier || null, office: 'Unknown', source: 'contract_search',
+    freshness: row.freshness, created: row.posted_at || row.cached_at, foundAt: row.cached_at,
+  }
+}
+
+function interleaveByCompany(jobs) {
+  const byCompany = {}
+  jobs.forEach(j => { const k = j.company; if (!byCompany[k]) byCompany[k] = []; byCompany[k].push(j) })
+  const queues = Object.values(byCompany)
+  const out = []
+  const maxLen = Math.max(...queues.map(q => q.length), 0)
+  for (let i = 0; i < maxLen; i++) { for (const q of queues) { if (i < q.length) out.push(q[i]) } }
+  return out
+}
+
+// Zero-AI-cost default path — reads jobs_cache rows the nightly
+// cron/contract + cron/score-cache have already ingested and baseline-scored.
+async function readFromCache(service, profile) {
+  const { data: rows } = await service
+    .from('jobs_cache')
+    .select('*')
+    .eq('source', 'adzuna')
+    .contains('track_tags', ['contract'])
+    .not('scored_at', 'is', null)
+    .order('cached_at', { ascending: false })
+    .limit(300)
+
+  if (!rows || rows.length === 0) return { jobs: [], total: 0 }
+
+  const now = new Date()
+  const fresh = filterAndSortByFreshness(rows.map(row => applyFreshnessToRow(row, now)))
+  const withRelevance = fresh
+    .map(row => ({ row, relevance: scoreMatch(profile, row) }))
+    .filter(({ row, relevance }) => (row.match_score ?? 6) >= 5 && relevance.score >= 6)
+    .sort((a, b) => b.relevance.score - a.relevance.score)
+    .map(({ row }) => rowToJob(row))
+
+  return { jobs: interleaveByCompany(withRelevance).slice(0, 60), total: rows.length }
+}
+
+// Fresh-scan path — Pro/Max only, daily-capped. Live contract-flavoured
+// Adzuna search built from the user's own profile (target roles, contract
+// types, field), then ONE shared baseline Haiku score
+// (lib/score-jobs-batch.js — same rubric as the nightly cron), upserted
+// into the SHARED jobs_cache tagged track_tags:['contract'].
+async function runFreshScan(service, apiKey, userId, profile) {
+  const appId = process.env.ADZUNA_APP_ID
+  const appKey = process.env.ADZUNA_API_KEY
+  if (!appId || !appKey) return { jobs: [], error: 'Adzuna API keys not configured' }
+
+  const salaryMin = profile?.salary_floor || 60000
+  const now = new Date().toISOString()
+  const raw = []
+  for (const query of buildContractQueries(profile)) {
+    try {
+      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=21&sort_by=date`
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) continue
+      const data = await res.json()
+      for (const job of (data.results || [])) {
+        if (!job.id) continue
+        if (!passesContractFilter(job.title || '', job.description || '')) continue
+        raw.push({
+          external_id: `adzuna-${job.id}`,
+          company: job.company?.display_name || 'Unknown',
+          role_title: job.title,
+          link: job.redirect_url,
+          salary: formatSalary(job),
+          location: job.location?.display_name || '',
+          source: 'adzuna',
+          source_type: 'public_listing',
+          track_tags: ['contract'],
+          cached_at: now,
+          last_verified_at: now,
+          adzuna_attribution_required: true,
+          raw_json: { description: (job.description || '').slice(0, 300) },
+        })
+      }
+      await new Promise(r => setTimeout(r, 300))
+    } catch { continue }
+  }
+
+  const seen = new Set()
+  const deduped = raw.filter(r => (seen.has(r.external_id) ? false : (seen.add(r.external_id), true))).slice(0, 100)
+  if (deduped.length === 0) return { jobs: 0, total: 0 }
+
+  await service.from('jobs_cache').upsert(deduped, { onConflict: 'external_id' })
+
+  try {
+    const { scores, usage } = await scoreJobsBatch(apiKey, deduped)
+    const nowIso = new Date().toISOString()
+    for (let i = 0; i < deduped.length; i++) {
+      const score = scores.has(i) ? scores.get(i) : 6
+      await service.from('jobs_cache').update({
+        match_score: score, score_tier: 'quick', scored_at: nowIso,
+        score_breakdown_json: { tier: 'quick', model: 'haiku', baseline: true, source: 'fresh_scan' },
+      }).eq('external_id', deduped[i].external_id)
+    }
+    if (userId && usage) after(() => trackAiUsage({ userId, model: MODELS.haiku, action: 'feed_fresh_scan', usage }))
+  } catch { /* rows stay cached unscored; the nightly cron will pick them up */ }
+
+  return { jobs: deduped.length, total: deduped.length }
+}
+
+export async function POST(req) {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,166 +171,35 @@ export async function POST() {
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   )
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return Response.json({ jobs: [], error: 'Sign in required' }, { status: 401 })
 
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-  const { data: profile } = await service.from('profiles')
-    .select('target_roles, salary_floor, hard_filters_json')
+  const { data: profile } = await service
+    .from('profiles')
+    .select('target_roles, seniority, industries, postcode, salary_floor, max_office_days, hard_filters_json, track')
     .eq('user_id', user.id).single()
 
-  const hfj = profile?.hard_filters_json || {}
-  const roles = profile?.target_roles || []
-  const contractTypes = hfj.contractTypes || ['interim']
-  const ir35 = hfj.ir35Willing || 'either'
-  const salaryMin = profile?.salary_floor || 60000
-  const cvSnippet = (hfj.cvRaw || hfj.careerSummary || '').slice(0, 900)
-  const field = hfj.contractorField || hfj.field || ''
-  const seniorities = (profile?.seniorities || [])
-    .map(s => ({ senior_manager: 'Senior Manager', head_of: 'Head of', director: 'Director', vp: 'VP', c_suite: 'C-Suite' }[s]))
-    .filter(Boolean)
+  let body = {}
+  try { body = await req.json() } catch {}
 
-  // Build Adzuna queries: contract variants of target roles, anchored to field
-  const queries = new Set()
-  for (const role of roles.slice(0, 5)) {
-    queries.add(`interim ${role}`)
-    queries.add(`contract ${role}`)
-    if (field) queries.add(`interim ${role} ${field}`)
-  }
-  if (contractTypes.includes('day_rate')) {
-    for (const role of roles.slice(0, 3)) queries.add(`day rate ${role}`)
-  }
-  if (contractTypes.includes('ftc')) {
-    for (const role of roles.slice(0, 3)) queries.add(`fixed term ${role}`)
-  }
-  if (contractTypes.includes('freelance')) {
-    for (const role of roles.slice(0, 2)) queries.add(`freelance ${role}`)
-  }
-  // Fallback if no target_roles
-  if (queries.size === 0) {
-    queries.add(`interim ${field || 'manager'}`)
-    queries.add(`contract ${field || 'director'} UK`)
-    queries.add(`interim senior manager UK`)
-  }
-
-  const allJobs = []
-
-  for (const query of [...queries].slice(0, 12)) {
-    try {
-      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${adzunaId}&app_key=${adzunaKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=21&sort_by=date`
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-      if (!res.ok) continue
-      const data = await res.json()
-      const results = (data.results || []).map(j => ({
-        title: j.title || '',
-        company: j.company?.display_name || 'Unknown',
-        location: j.location?.display_name || '',
-        url: j.redirect_url || '',
-        salary: j.salary_is_predicted === '0' ? `£${Math.round(j.salary_min || 0).toLocaleString()} – £${Math.round(j.salary_max || 0).toLocaleString()}` : '',
-        created: j.created || '',
-        description: (j.description || '').slice(0, 300),
-      }))
-      allJobs.push(...results)
-      await new Promise(r => setTimeout(r, 350))
-    } catch { continue }
-  }
-
-  // Filter: must have a contract keyword in title or description (case-insensitive)
-  const contractFiltered = allJobs.filter(j => {
-    const text = (j.title + ' ' + j.description).toLowerCase()
-    const hasContract = CONTRACT_TITLE_MUST.some(k => text.includes(k))
-    const isReject = CONTRACT_TITLE_REJECT.some(k => text.includes(k))
-    return hasContract && !isReject
-  })
-
-  // Dedupe by title+company
-  const seen = new Set()
-  const deduped = contractFiltered.filter(j => {
-    const k = (j.title + '|' + j.company).toLowerCase()
-    if (seen.has(k)) return false
-    seen.add(k); return true
-  })
-
-  if (deduped.length === 0) return Response.json({ jobs: [], total: 0 })
-
-  if (!apiKey) {
-    return Response.json({
-      jobs: deduped.slice(0, 20).map((j, i) => ({ ...j, id: `ct-${i}`, score: 0, signal: 'maybe', badge: 'Unscored', reason: 'No API key', office: 'Unknown', source: 'contract_search', foundAt: new Date().toISOString() })),
-      total: deduped.length,
-    })
-  }
-
-  // Cap per company, max 60 to score
-  const companyCounts = {}
-  const toScore = deduped.filter(j => {
-    const k = j.company.toLowerCase()
-    companyCounts[k] = (companyCounts[k] || 0) + 1
-    return companyCounts[k] <= 3
-  }).slice(0, 60)
-
-  const profileCtx = cvSnippet
-    ? `Candidate background: ${cvSnippet}`
-    : `Candidate: senior ${seniorities[0] || ''} ${field || 'professional'} looking for ${contractTypes.join('/')} roles. Target roles: ${roles.join(', ') || 'senior manager, director'}.`
-
-  const ir35Note = ir35 === 'outside' ? 'Prefer outside-IR35 roles.' : ir35 === 'inside' ? 'Comfortable with inside-IR35.' : ''
-  const fieldNote = field
-    ? `FIELD SPECIFICITY: This candidate works in "${field}". A role with a matching title but in an unrelated sector (e.g. logistics, warehousing, FMCG, construction if the candidate is in ${field}) must score 1-4. The full job context must match their sector; not just the job title.`
-    : ''
-
-  const summaries = toScore.map((j, i) => `[${i}] "${j.title}" at ${j.company} | ${j.location} | ${j.salary}`).join('\n')
-
-  const prompt = `Score these contract/interim job listings for a candidate.
-
-${profileCtx}
-${ir35Note}
-${fieldNote}
-
-JOBS:
-${summaries}
-
-Return JSON array. Each object:
-{"i": index, "score": 1-10, "signal": "apply"/"maybe"/"skip", "reason": "one sentence explaining relevance to this specific candidate", "badge": "Best Match"/"Strong Fit"/"Worth a Look"/"Stretch"/null, "office": "Remote"/"1 day"/"2 days"/"3+ days"/"Unknown", "contractType": "Day-rate"/"Interim"/"FTC"/"Freelance"/"Unknown"}
-
-Scoring: 8+ use 0.2 increments. Only include score ≥ 7. Reject perm roles, wrong-sector roles, junior roles, generic aggregator listings. Be strict: a smaller list of genuinely relevant roles is better than a long list of questionable ones. Return ONLY the JSON array.
-
-${STYLE_RULES}`
-
-  const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: MODELS.sonnet, max_tokens: 3900, messages: [{ role: 'user', content: prompt }] }),
-  })
-
-  const aiData = await aiRes.json()
-  const text = (aiData.content || []).map(c => c.text || '').join('') || '[]'
-  const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-
-  let scored
-  try { scored = JSON.parse(cleaned) } catch { return Response.json({ jobs: [], error: 'Parse error' }) }
-  if (!Array.isArray(scored)) scored = [scored]
-
-  const now = new Date().toISOString()
-  const jobs = scored.filter(s => s.score >= 7).map(s => {
-    const orig = toScore[s.i] || {}
-    return {
-      id: `ct-${(orig.title || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 25).toLowerCase()}-${(orig.company || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`,
-      title: orig.title || 'Unknown',
-      company: orig.company || 'Unknown',
-      url: orig.url || '',
-      score: s.score,
-      signal: s.signal,
-      reason: s.reason,
-      badge: s.badge,
-      office: s.office,
-      contractType: s.contractType || 'Unknown',
-      salary: orig.salary || '',
-      location: orig.location || '',
-      created: orig.created || '',
-      source: 'contract_search',
-      foundAt: now,
+  if (body?.fresh === true) {
+    const { allowed, used, cap, tier } = await checkAllowance(user.id, 'feed_fresh_scan')
+    if (!allowed) {
+      return Response.json({
+        jobs: [], limitReached: true, used, cap, tier,
+        error: cap === 0
+          ? 'Fresh scan is a Pro feature. Upgrade to run live scans; free plans read the shared daily-refreshed feed.'
+          : `Fresh scan limit reached (${used}/${cap} today). Try again tomorrow, or browse the cached feed.`,
+      }, { status: 429 })
     }
-  })
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) return Response.json({ jobs: [], error: 'No API key configured' }, { status: 500 })
 
-  jobs.sort((a, b) => (b.score || 0) - (a.score || 0))
+    await runFreshScan(service, apiKey, user.id, profile)
+    const { jobs, total } = await readFromCache(service, profile)
+    return Response.json({ jobs, total, source: 'fresh' })
+  }
 
-  return Response.json({ jobs, total: deduped.length, scored: toScore.length })
+  const { jobs, total } = await readFromCache(service, profile)
+  return Response.json({ jobs, total, source: 'cache' })
 }
