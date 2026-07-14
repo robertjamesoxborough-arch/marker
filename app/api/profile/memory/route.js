@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { logIfError } from '../../../../lib/log-errors'
 
 // GET — returns the full structured profile record + career_history + wishlists
 // for the Memory Card and ai-context assembly.
@@ -32,6 +33,10 @@ export async function GET() {
       .select('id, company, careers_url')
       .eq('user_id', user.id),
   ])
+
+  logIfError('profile/memory profiles', profileRes)
+  logIfError('profile/memory career_history', historyRes)
+  logIfError('profile/memory wishlists', wishlistRes)
 
   return Response.json({
     profile:       profileRes.data  || null,

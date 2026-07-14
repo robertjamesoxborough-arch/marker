@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logIfError } from '../../../lib/log-errors'
 
 export async function GET() {
   const service = createClient(
@@ -18,6 +19,10 @@ export async function GET() {
       .select('user_id', { count: 'exact', head: true })
       .not('target_roles', 'is', null),
   ])
+
+  logIfError('network-meter employer_roles', rolesRes)
+  logIfError('network-meter employer_profiles', employersRes)
+  logIfError('network-meter profiles', candidatesRes)
 
   return Response.json({
     roleCount: rolesRes.count || 0,

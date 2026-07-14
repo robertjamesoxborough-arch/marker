@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { logIfError } from '../../../../lib/log-errors'
 
 export async function POST(req) {
   const cookieStore = await cookies()
@@ -15,19 +16,21 @@ export async function POST(req) {
   if (!ref || ref === user.id) return Response.json({ ok: true })
 
   // Check not already captured for this referred user
-  const { data: existing } = await supabase
+  const existingRes = await supabase
     .from('referrals')
     .select('id')
     .eq('referred_user_id', user.id)
     .maybeSingle()
-  if (existing) return Response.json({ ok: true })
+  logIfError('referral/capture existing check', existingRes)
+  if (existingRes.data) return Response.json({ ok: true })
 
-  await supabase.from('referrals').insert({
+  const insertRes = await supabase.from('referrals').insert({
     referrer_account_id: ref,
     referred_user_id: user.id,
     status: 'pending',
     commission_rate: 0.08,
   })
+  logIfError('referral/capture insert', insertRes)
 
   return Response.json({ ok: true })
 }

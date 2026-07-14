@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { sendIntroResponse } from '../../../../lib/email'
+import { logIfError } from '../../../../lib/log-errors'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -16,30 +17,36 @@ export async function GET() {
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   // Get all of this candidate's matches
-  const { data: matches } = await service
+  const matchesRes = await service
     .from('candidate_employer_matches')
     .select('id, employer_role_id, candidate_opted_in, employer_opted_in, match_score')
     .eq('user_id', user.id)
+  logIfError('candidate/intros matches', matchesRes)
+  const matches = matchesRes.data
 
   if (!matches?.length) return Response.json({ intros: [] })
 
   const matchIds = matches.map(m => m.id)
 
   // Get intro requests for these matches
-  const { data: requests } = await service
+  const requestsRes = await service
     .from('intro_requests')
     .select('id, match_id, requested_by, status, message, requested_at, responded_at')
     .in('match_id', matchIds)
     .order('requested_at', { ascending: false })
+  logIfError('candidate/intros intro_requests', requestsRes)
+  const requests = requestsRes.data
 
   if (!requests?.length) return Response.json({ intros: [] })
 
   // Get roles for context
   const roleIds = [...new Set(matches.map(m => m.employer_role_id))]
-  const { data: roles } = await service
+  const rolesRes = await service
     .from('employer_roles')
     .select('id, title, location, salary_min, salary_max, employer_id')
     .in('id', roleIds)
+  logIfError('candidate/intros employer_roles', rolesRes)
+  const roles = rolesRes.data
 
   // Get employer company names — ONLY for matches where BOTH sides have opted in (G1 invariant)
   const mutualMatches = matches.filter(m => m.candidate_opted_in && m.employer_opted_in)
@@ -112,21 +119,25 @@ export async function POST(req) {
   }
 
   // Get the intro request
-  const { data: introReq } = await service
+  const introReqRes = await service
     .from('intro_requests')
     .select('id, match_id, status')
     .eq('id', requestId)
     .maybeSingle()
-  if (!introReq) return Response.json({ error: 'Request not found' }, { status: 404 })
+  logIfError('candidate/intros introReq lookup', introReqRes)
+  const introReq = introReqRes.data
+  if (!introReq) return Response.json({ error: introReqRes.error?.message || 'Request not found' }, { status: introReqRes.error ? 500 : 404 })
 
   // Verify this match belongs to the authenticated candidate (G1 invariant — auth check)
-  const { data: match } = await service
+  const matchRes = await service
     .from('candidate_employer_matches')
     .select('id, user_id, employer_role_id, employer_opted_in')
     .eq('id', introReq.match_id)
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!match) return Response.json({ error: 'Not authorised' }, { status: 403 })
+  logIfError('candidate/intros match auth-check', matchRes)
+  const match = matchRes.data
+  if (!match) return Response.json({ error: matchRes.error?.message || 'Not authorised' }, { status: matchRes.error ? 500 : 403 })
 
   if (introReq.status !== 'pending') {
     return Response.json({ error: 'Already responded', status: introReq.status }, { status: 409 })

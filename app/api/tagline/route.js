@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { logIfError } from '../../../lib/log-errors'
 
 function service() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -7,12 +8,13 @@ function service() {
 
 // Public — returns the active tagline for the homepage
 export async function GET() {
-  const { data } = await service()
+  const res = await service()
     .from('admin_taglines')
     .select('id, tagline_text')
     .eq('active', true)
     .single()
-  return NextResponse.json(data || null, {
+  logIfError('tagline GET', res)
+  return NextResponse.json(res.data || null, {
     headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' },
   })
 }
@@ -23,8 +25,11 @@ export async function POST(request) {
   if (!id) return NextResponse.json({ ok: false })
   const col = field === 'conversion' ? 'conversions' : 'impressions'
   const sb = service()
-  const { data: row } = await sb.from('admin_taglines').select(col).eq('id', id).single()
+  const rowRes = await sb.from('admin_taglines').select(col).eq('id', id).single()
+  logIfError('tagline POST select', rowRes)
+  const row = rowRes.data
   if (!row) return NextResponse.json({ ok: false })
-  await sb.from('admin_taglines').update({ [col]: (row[col] || 0) + 1 }).eq('id', id)
+  const updateRes = await sb.from('admin_taglines').update({ [col]: (row[col] || 0) + 1 }).eq('id', id)
+  logIfError('tagline POST update', updateRes)
   return NextResponse.json({ ok: true })
 }

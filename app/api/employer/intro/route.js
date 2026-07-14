@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { sendIntroRequest } from '../../../../lib/email'
+import { logIfError } from '../../../../lib/log-errors'
 
 export async function POST(req) {
   const cookieStore = await cookies()
@@ -19,29 +20,35 @@ export async function POST(req) {
   if (!matchId) return Response.json({ error: 'matchId required' }, { status: 400 })
 
   // Verify employer has a profile
-  const { data: ep } = await service
+  const epRes = await service
     .from('employer_profiles')
     .select('id, company_name')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!ep) return Response.json({ error: 'No employer profile' }, { status: 403 })
+  logIfError('employer/intro employer_profiles', epRes)
+  const ep = epRes.data
+  if (!ep) return Response.json({ error: epRes.error?.message || 'No employer profile' }, { status: epRes.error ? 500 : 403 })
 
   // Get the match
-  const { data: match } = await service
+  const matchRes = await service
     .from('candidate_employer_matches')
     .select('id, user_id, employer_role_id, candidate_opted_in, employer_opted_in')
     .eq('id', matchId)
     .maybeSingle()
-  if (!match) return Response.json({ error: 'Match not found' }, { status: 404 })
+  logIfError('employer/intro candidate_employer_matches', matchRes)
+  const match = matchRes.data
+  if (!match) return Response.json({ error: matchRes.error?.message || 'Match not found' }, { status: matchRes.error ? 500 : 404 })
 
   // Verify employer owns the role for this match
-  const { data: role } = await service
+  const roleRes = await service
     .from('employer_roles')
     .select('id, title')
     .eq('id', match.employer_role_id)
     .eq('employer_id', ep.id)
     .maybeSingle()
-  if (!role) return Response.json({ error: 'Not authorised for this match' }, { status: 403 })
+  logIfError('employer/intro employer_roles', roleRes)
+  const role = roleRes.data
+  if (!role) return Response.json({ error: roleRes.error?.message || 'Not authorised for this match' }, { status: roleRes.error ? 500 : 403 })
 
   // Idempotent: if a non-declined request already exists, return it
   const { data: existing } = await service

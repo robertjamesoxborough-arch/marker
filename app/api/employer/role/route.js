@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { logIfError } from '../../../../lib/log-errors'
 
 async function getAuth() {
   const cookieStore = await cookies()
@@ -19,16 +20,19 @@ export async function GET() {
 
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const { data: ep } = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
+  const epRes = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
+  logIfError('employer/role GET employer_profiles', epRes)
+  const ep = epRes.data
   if (!ep) return Response.json({ roles: [] })
 
-  const { data: roles } = await service
+  const rolesRes = await service
     .from('employer_roles')
     .select('*')
     .eq('employer_id', ep.id)
     .order('created_at', { ascending: false })
+  logIfError('employer/role GET employer_roles', rolesRes)
 
-  return Response.json({ roles: roles || [] })
+  return Response.json({ roles: rolesRes.data || [] })
 }
 
 export async function POST(req) {
@@ -40,8 +44,10 @@ export async function POST(req) {
   const { title, description, location, salary_min, salary_max } = await req.json()
   if (!title?.trim()) return Response.json({ error: 'title is required' }, { status: 400 })
 
-  const { data: ep } = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
-  if (!ep) return Response.json({ error: 'Employer profile not found. Create one first.' }, { status: 400 })
+  const epRes = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
+  logIfError('employer/role POST employer_profiles', epRes)
+  const ep = epRes.data
+  if (!ep) return Response.json({ error: epRes.error?.message || 'Employer profile not found. Create one first.' }, { status: epRes.error ? 500 : 400 })
 
   const { data: role, error } = await service
     .from('employer_roles')

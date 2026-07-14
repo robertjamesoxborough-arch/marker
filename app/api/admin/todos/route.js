@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { logIfError } from '../../../../lib/log-errors'
 
 const SEED = [
   // Marketing
@@ -77,8 +78,9 @@ export async function GET() {
 
   // Seed on first load
   if (!data || data.length === 0) {
-    const { data: seeded } = await sb.from('admin_todos').insert(SEED).select()
-    data = seeded || []
+    const seedRes = await sb.from('admin_todos').insert(SEED).select()
+    logIfError('admin/todos seed', seedRes)
+    data = seedRes.data || []
   }
 
   return NextResponse.json(data)

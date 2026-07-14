@@ -7,6 +7,7 @@ import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
 import { checkAllowance } from '../../../../lib/allowance'
+import { logIfError } from '../../../../lib/log-errors'
 
 
 export async function POST(request) {
@@ -38,6 +39,9 @@ export async function POST(request) {
     service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
     service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
   ])
+  logIfError('cv/cover-letter profiles', profileRes)
+  logIfError('cv/cover-letter career_history', historyRes)
+  logIfError('cv/cover-letter wishlists', wishlistRes)
   const profile = profileRes.data
   const careerHistory = historyRes.data || []
   const wishlists = wishlistRes.data || []

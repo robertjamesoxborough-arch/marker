@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { logIfError } from '../../../../lib/log-errors'
 
 async function getAuth() {
   const cookieStore = await cookies()
@@ -18,8 +19,9 @@ export async function GET() {
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-  const { data } = await service.from('employer_profiles').select('*').eq('user_id', user.id).maybeSingle()
-  return Response.json({ profile: data || null })
+  const res = await service.from('employer_profiles').select('*').eq('user_id', user.id).maybeSingle()
+  logIfError('employer/profile GET', res)
+  return Response.json({ profile: res.data || null })
 }
 
 export async function POST(req) {
@@ -31,10 +33,14 @@ export async function POST(req) {
 
   if (!company_name?.trim()) return Response.json({ error: 'company_name is required' }, { status: 400 })
 
-  const { data: userRow } = await service.from('users').select('default_account_id').eq('id', user.id).single()
-  if (!userRow?.default_account_id) return Response.json({ error: 'Account not found' }, { status: 400 })
+  const userRowRes = await service.from('users').select('default_account_id').eq('id', user.id).single()
+  logIfError('employer/profile users lookup', userRowRes)
+  const userRow = userRowRes.data
+  if (!userRow?.default_account_id) return Response.json({ error: userRowRes.error?.message || 'Account not found' }, { status: 400 })
 
-  const { data: existing } = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
+  const existingRes = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
+  logIfError('employer/profile existing check', existingRes)
+  const existing = existingRes.data
 
   if (existing) {
     const { data, error } = await service.from('employer_profiles')

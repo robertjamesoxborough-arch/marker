@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
 import { STYLE_RULES } from '../../../../lib/brand'
+import { logIfError } from '../../../../lib/log-errors'
 
 
 const COUNT = { light: 2, medium: 4, deep: 7 }
@@ -35,6 +36,9 @@ export async function POST(request) {
       service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
       service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
     ])
+    logIfError('cv/questions profiles', profileRes)
+    logIfError('cv/questions career_history', historyRes)
+    logIfError('cv/questions wishlists', wishlistRes)
     candidateContext = buildAiContext(profileRes.data, historyRes.data || [], wishlistRes.data || [])
   } catch {}
 

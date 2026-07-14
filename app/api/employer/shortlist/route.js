@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { scoreMatch } from '../../../../lib/match-engine'
+import { logIfError } from '../../../../lib/log-errors'
 
 function inferLocationArea(postcode) {
   if (!postcode) return 'Location undisclosed'
@@ -45,24 +46,30 @@ export async function POST(req) {
   if (!roleId) return Response.json({ error: 'roleId required' }, { status: 400 })
 
   // Verify employer owns this role
-  const { data: ep } = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
-  if (!ep) return Response.json({ error: 'No employer profile' }, { status: 403 })
+  const epRes = await service.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle()
+  logIfError('employer/shortlist employer_profiles', epRes)
+  const ep = epRes.data
+  if (!ep) return Response.json({ error: epRes.error?.message || 'No employer profile' }, { status: epRes.error ? 500 : 403 })
 
-  const { data: role } = await service
+  const roleRes = await service
     .from('employer_roles')
     .select('*')
     .eq('id', roleId)
     .eq('employer_id', ep.id)
     .maybeSingle()
-  if (!role) return Response.json({ error: 'Role not found' }, { status: 404 })
+  logIfError('employer/shortlist employer_roles', roleRes)
+  const role = roleRes.data
+  if (!role) return Response.json({ error: roleRes.error?.message || 'Role not found' }, { status: roleRes.error ? 500 : 404 })
 
   // Fetch candidate pool
-  const { data: candidates } = await service
+  const candidatesRes = await service
     .from('profiles')
     .select('user_id, target_roles, seniority, industries, postcode, max_office_days, salary_floor, track, hard_filters_json')
     .not('target_roles', 'is', null)
     .not('seniority', 'is', null)
     .limit(200)
+  logIfError('employer/shortlist profiles', candidatesRes)
+  const candidates = candidatesRes.data
 
   if (!candidates?.length) return Response.json({ shortlist: [], totalCandidates: 0 })
 
