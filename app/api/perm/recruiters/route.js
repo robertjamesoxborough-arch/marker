@@ -1,8 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { after } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
+import { trackAiUsage } from '../../../../lib/ai-usage'
 
 
 export async function POST() {
@@ -20,13 +22,13 @@ export async function POST() {
 
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   const { data: profile } = await service.from('profiles')
-    .select('target_roles, seniorities, postcode, hard_filters_json')
+    .select('target_roles, postcode, hard_filters_json')
     .eq('user_id', user.id).single()
 
   const hfj = profile?.hard_filters_json || {}
   const field = hfj.field || 'professional services'
   const roles = (profile?.target_roles || []).slice(0, 4).join(', ') || 'director, senior manager, head of'
-  const seniorities = (profile?.seniorities || [])
+  const seniorities = (hfj.seniorities || [])
     .map(s => ({ senior_manager: 'Senior Manager', head_of: 'Head of', director: 'Director', vp: 'VP', c_suite: 'C-Suite / VP' }[s]))
     .filter(Boolean).join(', ') || 'Senior Manager / Director'
   const location = profile?.postcode ? `near ${profile.postcode}, UK` : 'UK'
@@ -82,6 +84,12 @@ ${STYLE_RULES}`
   })
 
   const data = await res.json()
+  // Cost visibility: Sonnet + web_search (most expensive call type). Cached
+  // client-side for 7 days, but must still be logged so it can never spend
+  // invisibly (cost guardrail 6).
+  if (user?.id && data.usage) {
+    after(() => trackAiUsage({ userId: user.id, model: MODELS.sonnet, action: 'recruiter_search', usage: data.usage }))
+  }
   const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('') || '[]'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 

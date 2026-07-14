@@ -13,7 +13,7 @@ export default function PricingPage() {
       features: [
         'Pipeline board: track every stage of your search',
         'Job feed filtered to your profile, refreshed nightly',
-        'AI job scoring: 3 scores per day',
+        'AI job scoring: 30 scores per month',
         'Memory Card: everything Requite knows about you',
         'Basic AI intake and profile setup',
         'Honest limits shown upfront — no hidden paywalls',
@@ -76,10 +76,10 @@ export default function PricingPage() {
       <div style={{ textAlign: 'center', padding: '60px 24px 48px', maxWidth: 600, margin: '0 auto' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 14 }}>Pricing</div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 6vw, 48px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.03em', lineHeight: 1.0, margin: '0 0 16px' }}>
-          Free for candidates.<br />We earn when you&apos;re hired.
+          You pay us.<br />So we work for you.
         </h1>
         <p style={{ fontSize: 15, color: 'var(--marker-mid)', lineHeight: 1.7, margin: 0 }}>
-          Candidate tools are free. Employers pay 8% of first-year salary only when a hire is made.
+          Start free and stay free for as long as it works for you. Upgrade only if you want the unlimited AI tools. No employer pays us, so nothing pulls us away from your side.
         </p>
       </div>
 
@@ -96,9 +96,6 @@ export default function PricingPage() {
             display: 'flex',
             flexDirection: 'column',
           }}>
-            {plan.highlight && (
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--marker-lime)', marginBottom: 14 }}>Most chosen</div>
-            )}
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: plan.highlight ? 'var(--marker-cream)' : 'var(--marker-black)', marginBottom: 4 }}>{plan.name}</div>
             <div style={{ fontSize: 12, color: plan.highlight ? 'rgba(255,255,255,0.5)' : 'var(--marker-mid)', marginBottom: 20 }}>{plan.tagline}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 24 }}>
@@ -134,8 +131,8 @@ export default function PricingPage() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 48px', textAlign: 'center' }}>
         <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12, padding: '20px 24px' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 6 }}>Hiring instead of searching?</div>
-          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 12 }}>Employers pay 8% of first-year salary on a successful hire, with a three-month guarantee. No subscription, no upfront fee.</div>
-          <a href="/hire" style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', textDecoration: 'underline' }}>Post a role →</a>
+          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 12 }}>We&apos;re building an employer side and it isn&apos;t live yet. You can register early interest and we&apos;ll be in touch honestly when there&apos;s a genuine match, with no fee to register.</div>
+          <a href="/hire" style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', textDecoration: 'underline' }}>Register interest →</a>
         </div>
       </div>
 
@@ -143,7 +140,7 @@ export default function PricingPage() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 80px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 28, textAlign: 'center' }}>Common questions</div>
         {[
-          { q: 'Is the free tier really free?', a: 'Yes. The pipeline board, nightly job feed, Memory Card, and 3 AI scores per day are free with no trial period and no credit card required. Limits are shown upfront.' },
+          { q: 'Is the free tier really free?', a: 'Yes. The pipeline board, nightly job feed, Memory Card, and 30 AI scores per month are free with no trial period and no credit card required. Limits are shown upfront.' },
           { q: 'What does Pro include?', a: 'Unlimited AI scoring, CV tailoring (20/mo), interview prep packs (8/mo), salary benchmarks, and negotiation rehearsal tied to your tracked roles.' },
           { q: 'What does Max include?', a: 'Everything in Pro at 3x the volume: 3,000 AI scores, 60 CV tailors, 30 interview packs, 30 negotiation packs, and 60 cover letters per month. Built for high-intensity or multi-track searches.' },
           { q: 'Can I cancel Pro or Max?', a: 'Yes, at any time from Settings. Your account stays active until the end of the billing period. No cancellation fees. Refunds are available within 7 days of any charge.' },

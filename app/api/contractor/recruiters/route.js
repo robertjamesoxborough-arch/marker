@@ -1,8 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { after } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
+import { trackAiUsage } from '../../../../lib/ai-usage'
 
 
 export async function POST() {
@@ -79,6 +81,12 @@ ${STYLE_RULES}`
   })
 
   const data = await res.json()
+  // Cost visibility: this is a Sonnet + web_search call (the most expensive
+  // kind). It is cached client-side for 7 days, so it rarely fires, but it
+  // must still be logged so it can never spend invisibly (cost guardrail 6).
+  if (user?.id && data.usage) {
+    after(() => trackAiUsage({ userId: user.id, model: MODELS.sonnet, action: 'recruiter_search', usage: data.usage }))
+  }
   const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('') || '[]'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 

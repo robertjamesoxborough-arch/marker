@@ -26,7 +26,7 @@ export async function GET(request) {
   // Fetch profile for location/seniority pre-filter
   const { data: profile } = await service
     .from('profiles')
-    .select('target_roles, seniority, max_office_days, salary_floor, tracks, hard_filters_json')
+    .select('target_roles, seniority, max_office_days, salary_floor, hard_filters_json')
     .eq('user_id', user.id)
     .single()
 

@@ -30,7 +30,7 @@ export async function POST(req) {
   if (user) {
     const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     const [profileRes, historyRes, wishlistRes] = await Promise.all([
-      service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track, tracks').eq('user_id', user.id).single(),
+      service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track').eq('user_id', user.id).single(),
       service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
       service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
     ])
@@ -75,7 +75,7 @@ export async function POST(req) {
   const salaryFloor = profile?.salary_floor || null
   const preferredBenefits = profile?.hard_filters_json?.benefits || []
 
-  const tracks = profile?.tracks || (profile?.track ? [profile.track] : [])
+  const tracks = profile?.hard_filters_json?.tracks || (profile?.track ? [profile.track] : [])
 
   const TRACK_FILTERS = []
   if (tracks.includes('balanced')) {

@@ -233,7 +233,7 @@ export default function TrustPanel() {
             Start free (candidates)
           </Link>
           <Link href="/hire" style={{ display: 'inline-block', background: 'transparent', color: 'rgba(250,247,242,0.7)', border: '1px solid rgba(255,255,255,0.15)', padding: '13px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
-            Post a role →
+            For employers →
           </Link>
         </div>
         <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 28, display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
