@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 24 complete — Session E, multi-ATS engine shipped. `cron/greenhouse` (6 alive boards, ~195 jobs after 14 silently 404'd) rewritten into `cron/ats`, covering Greenhouse + Lever + Ashby + SmartRecruiters via a shared `lib/ats.js` with auto-detect (tries a company's recorded provider, falls back through the other three). Workday explicitly excluded pending legal review. 43 companies live-verified before shipping (not guessed) — tested 93 candidates, caught and excluded 4 false-positive company-identity matches. Real cron run: **764 UK-filtered jobs ingested** (Greenhouse 385, Ashby 279, SmartRecruiters 60, Lever 40), zero errors, all correctly unscored for the existing `score-cache` sweep.  
-**Last commit:** feat: multi-ATS engine — Greenhouse, Lever, Ashby, SmartRecruiters  
+**Stage:** 25 complete — Session F, feed UX bundle shipped. Posted-within filter (1/3/7/14 days/anytime) added to FeedTab + ContractorTab, persisted to localStorage, threaded into Adzuna's native `max_days_old` for all three live-scan routes. Bulk select/move/delete added to the pipeline (per-card checkboxes, select-all-in-column, bulk action bar). Expired-jobs banner + one-click bulk archive (flag-based, not delete) for dead-linked active-stage roles. All client-side/plain-DB-write — zero new AI/API cost paths.  
+**Last commit:** feat: Session F — feed UX bundle (posted-within filter, bulk pipeline actions, expired-jobs archive)  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,32 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 25 — Session F: feed UX bundle — posted-within filter, bulk pipeline actions, expired-jobs archive (2026-07-14)
+
+Three UX improvements ported from the personal tracker, scoped to be entirely client-side or plain DB writes — no new AI/API cost path, so no Cost Guardrails implications.
+
+**1. Posted-within filter.** New `usePostedWithin(defaultDays=14)` hook + `PostedWithinSelect` component (1/3/7/14 days/anytime), added to `FeedTab` and `ContractorTab`, persisted to `localStorage` (`mkr_posted_within`). Cached reads filter client-side on `foundAt`/`created` (deterministic, zero cost) via `withinPostedWindow(dateStr, days)` — missing dates are never hidden (matches the existing missing-info-neutral pattern used elsewhere in the app). Live Adzuna scans (`feed-web`, `feed-gov`, `contractor/roles`) thread the selection through as Adzuna's native `max_days_old` query param instead of filtering post-fetch, per the brief — cheaper and gives Adzuna's own relevance/date sort a chance to work properly. Defaults: 14 days (feed-web), 21 days (feed-gov, contractor/roles — unchanged from their prior hardcoded values when no selection is passed).
+
+**2. Bulk select/move/delete in the pipeline.** Per-card checkboxes (wrapped around the existing `PipelineCard` rather than modifying its internals, to avoid touching its established layout), a select-all-in-column checkbox in the column header, and a bulk action bar that appears only when `selectedIds.size > 0` — a "Move to…" dropdown (populated from `COLUMNS`) and a delete button with an inline confirm/cancel step (no native `confirm()` dialog, matches the app's existing inline-confirm pattern elsewhere e.g. bulk archive). All plain `pipeline_items` writes via the existing `updateJob`/`deleteJob` — no model calls.
+
+**3. Expired-jobs banner + bulk archive.** Surfaces roles that are dead-linked (`deadLink`) AND still in an active pipeline stage (`considering`/`to_apply`/`applied`) with a one-click "Archive all". Archive sets a flag, doesn't delete: added `archived: bool` to the existing `score_breakdown_json` JSONB blob (`lib/db.js` `jobToRow`/`rowToJob`) alongside `ranking`/`dadFriendly`/`salary`/`factors` — same established pattern, no schema migration needed, immediately usable this session. `colJobs` (the pipeline's per-column view) now filters out `archived` rows so they disappear from active columns without losing the row.
+
+**No new colours** — checked before shipping, not assumed: the banner's `#FEF3C7`/`#FCD34D` already exist in `app/app/page.js` (line 255, the existing "Dead link" chip background/border; lines 936/951/3557/3566, the interviewing-column colour and follow-up-banner styling). Confirmed via grep before finalising, per the brief's explicit "no new colours" instruction.
+
+**Self-tested against real data:**
+- `withinPostedWindow()` unit-tested standalone (4 cases: recent-date-within-window=true, old-date-outside-window=false, old-date-with-anytime=true, missing-date=true/don't-hide) — all passed.
+- Queried the real `jobs_cache` table via the Supabase REST API: **2471 total rows** (exceeds the "1500+" mentioned in the brief). Sampled the 5 most-recently-cached rows and found `posted_at` is `null` for ATS-sourced rows (expected — Session E's multi-provider ingest doesn't set it) — confirmed this doesn't break the filter because every feed route's row-mapper (`feed-web`, `feed-gov`, `contractor/roles`, `lib/db.js loadFeedFromDb`) sets `foundAt: row.cached_at`, which the client filter uses in preference to the null `posted_at`.
+- Ran the full existing test suite (`lib/scoring.test.js`, `lib/usage-window.test.js`, `lib/match-engine.test.js` — 23 cases) — all pass, confirming no regression.
+- Vercel production build: `Build Completed`, `readyState: READY`, aliased to `marker-silk.vercel.app` — the authoritative JSX/syntax gate for `app/app/page.js` (local `next build` hangs on this machine; local `node --check` cannot parse JSX).
+
+**Honest nuance, not a bug:** the posted-within filter runs on `cached_at`, which is refreshed on every nightly cron upsert — including for a listing that's been sitting in the cache a while and gets re-seen on a later scan. So "posted within 3 days" really means "last touched by our ingest within 3 days," not strictly "originally posted within 3 days." This is the same limitation the existing freshness system (Fresh/Aging/Stale/Expired) already has, not something this session introduced or could cheaply fix without a schema change to track true first-seen dates per listing.
+
+**NOT done — carried forward, out of scope for this session:**
+- `app/api/cron/greenhouse/route.js` is still present in git HEAD despite Stage 24's notes claiming it was "deleted, not kept alongside" — the working tree shows an uncommitted deletion. Pre-existing from Session E, not touched here; flagged for the next session to either commit the deletion or confirm it's still needed as a fallback.
+- The `wishlists` Data-API/GRANT issue from Stage 23 remains outstanding.
+
+---
 
 ### Stage 24 — Session E: multi-ATS engine (Greenhouse + Lever + Ashby + SmartRecruiters) (2026-07-14)
 
