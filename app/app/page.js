@@ -1403,18 +1403,6 @@ function buildCvPrompt(level, roleTitle, company, jobLink, cvRaw) {
   return `Please create a fully tailored, ATS-optimised version of my CV for this specific role. This is a deep rewrite; pull every relevant piece of experience forward and present it in the strongest possible way.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Reorder and reframe bullet points to lead with what this employer cares most about\n- Rewrite the profile/summary to be a direct pitch for this exact role\n- Use exact keywords from the JD throughout, especially in the summary, skills section, and each role's opening bullets\n- ATS: no tables, no text boxes, no columns, no headers/footers with key info, bullet points only, clean section headers\n- AI screening defence: ensure the first page, summary, and every role heading directly echo the language of the JD\n- Remove or de-prioritise anything clearly irrelevant to this role\n- Keep every job title, company, and date. Do not invent experience or qualifications.${footer}`
 }
 
-function buildClPrompt(level, roleTitle, company, jobLink, cvRaw) {
-  const jobLine = `Role: ${roleTitle}${company ? ` at ${company}` : ''}${jobLink ? `\nJob link: ${jobLink}` : ''}`
-  const cvBlock = cvRaw ? `\nMy CV:\n${cvRaw}` : ''
-  const footer = `\nKeep it to 3–4 paragraphs, 300–400 words. British English. Confident and direct. No phrases like "I am writing to apply" or "I would be thrilled".\n\nImportant: share download links to the final cover letter only. Do not paste the text directly in this chat.`
-
-  if (level === 1) return `Help me write a cover letter for this role. Give me a structure and key points to include; I will write it myself.\n\n${jobLine}${cvBlock}\n\nPlease:\n1. Suggest the 3 strongest points from my background to lead with for this specific role\n2. Identify any gaps I should address proactively\n3. Give me an opening line that is direct and specific (not generic)\n4. Suggest a closing sentence${footer}`
-
-  if (level === 2) return `Please write a first draft cover letter for this role based on my CV. I will edit it.\n\n${jobLine}${cvBlock}\n\nStructure: opening that names the role and why I am the right fit, 2 paragraphs of relevant evidence from my CV, closing with availability and enthusiasm.${footer}`
-
-  return `Please write a polished, compelling cover letter for this role. This should be a final-draft quality letter I can send with minimal edits.\n\n${jobLine}${cvBlock}\n\nMake it: specific to this role and company (not generic), evidenced from my actual experience, confident without being arrogant, and concise. Open with a hook, not "I am writing to express my interest".${footer}`
-}
-
 const CV_EFFORT_OPTIONS = [
   { level: 1, label: 'Level 1: Keywords and gaps', sub: 'You write it, ChatGPT guides you', tool: 'ChatGPT' },
   { level: 2, label: 'Level 2: Guided rewrite',    sub: 'AI rewrites, you review and edit', tool: 'Claude or ChatGPT' },
@@ -1456,9 +1444,7 @@ function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPref
     const roleTitle = selectedJob?.roleTitle || ''
     const company   = selectedJob?.company || ''
     const jobLink   = selectedJob?.jobLink || ''
-    const p = mode === 'cv'
-      ? buildCvPrompt(level, roleTitle, company, jobLink, cvRaw)
-      : buildClPrompt(level, roleTitle, company, jobLink, cvRaw)
+    const p = buildCvPrompt(level, roleTitle, company, jobLink, cvRaw)
     setPrompt(p)
     setStep(3)
   }
@@ -1646,17 +1632,30 @@ function RecruiterPanel({ profile, mode }) {
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
   const [copied, setCopied]         = useState(null) // index of copied item
+  const [allowance, setAllowance]   = useState(null) // { allowed, used, cap, tier }
 
   const wishlist = (hfj.wishlist || []).map(c => c.name.toLowerCase())
+  const remaining = allowance && allowance.cap > 0 ? Math.max(0, allowance.cap - allowance.used) : null
+  const atLimit   = allowance && allowance.cap > 0 && allowance.used >= allowance.cap
+
+  async function loadAllowance() {
+    try {
+      const res = await fetch('/api/profile/recruiter-allowance')
+      if (res.ok) setAllowance(await res.json())
+    } catch {}
+  }
 
   useEffect(() => {
     const cached   = hfj[cacheKey]
     const cachedAt = hfj[cacheAtKey]
     if (cached && cachedAt && Date.now() - new Date(cachedAt).getTime() < CACHE_MS) {
       setRecruiters(cached)
-    } else {
-      generate()
     }
+    // Do NOT auto-generate: a recruiter search is a Sonnet + web_search call
+    // (the most expensive in the product) that consumes the monthly allowance,
+    // so it must always be an explicit user click, never a side effect of
+    // opening the tab.
+    loadAllowance()
   }, [])
 
   async function generate() {
@@ -1667,7 +1666,7 @@ function RecruiterPanel({ profile, mode }) {
       if (data.error) { setError(data.error); return }
       setRecruiters(data.recruiters || [])
     } catch { setError('Request failed. Try again.') }
-    finally { setLoading(false) }
+    finally { setLoading(false); loadAllowance() }
   }
 
   function buildCvPrompt(r) {
@@ -1725,11 +1724,36 @@ Make sure the CV is tailored to ${r.agency}'s typical clients: ${(r.companies ||
             : 'Agencies and search firms for senior permanent roles. Register with Priority 1 first. Each card includes ATS tips and a ready-to-use CV prompt optimised for their system.'}
         </div>
         {recruiters && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <button onClick={generate} style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer', color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>↻ Refresh</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+              {remaining !== null ? `${remaining} of ${allowance.cap} searches left this month` : ''}
+            </span>
+            <button onClick={generate} disabled={atLimit} title={atLimit ? 'Monthly recruiter searches used up' : ''}
+              style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-mono)', cursor: atLimit ? 'not-allowed' : 'pointer', color: 'var(--marker-mid)', letterSpacing: '0.04em', opacity: atLimit ? 0.5 : 1 }}>↻ Refresh</button>
           </div>
         )}
       </div>
+
+      {!recruiters && !loading && !error && (
+        <div style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+          <div style={{ fontSize: 13, color: 'var(--marker-mid)', maxWidth: 340, lineHeight: 1.6 }}>
+            Requite researches live UK agencies matched to your field and seniority, with ATS tips and a ready-to-use CV prompt for each. This runs a web search, so it counts against your monthly recruiter searches.
+          </div>
+          {allowance && allowance.cap === 0 ? (
+            <>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Recruiter search is a Pro or Max feature.</div>
+              <a href="/pricing" className="btn btn-primary" style={{ fontSize: 13, fontWeight: 600 }}>Upgrade to unlock →</a>
+            </>
+          ) : (
+            <>
+              <button onClick={generate} className="btn btn-primary" style={{ fontSize: 14, fontWeight: 600 }}>Find my recruiters →</button>
+              {remaining !== null && (
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>{remaining} of {allowance.cap} searches left this month</div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {loading && (
         <div style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1925,7 +1949,8 @@ Return the CV text only, no preamble, no explanation.`
   )
 }
 
-function DirectCvPanel({ allJobs, profile }) {
+function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
+  const isCover = docType === 'cover'
   const eligibleJobs = (allJobs || []).filter(j => j.status && !['saved', 'rejected', 'withdrawn'].includes(j.status))
   const [selectedJobId, setSelectedJobId] = useState(eligibleJobs[0]?.id || '')
   const [effort, setEffort] = useState('standard')
@@ -1941,7 +1966,7 @@ function DirectCvPanel({ allJobs, profile }) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `CV - ${selectedJob?.company || 'tailored'}.docx`
+    a.download = `${isCover ? 'Cover letter' : 'CV'} - ${selectedJob?.company || 'tailored'}.docx`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -1953,10 +1978,14 @@ function DirectCvPanel({ allJobs, profile }) {
     }
     setLoading(true); setError(''); setResult(null)
     try {
-      const res = await fetch('/api/cv/generate', {
+      const endpoint = isCover ? '/api/cv/cover-letter' : '/api/cv/generate'
+      const body = isCover
+        ? { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd: selectedJob.jdRaw }
+        : { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd: selectedJob.jdRaw, effort }
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd: selectedJob.jdRaw, effort }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
@@ -1971,7 +2000,7 @@ function DirectCvPanel({ allJobs, profile }) {
   if (eligibleJobs.length === 0) {
     return (
       <div style={{ padding: 24, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', textAlign: 'center' }}>
-        No tracked roles yet. Add roles to your pipeline to generate tailored CVs.
+        No tracked roles yet. Add roles to your pipeline to generate {isCover ? 'cover letters' : 'tailored CVs'}.
       </div>
     )
   }
@@ -1979,7 +2008,9 @@ function DirectCvPanel({ allJobs, profile }) {
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflowY: 'auto' }}>
       <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
-        Generate a tailored CV sent directly to the API. Output displayed here with verified-stats check.
+        {isCover
+          ? 'Requite writes a tailored cover letter for the selected role, matched to your CV and the JD. It never invents a number that is not in your CV.'
+          : 'Generate a tailored CV sent directly to the API. Output displayed here with verified-stats check.'}
       </div>
 
       {/* Role picker */}
@@ -1996,7 +2027,8 @@ function DirectCvPanel({ allJobs, profile }) {
         )}
       </div>
 
-      {/* Effort */}
+      {/* Effort — CV only; cover letters have a single mode */}
+      {!isCover && (
       <div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--marker-mid)', marginBottom: 5 }}>DEPTH</div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -2008,10 +2040,11 @@ function DirectCvPanel({ allJobs, profile }) {
           ))}
         </div>
       </div>
+      )}
 
       <button onClick={generate} disabled={loading || !selectedJob?.jdRaw}
         style={{ padding: '11px', borderRadius: 8, background: loading ? 'var(--marker-mid)' : 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}>
-        {loading ? 'Generating…' : 'Generate'}
+        {loading ? (isCover ? 'Writing…' : 'Generating…') : (isCover ? 'Write cover letter' : 'Generate')}
       </button>
 
       {error && <div style={{ padding: 10, borderRadius: 8, background: '#fef2f2', border: '1px solid #fca5a5', fontFamily: 'var(--font-body)', fontSize: 13, color: '#dc2626' }}>{error}</div>}
@@ -2035,7 +2068,7 @@ function DirectCvPanel({ allJobs, profile }) {
               style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'transparent', fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', color: 'var(--marker-text)' }}>
               Copy to clipboard
             </button>
-            {result.type === 'cv' && (
+            {(result.type === 'cv' || result.type === 'cover_letter') && (
               <button onClick={() => downloadDocx(result.text)}
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-black)', background: 'var(--marker-black)', fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', color: 'var(--marker-cream)' }}>
                 Download as Word (.docx)
@@ -2139,16 +2172,7 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
         />
       )}
       {section === 'cover' && (
-        <CvGeneratorFlow
-          key="cover"
-          mode="cover"
-          allJobs={allJobs}
-          cvRaw={cvRaw}
-          updateJob={updateJob}
-          prefill={null}
-          onClearPrefill={null}
-          onSwitchToEngine={onSwitchToEngine}
-        />
+        <DirectCvPanel allJobs={allJobs} profile={profile} docType="cover" />
       )}
       {section === 'generate' && (
         <DirectCvPanel allJobs={allJobs} profile={profile} />

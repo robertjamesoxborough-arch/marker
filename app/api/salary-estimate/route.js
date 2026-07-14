@@ -1,6 +1,11 @@
 // Salary estimation — Adzuna histogram (free) + static seniority floor check
 // Accepts optional profileSeniority to ground the estimate in the user's actual seniority.
 // No Claude usage. Results persisted in IndexedDB — only fetched once per job.
+// Auth-gated: the Adzuna call shares the ingest crons' monthly quota, so an
+// unauthenticated caller must not be able to trigger it (cost guardrail: no
+// external spend/quota reachable by an unauthenticated user).
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 const SENIORITY_FLOORS = [
   { match: ['chief', 'cto', 'cmo', 'coo', 'cpo'], floor: 150, cap: 250 },
@@ -31,6 +36,15 @@ function staticEstimate(roleTitle) {
 }
 
 export async function POST(req) {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { roleTitle, company, profileSeniority } = await req.json()
   if (!roleTitle) return Response.json({ salary: null })
 
@@ -39,7 +53,10 @@ export async function POST(req) {
   const effectiveTitle = profileSeniority ? `${profileSeniority} ${roleTitle}` : roleTitle
 
   const adzunaId = process.env.ADZUNA_APP_ID
-  const adzunaKey = process.env.ADZUNA_APP_KEY
+  // Was ADZUNA_APP_KEY (a typo — that env var does not exist), so this branch
+  // never ran and every estimate silently fell back to the static floor. The
+  // real var is ADZUNA_API_KEY (same one the ingest crons use).
+  const adzunaKey = process.env.ADZUNA_API_KEY
   const bounds = getSeniorityBounds(effectiveTitle)
 
   if (adzunaId && adzunaKey) {

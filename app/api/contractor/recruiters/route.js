@@ -20,6 +20,19 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Recruiter search is Sonnet + web_search, the most expensive call in the
+  // product. Gate it (cost guardrail 1): Free is hard-blocked, Pro/Max are
+  // monthly-capped. checkAllowance only counts ai_usage rows, no spend.
+  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'recruiter_search')
+  if (!allowed) {
+    return Response.json({
+      error: cap === 0
+        ? 'Recruiter search is a Pro or Max feature. Upgrade to get UK agencies matched to your profile.'
+        : `Recruiter search limit reached (${used}/${cap} this month on your ${tier} plan). It resets on the 1st.`,
+      limitReached: true, used, cap, tier,
+    }, { status: 429 })
+  }
+
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   const { data: profile } = await service.from('profiles')
     .select('target_roles, postcode, hard_filters_json')
@@ -33,12 +46,10 @@ export async function POST() {
   const wishlistCompanies = (hfj.wishlist || []).map(c => c.name).slice(0, 20)
   const wishlistStr = wishlistCompanies.length > 0 ? `The candidate's target companies include: ${wishlistCompanies.join(', ')}.` : ''
 
-  const prompt = `You are a specialist recruitment researcher. A senior ${field} professional (targeting: ${roles}) is looking for UK recruitment agencies that place ${contractTypes} contractors.
-
-Location: ${location}
-${wishlistStr}
-
-Identify 10 UK recruitment agencies that actively place senior ${field} contractors.
+  // Static instructions (schema + rules + style) are identical for every
+  // candidate, so they go in a cached system prefix (cost guardrail 4); only
+  // the candidate-specific query is dynamic in the user message.
+  const SYSTEM = `You are a specialist recruitment researcher for UK agencies that place senior contractors and interims.
 
 For each agency return a JSON object with EXACTLY these fields:
 {
@@ -69,14 +80,22 @@ Rules:
 
 ${STYLE_RULES}`
 
+  const userMsg = `A senior ${field} professional (targeting: ${roles}) is looking for UK recruitment agencies that place ${contractTypes} contractors.
+
+Location: ${location}
+${wishlistStr}
+
+Identify 10 UK recruitment agencies that actively place senior ${field} contractors. Return ONLY a JSON array of 10 objects.`
+
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: MODELS.sonnet,
       max_tokens: 5200,
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: userMsg }],
     }),
   })
 

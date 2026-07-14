@@ -140,7 +140,6 @@ Identify genuine gaps now, following the rules above exactly.`
     max_tokens: 900,
     system: [{ type: 'text', text: GAP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userPrompt }],
-    betas: ['prompt-caching-2024-07-31'],
   })
   const text = msg.content[0]?.text?.trim() || ''
   const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
@@ -335,7 +334,6 @@ ${candidateContext}`
       max_tokens: maxTokens,
       system: [{ type: 'text', text: SYSTEM_CACHED, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: prompt }],
-      betas: ['prompt-caching-2024-07-31'],
     })
 
     const raw = msg.content[0]?.text?.trim() || ''

@@ -99,13 +99,12 @@ Return the cover letter only; no commentary, no title, no labels.`
       max_tokens: 800,
       system: [{ type: 'text', text: SYSTEM_CACHED, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: prompt }],
-      betas: ['prompt-caching-2024-07-31'],
     })
     const text = msg.content[0]?.text?.trim() || ''
     if (msg.usage) {
       after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cover_letter', usage: msg.usage }))
     }
-    return NextResponse.json({ type: 'cv', text })
+    return NextResponse.json({ type: 'cover_letter', text })
   } catch (e) {
     return NextResponse.json({ error: e?.message || 'Generation failed' }, { status: 500 })
   }
