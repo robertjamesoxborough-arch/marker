@@ -9,6 +9,12 @@ import { scoreJobsBatch } from '../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
 import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
+import { pullAtsRows } from '../../../lib/ats'
+import { reserveAdzuna } from '../../../lib/adzuna-budget'
+
+// Fresh scan re-pulls 43 ATS boards in parallel + a small Adzuna top-up + a
+// bounded scoring pass; give it room beyond the default so it never truncates.
+export const maxDuration = 60
 
 // Cost rules 1 + 2: default behaviour reads the shared, nightly-scored
 // jobs_cache and applies PER-USER relevance deterministically (zero AI cost).
@@ -16,14 +22,10 @@ import { MODELS } from '../../../lib/anthropic'
 // { fresh: true }, and only then behind the Pro/Max feed_fresh_scan daily cap
 // (3/day Pro, 10/day Max, 0 on Free/unauth — see lib/allowance.js).
 
-const ROLE_QUERIES = [
-  { what: 'partnerships manager',         family: 'Partnerships' },
-  { what: 'business development manager', family: 'BD' },
-  { what: 'product marketing manager',    family: 'Product Marketing' },
-  { what: 'growth manager',               family: 'Growth' },
-  { what: 'product manager',              family: 'Product Management' },
-  { what: 'marketing manager',            family: 'Marketing Generalist' },
-]
+// Fallback queries only used if the user has no target_roles set. Fresh scan
+// now builds queries from the user's actual roles (see runFreshScan), so it no
+// longer fires 6 generic Adzuna calls for everyone.
+const FALLBACK_QUERIES = ['product manager', 'marketing manager', 'partnerships manager']
 
 function formatSalaryFromAdzuna(job) {
   const min = job.salary_min, max = job.salary_max
@@ -87,73 +89,97 @@ async function readFromCache(service, profile) {
   return { jobs: interleaveByCompany(withRelevance).slice(0, 60), total: rows.length }
 }
 
-// Fresh-scan path — Pro/Max only, daily-capped. Live Adzuna fetch, ONE shared
-// baseline Haiku scoring call (lib/score-jobs-batch.js, same rubric as the
-// nightly cron), upserted into jobs_cache so the scan benefits every user
-// from the next cache read onward — not just the one who triggered it.
-async function runFreshScan(service, apiKey, userId, maxDaysOld) {
+// Fresh-scan path — Pro/Max only, daily-capped. TWO sources, in cost order:
+//   1. ATS boards (Greenhouse/Lever/Ashby/SmartRecruiters via lib/ats.js) —
+//      QUOTA-FREE, always run. This is the bulk of "give me something new now".
+//   2. Adzuna top-up — at most 3 queries built from the user's ACTUAL target
+//      roles (not 6 generic ones), reserved against the GLOBAL Adzuna budget
+//      and skipped silently when the budget is tight. Deduped against rows
+//      already in jobs_cache so we never pay to re-pull a role the nightly
+//      cron already has. Only genuinely-new rows are scored (bounded Haiku).
+async function runFreshScan(service, apiKey, userId, maxDaysOld, profile) {
+  const now = new Date().toISOString()
+  const collected = []
+
+  // 1) Free ATS re-pull.
+  try {
+    const { rows } = await pullAtsRows(now)
+    collected.push(...rows.map(r => ({ ...r, last_verified_at: now })))
+  } catch { /* ATS boards flaky — Adzuna top-up below still runs */ }
+
+  // 2) Adzuna top-up — target roles only, global-budget-gated.
   const appId = process.env.ADZUNA_APP_ID
   const appKey = process.env.ADZUNA_API_KEY
-  if (!appId || !appKey) return { jobs: [], error: 'Adzuna API keys not configured' }
-
-  // Posted-within filter, from the client's PostedWithinSelect. Passed
-  // through as Adzuna's native max_days_old rather than filtering after
-  // fetch — cheaper and more accurate than a post-hoc filter.
-  const days = Number.isFinite(maxDaysOld) && maxDaysOld > 0 ? maxDaysOld : 14
-
-  const now = new Date().toISOString()
-  const rows = []
-  for (const { what } of ROLE_QUERIES) {
-    try {
-      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(what)}&max_days_old=${days}&sort_by=date`
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-      if (!res.ok) continue
-      const data = await res.json()
-      for (const job of (data.results || [])) {
-        if (!job.id) continue
-        if (!isUkEligible(job.location?.display_name)) continue
-        rows.push({
-          external_id: `adzuna-${job.id}`,
-          company: job.company?.display_name || 'Unknown',
-          role_title: job.title,
-          link: job.redirect_url,
-          salary: formatSalaryFromAdzuna(job),
-          location: job.location?.display_name || '',
-          source: 'adzuna',
-          source_type: 'public_listing',
-          cached_at: now,
-          last_verified_at: now,
-          adzuna_attribution_required: true,
-          // Session O: trimmed to what match-engine.js's office-day/remote/benefit keyword detection needs; never displayed to users.
-          raw_json: { description: (job.description || '').slice(0, 300) },
-        })
+  const targetRoles = (profile?.target_roles || []).map(r => String(r).trim()).filter(Boolean).slice(0, 3)
+  const queries = targetRoles.length ? targetRoles : FALLBACK_QUERIES.slice(0, 3)
+  let adzunaBudget = { allowed: false }
+  if (appId && appKey) {
+    adzunaBudget = await reserveAdzuna({ calls: queries.length, kind: 'ondemand', service })
+    if (adzunaBudget.allowed) {
+      const days = Number.isFinite(maxDaysOld) && maxDaysOld > 0 ? maxDaysOld : 14
+      for (const what of queries) {
+        try {
+          const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(what)}&max_days_old=${days}&sort_by=date`
+          const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+          if (!res.ok) continue
+          const data = await res.json()
+          for (const job of (data.results || [])) {
+            if (!job.id) continue
+            if (!isUkEligible(job.location?.display_name)) continue
+            collected.push({
+              external_id: `adzuna-${job.id}`,
+              company: job.company?.display_name || 'Unknown',
+              role_title: job.title,
+              link: job.redirect_url,
+              salary: formatSalaryFromAdzuna(job),
+              location: job.location?.display_name || '',
+              source: 'adzuna',
+              source_type: 'public_listing',
+              cached_at: now,
+              last_verified_at: now,
+              adzuna_attribution_required: true,
+              raw_json: { description: (job.description || '').slice(0, 300) },
+            })
+          }
+          await new Promise(r => setTimeout(r, 300))
+        } catch { continue }
       }
-      await new Promise(r => setTimeout(r, 300))
-    } catch { continue }
+    }
   }
 
   const seen = new Set()
-  const deduped = rows.filter(r => (seen.has(r.external_id) ? false : (seen.add(r.external_id), true))).slice(0, 100)
-  if (deduped.length === 0) return { jobs: [], total: 0 }
+  const deduped = collected.filter(r => (seen.has(r.external_id) ? false : (seen.add(r.external_id), true))).slice(0, 300)
+  if (deduped.length === 0) return { jobs: 0, adzunaUsed: adzunaBudget.allowed }
 
   await service.from('jobs_cache').upsert(deduped, { onConflict: 'external_id' })
 
-  let usage = null
-  try {
-    const { scores, cacheReadTokens, usage: u } = await scoreJobsBatch(apiKey, deduped)
-    usage = u
-    const nowIso = new Date().toISOString()
-    for (let i = 0; i < deduped.length; i++) {
-      const score = scores.has(i) ? scores.get(i) : 6
-      await service.from('jobs_cache').update({
-        match_score: score, score_tier: 'quick', scored_at: nowIso,
-        score_breakdown_json: { tier: 'quick', model: 'haiku', baseline: true, source: 'fresh_scan' },
-      }).eq('external_id', deduped[i].external_id)
-    }
-    if (userId && usage) after(() => trackAiUsage({ userId, model: MODELS.haiku, action: 'feed_fresh_scan', usage }))
-  } catch { /* rows are still cached unscored; the nightly cron will pick them up */ }
+  // Score only rows that aren't already scored (dedup against the cache) — most
+  // ATS/Adzuna rows persist across scans and were scored by the nightly cron,
+  // so this keeps the Haiku cost proportional to what's genuinely new.
+  const ids = deduped.map(r => r.external_id)
+  const { data: existing } = await service.from('jobs_cache').select('external_id, scored_at').in('external_id', ids)
+  const scoredSet = new Set((existing || []).filter(r => r.scored_at).map(r => r.external_id))
+  // Cap live scoring per scan (bounded Haiku cost + latency — each row is a
+  // sequential UPDATE). Anything beyond this is left unscored for the nightly
+  // cron/score-cache sweep to pick up, exactly like every other feed source.
+  const toScore = deduped.filter(r => !scoredSet.has(r.external_id)).slice(0, 60)
 
-  return { jobs: deduped.length, total: deduped.length }
+  if (toScore.length > 0) {
+    try {
+      const { scores, usage } = await scoreJobsBatch(apiKey, toScore)
+      const nowIso = new Date().toISOString()
+      for (let i = 0; i < toScore.length; i++) {
+        const score = scores.has(i) ? scores.get(i) : 6
+        await service.from('jobs_cache').update({
+          match_score: score, score_tier: 'quick', scored_at: nowIso,
+          score_breakdown_json: { tier: 'quick', model: 'haiku', baseline: true, source: 'fresh_scan' },
+        }).eq('external_id', toScore[i].external_id)
+      }
+      if (userId && usage) after(() => trackAiUsage({ userId, model: MODELS.haiku, action: 'feed_fresh_scan', usage }))
+    } catch { /* rows are cached unscored; the nightly cron picks them up */ }
+  }
+
+  return { jobs: deduped.length, scored: toScore.length, adzunaUsed: adzunaBudget.allowed }
 }
 
 export async function POST(req) {
@@ -189,7 +215,7 @@ export async function POST(req) {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return Response.json({ jobs: [], error: 'No API key configured' }, { status: 500 })
 
-    await runFreshScan(service, apiKey, user.id, Number(body?.maxDaysOld))
+    await runFreshScan(service, apiKey, user.id, Number(body?.maxDaysOld), profile)
     // Serve the just-refreshed cache back through the same deterministic path
     const { jobs, total } = await readFromCache(service, profile)
     return Response.json({ jobs, total, source: 'fresh' })

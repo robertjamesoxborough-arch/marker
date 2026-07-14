@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { fetchFromAnyProvider } from '../../../../lib/ats'
-import { isUkEligible } from '../../../../lib/uk-eligibility'
+import { pullAtsRows, ATS_COMPANIES } from '../../../../lib/ats'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 
 // Multi-ATS nightly ingest — replaces cron/greenhouse. 14 of the previous
@@ -33,51 +32,6 @@ import { isSourceEnabled } from '../../../../lib/source-flags'
 // below actually returned real job listings at verification time; none are
 // guessed. Weighted toward established/scale-stage UK-relevant employers
 // over early-stage hypergrowth, matching Requite's target audience.
-const COMPANIES = [
-  { company: 'Wise',            slug: 'wise',            provider: 'smartrecruiters' },
-  { company: 'Tide',             slug: 'tide',             provider: 'greenhouse' },
-  { company: 'Cleo',             slug: 'cleo',             provider: 'greenhouse' },
-  { company: 'Trustpilot',       slug: 'trustpilot',       provider: 'greenhouse' },
-  { company: 'Marshmallow',      slug: 'marshmallow',      provider: 'ashby' },
-  { company: 'Zopa',             slug: 'zopa',             provider: 'lever' },
-  { company: 'TrueLayer',        slug: 'truelayer',        provider: 'greenhouse' },
-  { company: 'Griffin',          slug: 'griffin',          provider: 'ashby' },
-  { company: 'ComplyAdvantage',  slug: 'complyadvantage',  provider: 'greenhouse' },
-  { company: 'Codat',            slug: 'codat',            provider: 'ashby' },
-  { company: 'Paddle',           slug: 'paddle',           provider: 'ashby' },
-  { company: 'Multiverse',       slug: 'multiverse',       provider: 'ashby' },
-  { company: 'Quantexa',         slug: 'quantexa',         provider: 'ashby' },
-  { company: 'Matillion',        slug: 'matillion',        provider: 'lever' },
-  { company: 'Gousto',           slug: 'gousto',           provider: 'smartrecruiters' },
-  { company: 'Deliveroo',        slug: 'deliveroo',        provider: 'ashby' },
-  { company: 'Improbable',       slug: 'improbable',       provider: 'ashby' },
-  { company: 'Synthesia',        slug: 'synthesia',        provider: 'ashby' },
-  { company: 'Second Nature',    slug: 'secondnature',     provider: 'smartrecruiters' },
-  { company: 'Juro',             slug: 'juro',             provider: 'ashby' },
-  { company: 'Brandwatch',       slug: 'brandwatch',       provider: 'greenhouse' },
-  { company: 'Funding Circle',   slug: 'fundingcircle',    provider: 'ashby' },
-  { company: 'Freetrade',        slug: 'freetrade',        provider: 'ashby' },
-  { company: 'Miro',             slug: 'miro',             provider: 'ashby' },
-  { company: 'Notion',           slug: 'notion',            provider: 'ashby' },
-  { company: 'Figma',            slug: 'figma',             provider: 'greenhouse' },
-  { company: 'Canva',            slug: 'canva',             provider: 'smartrecruiters' },
-  { company: 'Monzo',            slug: 'monzo',             provider: 'greenhouse' },
-  { company: 'GoCardless',       slug: 'gocardless',        provider: 'greenhouse' },
-  { company: 'Skyscanner',       slug: 'skyscanner',        provider: 'greenhouse' },
-  { company: 'Farfetch',         slug: 'farfetch',          provider: 'greenhouse' },
-  { company: 'SumUp',            slug: 'sumup',             provider: 'greenhouse' },
-  { company: 'Wayve',            slug: 'wayve',             provider: 'greenhouse' },
-  { company: 'Graphcore',        slug: 'graphcore',         provider: 'greenhouse' },
-  { company: 'Unmind',           slug: 'unmind',            provider: 'ashby' },
-  { company: 'Gymshark',         slug: 'gymshark',          provider: 'greenhouse' },
-  { company: 'Signal AI',        slug: 'signal-ai',         provider: 'ashby' },
-  { company: 'OVO Energy',       slug: 'ovoenergy',         provider: 'greenhouse' },
-  { company: 'Pleo',             slug: 'pleo',              provider: 'ashby' },
-  { company: 'Thoughtworks',     slug: 'thoughtworks',      provider: 'greenhouse' },
-  { company: 'Deliverect',       slug: 'deliverect',        provider: 'lever' },
-  { company: 'Benevity',         slug: 'benevity',          provider: 'ashby' },
-  { company: 'Wallapop',         slug: 'wallapop',          provider: 'greenhouse' },
-]
 
 export async function GET(request) {
   const auth = request.headers.get('authorization')
@@ -94,41 +48,9 @@ export async function GET(request) {
   )
 
   const now = new Date().toISOString()
-  const rows = []
   const errors = []
-  const moved = []
-
-  await Promise.allSettled(
-    COMPANIES.map(async ({ company, slug, provider }) => {
-      try {
-        const found = await fetchFromAnyProvider(slug, provider)
-        if (!found) { errors.push(`${company}: no provider returned jobs (all 4 tried)`); return }
-        if (found.provider !== provider) moved.push(`${company}: recorded ${provider} -> now ${found.provider}`)
-
-        for (const job of found.jobs) {
-          if (!isUkEligible(job.location)) continue
-          rows.push({
-            external_id: `${found.provider}-${slug}-${job.id}`,
-            company,
-            role_title: job.title,
-            link: job.url,
-            salary: null,
-            location: job.location,
-            source: 'greenhouse', // kept for existing readers (feed-cache etc); real provider is in track_tags
-            source_type: 'public_listing',
-            track_tags: [found.provider],
-            cached_at: now,
-            adzuna_attribution_required: false,
-            raw_json: { department: job.department, ats_provider: found.provider },
-          })
-        }
-      } catch (e) {
-        errors.push(`${company}: ${e.message}`)
-      }
-    })
-  )
-
-  const deduped = [...new Map(rows.map(r => [r.external_id, r])).values()]
+  // Shared pull (lib/ats.js) — same free-board logic the fresh-scan path reuses.
+  const { rows: deduped, moved } = await pullAtsRows(now)
 
   if (deduped.length > 0) {
     const { error } = await supabase
@@ -147,7 +69,7 @@ export async function GET(request) {
   return NextResponse.json({
     ok: true,
     inserted: deduped.length,
-    companies: COMPANIES.length,
+    companies: ATS_COMPANIES.length,
     moved,
     errors,
   })

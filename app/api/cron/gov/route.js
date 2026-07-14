@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
+import { reserveAdzuna } from '../../../../lib/adzuna-budget'
 
 
 // Generic gov queries covering all our role families. Kept to 2-3 words each
@@ -63,6 +64,11 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+
+  const budget = await reserveAdzuna({ calls: GOV_QUERIES.length, kind: 'cron', service: supabase })
+  if (!budget.allowed) {
+    return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
+  }
 
   const now = new Date().toISOString()
   const rows = []

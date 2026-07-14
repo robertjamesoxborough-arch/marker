@@ -968,6 +968,27 @@ export default function AdminPage() {
                   </div>
                 </div>
 
+                {/* Adzuna daily budget — the quota that breaks every feed at once if exhausted */}
+                {status.adzunaBudget && (
+                  <div style={{ background: status.adzunaBudget.alerting ? '#FEF2F2' : 'var(--marker-cream-2)', border: `1px solid ${status.adzunaBudget.alerting ? '#FCA5A5' : 'var(--marker-border)'}`, borderRadius: 10, padding: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Adzuna calls today (global)</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: status.adzunaBudget.alerting ? '#B91C1C' : 'var(--marker-black)' }}>
+                        {status.adzunaBudget.used} / {status.adzunaBudget.limit} <span style={{ fontSize: 12, color: 'var(--marker-mid)' }}>({status.adzunaBudget.pct}%)</span>
+                      </div>
+                    </div>
+                    <div style={{ height: 8, background: 'var(--marker-border)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(status.adzunaBudget.pct, 100)}%`, background: status.adzunaBudget.alerting ? '#DC2626' : status.adzunaBudget.pct >= 60 ? '#F59E0B' : 'var(--marker-lime)', transition: 'width 0.3s' }} />
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 8, lineHeight: 1.5 }}>
+                      On-demand at {status.adzunaBudget.ondemandPct}% of its {status.adzunaBudget.ondemandCeiling} ceiling (reserves {status.adzunaBudget.limit - status.adzunaBudget.ondemandCeiling} for nightly crons). Resets 00:00 UTC.
+                      {status.adzunaBudget.ondemandExhausted
+                        ? <span style={{ color: '#B91C1C', fontWeight: 600 }}> ⛔ On-demand budget spent — live salary/fresh-scan is serving cache until tomorrow (crons still protected).</span>
+                        : status.adzunaBudget.alerting && <span style={{ color: '#B91C1C', fontWeight: 600 }}> ⚠️ Above {status.adzunaBudget.alertPct}% of on-demand — degradation to cache is close.</span>}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', textAlign: 'right' }}>Refreshes each time you open this tab</div>
 
               </div>

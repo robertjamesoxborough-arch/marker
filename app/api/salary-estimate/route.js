@@ -9,17 +9,19 @@
 //      repeat view) reads that row. Real results cached 30 days (salaries
 //      don't move week to week); static fallbacks cached 3 days so we retry
 //      Adzuna soon without hammering it.
-//   2. A daily-budget backstop — once SALARY_DAILY_BUDGET live calls have been
-//      made in a UTC day, further misses fall back to static instead of
-//      calling Adzuna, so salary can never exhaust the quota mid-month.
+//   2. The GLOBAL Adzuna budget (lib/adzuna-budget.js) — every live call is
+//      reserved against a single product-wide daily ceiling shared with the
+//      crons and all other Adzuna callers. When the on-demand ceiling is hit,
+//      salary falls back to the static estimate instead of calling Adzuna, so
+//      it can never contribute to exhausting the quota.
 // Auth-gated so an unauthenticated caller can't trigger the Adzuna call at all.
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { reserveAdzuna } from '../../../lib/adzuna-budget'
 
 const SALARY_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const STATIC_TTL_MS = 3 * 24 * 60 * 60 * 1000
-const SALARY_DAILY_BUDGET = 150 // crons use ~42 Adzuna calls/night; this bounds salary's live calls well within any realistic plan
 
 const SENIORITY_FLOORS = [
   { match: ['chief', 'cto', 'cmo', 'coo', 'cpo'], floor: 150, cap: 250 },
@@ -96,25 +98,17 @@ export async function POST(req) {
   }
 
   // ── 2. Daily-budget backstop ──────────────────────────────────────────────
-  const today = new Date().toISOString().slice(0, 10)
-  const budgetKey = `salary_budget:${today}`
-  let budgetUsed = 0
+  // Reserve against the GLOBAL Adzuna budget (shared with the crons and every
+  // other Adzuna caller) before the live call. On a cache miss with the budget
+  // exhausted, we fall back to the static estimate rather than call Adzuna.
+  let canCallAdzuna = false
   if (service && adzunaId && adzunaKey) {
-    const { data: b } = await service.from('admin_metrics_cache').select('value').eq('metric', budgetKey).maybeSingle()
-    budgetUsed = b?.value?.count || 0
+    const r = await reserveAdzuna({ calls: 1, kind: 'ondemand', service })
+    canCallAdzuna = r.allowed
   }
-  const canCallAdzuna = !!(adzunaId && adzunaKey) && budgetUsed < SALARY_DAILY_BUDGET
 
   // ── 3. Live Adzuna histogram (budget permitting) ──────────────────────────
   if (canCallAdzuna) {
-    // Count the attempt against today's budget before making it, so the cap
-    // holds even for role titles whose result never passes the sanity check.
-    if (service) {
-      await service.from('admin_metrics_cache').upsert(
-        { metric: budgetKey, value: { count: budgetUsed + 1 }, computed_at: new Date().toISOString() },
-        { onConflict: 'metric' }
-      )
-    }
     try {
       const query = encodeURIComponent(effectiveTitle)
       const url = `https://api.adzuna.com/v1/api/jobs/gb/histogram?app_id=${adzunaId}&app_key=${adzunaKey}&what=${query}&content-type=application/json`

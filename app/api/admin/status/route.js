@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { getAdzunaUsage } from '../../../../lib/adzuna-budget'
 
 async function getAdminUser(cookieStore) {
   const supabase = createServerClient(
@@ -63,8 +64,11 @@ export async function GET() {
     jobCount:  c.source ? (countMap[c.source] || 0)    : null,
   }))
 
+  const adzunaBudget = await getAdzunaUsage(service)
+
   return NextResponse.json({
     cronStatus,
+    adzunaBudget, // { used, limit, ondemandCeiling, pct, alertPct, alerting }
     aiCalls24h:   recentAiCalls  || 0,
     aiCallsTotal: totalAiCalls   || 0,
     envCheck: {

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
+import { reserveAdzuna } from '../../../../lib/adzuna-budget'
 
 
 // Queries mapped to our role families — each runs as a separate Adzuna search
@@ -72,6 +73,14 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+
+  // Global Adzuna budget: reserve this run's calls up front (kind:'cron', so
+  // it may use up to the full daily limit — crons run early after the UTC
+  // reset and always claim their share before daytime on-demand traffic).
+  const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length, kind: 'cron', service: supabase })
+  if (!budget.allowed) {
+    return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
+  }
 
   const now = new Date().toISOString()
   const rows = []

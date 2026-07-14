@@ -9,6 +9,7 @@ import { scoreJobsBatch } from '../../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../../lib/freshness'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { MODELS } from '../../../../lib/anthropic'
+import { reserveAdzuna } from '../../../../lib/adzuna-budget'
 
 // Cost rules 1 + 2, same pattern as /api/feed-web and /api/feed-gov. Default
 // reads the shared, nightly-scored jobs_cache (source='adzuna', tagged
@@ -117,8 +118,14 @@ async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
 
   const salaryMin = profile?.salary_floor || 60000
   const now = new Date().toISOString()
+  const contractQueries = buildContractQueries(profile).slice(0, 4)
+  // Reserve against the GLOBAL Adzuna budget; if exhausted, skip the live scan
+  // and serve the cached contractor feed (nightly cron/contract refreshes it).
+  const budget = await reserveAdzuna({ calls: contractQueries.length, kind: 'ondemand', service })
+  if (!budget.allowed) return { jobs: 0, budgetExhausted: true }
+
   const raw = []
-  for (const query of buildContractQueries(profile)) {
+  for (const query of contractQueries) {
     try {
       const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=${days}&sort_by=date`
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) })

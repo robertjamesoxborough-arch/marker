@@ -9,6 +9,7 @@ import { scoreJobsBatch } from '../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
 import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
+import { reserveAdzuna } from '../../../lib/adzuna-budget'
 
 // Cost rules 1 + 2, same pattern as /api/feed-web. Default reads the shared,
 // nightly-scored jobs_cache (cron/gov already ingests source='gov' rows) with
@@ -111,8 +112,15 @@ async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
 
   const salaryMin = profile?.salary_floor || 60000
   const now = new Date().toISOString()
+  const govQueries = buildGovQueries(profile).slice(0, 4)
+  // Reserve against the GLOBAL Adzuna budget before scanning. If the on-demand
+  // ceiling is hit, skip the live scan entirely and let the caller serve the
+  // cached gov feed (nightly cron/gov keeps it <24h fresh).
+  const budget = await reserveAdzuna({ calls: govQueries.length, kind: 'ondemand', service })
+  if (!budget.allowed) return { jobs: 0, budgetExhausted: true }
+
   const raw = []
-  for (const query of buildGovQueries(profile)) {
+  for (const query of govQueries) {
     try {
       const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=${days}&sort_by=relevance`
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) })

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
+import { reserveAdzuna } from '../../../../lib/adzuna-budget'
 
 // Nightly, shared ingest for contract/interim roles — no existing cron
 // covered this source before Stage 22. Same pattern as cron/adzuna: generic,
@@ -79,6 +80,11 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+
+  const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length, kind: 'cron', service: supabase })
+  if (!budget.allowed) {
+    return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
+  }
 
   const now = new Date().toISOString()
   const rows = []
