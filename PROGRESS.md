@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 26 complete — Session G, personalisation bundle shipped. Weekly free-text preference box (FeedTab) now weights `lib/match-engine.js`'s ranking via a new deterministic `weeklyFocus` dimension — no model calls. Shared `lib/uk-eligibility.js` (allowlist-wins logic, ported from the personal tracker) now filters every feed ingest source (`cron/adzuna`, `cron/gov`, `cron/contract`, `cron/ats`, plus the 3 live fresh-scan paths) — "Remote" kept, "Remote – US" rejected. Self-test against real `jobs_cache` caught and fixed a genuine false-negative (bare "new york"/"portland" rejecting real English place names). Housekeeping: committed the Session-E `cron/greenhouse` deletion that was left uncommitted.  
-**Last commit:** feat: Session G — personalisation bundle (weekly preference ranking, shared UK-eligibility filter)  
+**Stage:** 27 complete — Session H, "Help me tidy up" pipeline chatbot shipped. An ADHD-friendly re-prioritiser: a short, warm Haiku-powered conversation about capacity/avoidance/priorities/win-definition, concluding in one single Sonnet call that produces a re-sort plan moving lower-priority roles into an "If you have time" holding area. Every Cost Guardrails Rule 3 hard rule is code-enforced (not prompt-suggested): Haiku-only turns, exactly one Sonnet call, cache-verified live (`cache_read_input_tokens:4417`), server-enforced 8-turn cap, Pro/Max/trial-only tier gate, allowance checked once before the first call and logged as exactly 1 `analyse` credit regardless of how many turns follow or whether the user bails. Housekeeping: the `wishlists` Data-API/GRANT issue is confirmed resolved (Rob ran the GRANT) — removed from carry-forward.  
+**Last commit:** feat: Session H — "Help me tidy up" pipeline chatbot (ADHD-friendly re-prioritiser)  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,35 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 27 — Session H: "Help me tidy up" pipeline chatbot (2026-07-14)
+
+**Correction carried in from Rob at the start of this session**: the `wishlists` Data-API/GRANT issue flagged as outstanding since Stage 23 is resolved. Rob ran the GRANT himself; `cron/wishlist-scrape` now returns `{"ok":true,"companies":0,"scraped":0,"extracted":0,"errors":[]}` — the 0 is because no user has wishlisted anything yet, not because the route is broken. No longer carried forward. (Historical Stage 23-26 entries describing it as outstanding are left as written — they were true at the time — this note is the correction.)
+
+**The feature.** The biggest remaining new feature and the one with the most cost exposure, per the brief. User clicks "Help me tidy up" on the pipeline; a short warm chat asks about capacity, avoidance, priorities and what a win looks like this week; on conclusion, one single Sonnet call produces a re-sort plan that moves lower-priority roles into a new "If you have time" holding area (a flag, not a delete, one click brings anything back). Deliberately framed throughout as an ADHD-friendly focusing tool, not a productivity gimmick: British English, zero em dashes, never comments on a stalled pipeline, always lets the user bail with nothing breaking (the flow is fully stateless client-side, no server session to clean up).
+
+**Every Cost Guardrails Rule 3 hard rule implemented as code, not a prompt suggestion:**
+- Q&A turns call `MODELS.haiku` only; the single resort call at the end calls `MODELS.sonnet`. Both enforced structurally (two separate code paths, `action:'turn'` vs `action:'resort'`), not by asking the model to behave.
+- The Haiku system prompt is identical byte-for-byte across every turn in a session (required for prompt caching to have any chance of firing) and was deliberately sized to ~18,700 characters (~4417 measured tokens) to clear the real ~4096-token cache threshold for `claude-haiku-4-5-20251001` discovered in Stage 19g — the commonly-documented 2048 figure does not hold for this model. First draft came in at 3988 measured input tokens and cache did NOT fire (`cache_creation_input_tokens:0`); expanded with genuinely useful content (a "why this approach works" rationale section, what the resort step needs from the conversation, edge-case handling for pushback/scepticism/tangents/tiny-pipelines/booked-interviews, a full reference conversation, more phrasing variety per theme) rather than padding, re-measured, and reconfirmed live.
+- Hard 8-turn cap enforced server-side (`assistantTurns >= MAX_TURNS` counted from the message history itself) — once hit, the route concludes without another model call regardless of what the model would have said next. The prompt also asks the model to wrap up naturally within 3-5 exchanges, but the server backstops it either way.
+- Tier gate: a dedicated `TIDY_UP_TIERS = new Set(['pro','max','trial'])` check, independent of the generic `analyse` action's cap (which is 30/month even on Free — reusing that cap alone would NOT have locked Free out, since Free's cap is nonzero). Trial is included because it's treated as Pro-equivalent everywhere else in this app (same pattern as `feed_fresh_scan`'s cap).
+- Allowance is checked once, before the very first call of a session, derived server-side from `messages.length === 0` (not trusted from a client flag, so it can't be spoofed). That first call's usage is logged under `action:'analyse'`, consuming exactly one monthly credit no matter how many turns follow or whether the user bails immediately after — this closes a real gap: without it, a user could repeatedly open the feature and bail before the final Sonnet call, spending real Haiku tokens on every attempt while never touching their capped allowance. Every later call in the same session (turns 2-8, and the final Sonnet resort) is still logged, tagged `action:'tidy_up'` (uncapped, tracking-only), so total real spend stays fully visible in `ai_usage` even though only the first call counts against the cap.
+- The re-sort itself is plain `pipeline_items` writes (`updateJob(id, { holdingArea: true/false })`) — zero model calls for that step, exactly as specified.
+
+**Storage**: `holdingArea` added to `lib/db.js`'s `jobToRow`/`rowToJob`, stored inside the existing `score_breakdown_json` blob alongside `archived`/`ranking`/`dadFriendly` — same established pattern, no migration. `colJobs` now excludes `holdingArea` roles from the active board; a new collapsible "If you have time" section lists them with a one-click "Back to board" per item.
+
+**Self-tested with real, live API calls, not reconstructions:**
+- Two sequential real Haiku calls against the exact production system prompt: call 1 (opening turn) returned `cache_creation_input_tokens:4417, cache_read_input_tokens:0`; call 2 (same prefix, a follow-up user turn) returned `cache_creation_input_tokens:0, cache_read_input_tokens:4417`. Caching genuinely fires.
+- A live Sonnet resort call against a realistic 3-exchange transcript (low capacity, one named avoided role "an agency one I never replied to", one named priority "the Skyscanner one") and a 4-job pipeline: correctly kept the named priority (Skyscanner) and a high-scoring unmentioned role (Monzo) active, moved the named avoided role and one other lower-scoring role to holding, covered all 4 job ids exactly once, and wrote a warm, on-tone, British-English closing message referencing the user's own mentioned context (a wedding) with no em dash.
+- The exact `TIDY_UP_TIERS.has(tier)` gating predicate unit-tested against all four real tier strings (free/trial/pro/max) plus undefined/empty — 6/6 pass.
+- Queried real production `users` rows (read-only, zero mutation): confirmed real Free-tier accounts exist and evaluate to `tier:'free'` under the same derivation `checkAllowance` uses internally, proving the gate would correctly block them. A full authenticated-cookie HTTP-level test wasn't attempted (would need a real browser login), consistent with how prior sessions have self-tested auth-gated routes in this codebase.
+- `node --check` clean on the new route and `lib/db.js`; Vercel production build `Build Completed`, `readyState: READY`, aliased to `marker-silk.vercel.app` (the authoritative JSX gate for the new `TidyUpModal` component in `app/app/page.js`).
+
+**NOT done — carried forward:**
+- The chat UI itself (`TidyUpModal`) was code-reviewed and build-verified but not click-tested in a real browser session end-to-end (would need a real Pro/Max/trial authenticated login) — worth a manual pass next session.
+- No UI indicator anywhere else in the app (e.g. a small badge) showing how many roles are currently in the holding area outside the Pipeline tab itself.
+
+---
 
 ### Stage 26 — Session G: personalisation bundle — weekly preference ranking, shared UK-eligibility filter (2026-07-14)
 
