@@ -17,6 +17,10 @@
       "schedule": "30 4 * * *"
     },
     {
+      "path": "/api/cron/wishlist-scrape",
+      "schedule": "45 4 * * *"
+    },
+    {
       "path": "/api/cron/archive-inactive",
       "schedule": "0 5 * * *"
     },
