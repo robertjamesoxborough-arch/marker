@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 31 complete — Session L, job-feed finally wired (new Wishlist Roles sub-tab in Discover), a full orphaned-route sweep, and a second genuine RLS gap found and fixed on `referrals`. job-feed now has a dedicated UI surface with copy explicitly distinguishing it from Live Roles. Swept every API route against every client call site (not just literal `fetch()` — dynamic-variable fetches, `<a href>`, `window.location.href` too) and found 5 genuinely orphaned routes: two dead single-user prototypes recommended for deletion (`app/api/cv`, `feed-tasklist`), one real feature that violates Cost Guardrails and isn't safe to wire as-is (`contractor/companies`), and two cheap/safe utilities nobody calls yet (`referral/link`, `resolve-url`). Fixed `app/page.js`'s last unguarded destructure. Verified the `referral/capture` RLS concern directly against Postgres (not the misleading route, which always returned `{ok:true}`) — confirmed genuine: `new row violates row-level security policy for table "referrals"`. Migration 008's GRANT was correct; RLS just has no policy at all, meaning the referral programme has never recorded a single real referral. Migration `009_referrals_rls_policies.sql` written, **not yet applied**.  
-**Last commit:** feat: Session L — wire up job-feed, orphaned-route sweep, app/page.js fix, referrals RLS gap found+fixed  
+**Stage:** 32 complete — Session M. Verified migration 009 end-to-end (a real referral now inserts successfully; the route no longer lies about success). Deleted the two dead single-user prototype routes on Rob's decision. Redesigned and wired `contractor/companies` to the cache-read + allowance-gated pattern. Wired `referral/link` into Settings. Then built structured career history from scratch: a Haiku CV-parser (cache-verified live, allowance-gated, self-tested against Rob's real CV — 8 roles extracted correctly with honest confidence ratings), a Settings edit UI that visibly flags low/medium-confidence rows, `buildAiContext()` rewired to prefer structured history over the raw CV blob, wired into onboarding, and an admin-gated backfill route for existing users. Migrations `010_career_history_confidence.sql` (adds `confidence`/`source` columns) is **not yet applied** — needed before any parse can actually persist.  
+**Last commit:** feat: Session M — structured career history (parsing, edit UI, buildAiContext rewire, backfill)  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,59 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 32 — Session M: structured career history, plus verification + cleanup carried over from Session L (2026-07-14)
+
+**Verification, carried over from Session L.** Migration 009 applied. Re-proved it directly against Postgres, not the route: a real authenticated INSERT with the user's own JWT (placeholder account id first, correctly rejected by the FK constraint, not RLS — confirming RLS itself was fixed; then a real account id, which succeeded and was readable back via the SELECT policy). Cleaned up the test row after. Also confirmed `app/api/referral/capture`'s fixed response: forced a real FK-violation failure through the live route and got back `{"ok":false,"error":"insert or update on table \"referrals\" violates foreign key constraint..."}`, proving it no longer claims success on a genuine failure.
+
+**Cleanup, per Rob's decisions on the Session L findings:**
+- Deleted `app/api/cv/route.js` and `app/api/feed-tasklist/route.js` outright (Rob's call: hardcoded personal CV details in a live, multi-tenant prompt is a data-leak risk, not just dead code worth keeping around).
+- Redesigned `app/api/contractor/companies/route.js` from an ungated Sonnet+live-web_search call on every hit to the same cache-read-default pattern as feed-web/feed-gov/contractor-roles/job-feed, reusing the *existing* `analyse_search` allowance bucket already used by `/api/analyse`'s Sonnet+web_search strategy-3 fallback — an established, already-compliant pattern in this codebase, not a new one invented for this fix. Wired into a new "Target Companies" sub-tab in `ContractorTab`.
+- Wired `app/api/referral/link` into a new `ReferralLinkBox` in Settings' Data & privacy section.
+- `resolve-url` still not wired — genuinely deferred again given time, not forgotten.
+
+**Structured career history — the main event.** Every user's work experience has lived as one unstructured text blob (`profiles.hard_filters_json.cvRaw`). `career_history` existed as a table with nothing writing to it. Built the full pipeline:
+
+1. **`app/api/career-history/parse/route.js`** — parses a CV into structured rows (company, role_title, start_date, end_date, achievements, confidence). Haiku only; new `parse_career_history` allowance bucket in `lib/allowance.js` (5/month free, 30/month trial+pro, 60/month max); logged via `trackAiUsage`. `PARSE_SYSTEM_PROMPT` built to ~18,150 characters (~4,299 measured tokens) to clear the real Haiku cache floor — two earlier drafts (9,430 and 12,419 chars) measured well under 3,000 tokens and did not cache; expanded with genuinely useful content (why structured history matters, date normalisation edge cases, PDF-extraction artefacts, overlapping/concurrent roles, career gaps, industry-specific title formats, what the confidence rating is actually used for) rather than padding, then reconfirmed live.
+
+**Self-tested against Rob's real, live CV (12,652 characters) — full output, not a summary:**
+```
+Call 1: cache_creation_input_tokens: 4299, cache_read_input_tokens: 0
+Call 2 (repeat): cache_creation_input_tokens: 0, cache_read_input_tokens: 4299
+→ caching confirmed firing
+
+8 roles extracted, overallConfidence: "high"
+1. Meta (via Adecco) — Strategic Partner Manager — 2024-10 to present — confidence: high
+2. The Goods Agency London — Digital Marketing Specialist — 2024-02 to 2024-07 — confidence: high
+3. Sony Interactive Entertainment — Senior Manager, Digital Experience & Strategy — 2023-09 to 2024-02 — confidence: high
+4. NatWest Group — Digital Product Lead — 2022-02 to 2023-07 — confidence: high
+5. King — Marketing Product Lead — 2021-01 to 2022-01 — confidence: medium
+6. Google — Programme Lead (via Randstad) — 2019-12 to 2020-12 — confidence: high
+7. UpSkill Digital — Google Digital Garage Trainer — 2018-01 to 2019-12 — confidence: high
+8. oXo Creatives — Digital Marketing Specialist — 2013-03 to 2019-01 — confidence: medium
+```
+Achievements were extracted verbatim from the source CV (e.g. "Delivered 35% increase in annual revenue through performance-focused digital campaigns", "Grew a 4.0 to 4.6/5 partner engagement score"), not paraphrased or invented. Dates normalised correctly across "Oct 2024–Present", "Feb 2024–July 2024", plain year ranges, and a "via Adecco/Randstad" agency-employment framing. The two "medium" ratings are genuinely the two roles in the source CV with the least date/scope precision (King's dates and oXo Creatives' 6-year span both required some inference) — exactly the honest calibration asked for, not a uniform "high" across the board.
+
+2. **`supabase/migrations/010_career_history_confidence.sql`** — adds `confidence` and `source` columns (confirmed absent via PostgREST's own OpenAPI schema before writing the migration, not assumed). **NOT YET APPLIED.** Until this runs, the parse call above works end-to-end (proven live) but the DB write will fail on these two missing columns — flagged plainly, not hidden. Once applied, re-run the same self-test to confirm the save-through-to-database path too.
+
+3. **`app/api/career-history/save/route.js`** — GET/POST CRUD backing a new `CareerHistorySection` in Settings. Users can see every parsed role, edit any field inline (title, company, dates, achievements), add or remove roles, and trigger a re-parse from their stored CV on demand. Rows below "high" confidence show a visible "check this" badge — a trust feature per Rob's explicit requirement, not a quiet log line. Saving through this UI marks a row `source:'user'`/`confidence:'high'`, clearing the review flag since a human has now looked at it.
+
+4. **Wired into onboarding** (`app/onboard/page.js`): fires career-history parsing in the background immediately after a successful `saveProfile()`, using the exact same fire-and-forget pattern already sitting right there for referral capture and tagline-conversion tracking. Never blocks or fails onboarding itself.
+
+5. **`lib/ai-context.js`'s `buildAiContext()` rewired**: now prefers structured `career_history` (up to 6 roles, each with up to 2 real achievements) over the raw `cvRaw` excerpt whenever structured rows exist, falling back to `cvRaw` only when they don't (a fresh signup not yet parsed, or a user not yet backfilled). Shorter, cleaner, cheaper per AI call for anyone with structured history, with the exact same fallback behaviour as before for anyone who doesn't have it yet. `lib/ai-context.test.js` updated for the new 6-role cap (was hardcoded to 3) plus new assertions proving achievements are included and that structured history correctly takes over from the raw CV excerpt; full 25-case suite passes.
+
+6. **`app/api/admin/backfill-career-history/route.js`** — admin-gated, one-off, not automatic. Scans every profile with `cvRaw` set and zero `career_history` rows, parses each through the same pipeline, and saves the result. `cvRaw` is only ever read, never modified or deleted — nothing is lost regardless of parse quality. Needs migration 010 applied first, then Rob triggers it once.
+
+**Self-tested**: full existing suite re-run (`match-engine` 28, `uk-eligibility` 26, `scoring`, `usage-window`, `freshness` 20, `ai-context` 25) — zero regressions. Vercel production build green, confirming the new Settings UI section and the cross-route-file helper import (`admin/backfill-career-history` importing parsing logic from `career-history/parse/route.js`) both compile and bundle correctly.
+
+**NOT done — carried forward, explicitly:**
+- **Apply `supabase/migrations/010_career_history_confidence.sql`** — top priority; nothing can persist through the parse/save routes until this runs.
+- **Then run the admin backfill** (`POST /api/admin/backfill-career-history`, signed in as the admin account) to populate `career_history` for existing users.
+- **Then re-run the parse self-test** to confirm the full save-through-to-database path, not just the parsing logic (which is proven).
+- `resolve-url` — still unwired, still flagged, not forgotten.
+- No dedicated review/reminder surface yet for low-confidence rows outside of Settings itself (e.g. a banner elsewhere in the app nudging the user to go check their career history) — the Settings section is the only place it currently shows.
+
+---
 
 ### Stage 31 — Session L: job-feed wired up, orphaned-route sweep, referrals RLS gap found and fixed (2026-07-14)
 
