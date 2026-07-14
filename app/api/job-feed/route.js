@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { scoreMatch } from '../../../lib/match-engine'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
+import { logIfError } from '../../../lib/log-errors'
 
 // Cost rule 7: web_search-derived discovery gets ZERO per-user live path —
 // not even an allowance-gated one (unlike feed-web/feed-gov/contractor-roles'
@@ -38,12 +39,15 @@ export async function POST() {
 
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const [{ data: profile }, { data: wishlistRows, error: wishlistErr }] = await Promise.all([
+  const [profileRes, wishlistRes] = await Promise.all([
     service.from('profiles')
       .select('target_roles, seniority, industries, postcode, salary_floor, max_office_days, hard_filters_json, track')
       .eq('user_id', user.id).single(),
     service.from('wishlists').select('company').eq('user_id', user.id),
   ])
+  logIfError('job-feed profiles', profileRes)
+  const profile = profileRes.data
+  const { data: wishlistRows, error: wishlistErr } = wishlistRes
 
   // Distinguish a genuine query failure from a genuinely-empty wishlist —
   // showing the "add companies" message for a DB/permissions error would be
@@ -55,7 +59,7 @@ export async function POST() {
 
   // Zero AI cost: reads jobs_cache rows the nightly cron/wishlist-scrape +
   // cron/score-cache have already scraped, extracted and baseline-scored.
-  const { data: rows } = await service
+  const jobsRes = await service
     .from('jobs_cache')
     .select('*')
     .eq('source', 'manual')
@@ -63,6 +67,8 @@ export async function POST() {
     .not('scored_at', 'is', null)
     .order('cached_at', { ascending: false })
     .limit(300)
+  logIfError('job-feed jobs_cache', jobsRes)
+  const rows = jobsRes.data
 
   if (!rows || rows.length === 0) return Response.json({ jobs: [], total: 0 })
 

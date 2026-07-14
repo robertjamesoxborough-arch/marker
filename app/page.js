@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { createClient } from '@supabase/supabase-js'
 import { BRAND_NAME } from '../lib/brand'
 import styles from './marketing.module.css'
+import { logIfError } from '../lib/log-errors'
 import PricingSection from './PricingSection'
 import TaglineTracker from '../components/TaglineTracker'
 import TrackCTA from '../components/TrackCTA'
@@ -69,9 +70,12 @@ export default async function Home() {
   let activeTagline = null
   try {
     const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const { data } = await sb.from('admin_taglines').select('id, tagline_text').eq('active', true).single()
-    activeTagline = data || null
-  } catch {}
+    const res = await sb.from('admin_taglines').select('id, tagline_text').eq('active', true).single()
+    logIfError('app/page.js admin_taglines', res)
+    activeTagline = res.data || null
+  } catch (e) {
+    console.error('[app/page.js] tagline fetch threw:', e.message)
+  }
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: 'var(--marker-cream)', fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }}>

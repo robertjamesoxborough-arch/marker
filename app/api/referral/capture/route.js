@@ -32,5 +32,9 @@ export async function POST(req) {
   })
   logIfError('referral/capture insert', insertRes)
 
-  return Response.json({ ok: true })
+  // Previously always returned {ok:true} even when the insert silently
+  // failed (this is exactly how the referrals RLS gap -- migration 009 --
+  // went unnoticed: the route claimed success on every single real capture
+  // attempt regardless of whether a row was ever actually written).
+  return Response.json({ ok: !insertRes.error, error: insertRes.error?.message })
 }
