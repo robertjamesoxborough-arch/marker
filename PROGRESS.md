@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 22 complete — Session C, feed-port closed out. New `cron/contract` ingest (no prior cron covered contract/interim roles), `contractor/roles` converted to the shared feed-web/feed-gov pattern, and the Fresh Scan button wired into the UI for the first time (feed-web/feed-gov have accepted `{fresh:true}` since Stage 18/19a but nothing ever sent it). Self-tested score+rank end-to-end with real Anthropic calls; the live Adzuna-fetch portion couldn't be tested — `ADZUNA_APP_ID` is still missing from `.env.local` (only `ADZUNA_API_KEY` was ever added).  
-**Last commit:** feat: contract-role ingest cron, contractor/roles feed-port, Fresh Scan UI  
+**Stage:** 23 complete — Session D, job-feed redesigned for cost rule 7 (the last non-compliant route). New `cron/wishlist-scrape` + new `lib/safe-fetch.js` SSRF guard (career-page scraping had ZERO URL validation before this — a real, live gap, not carried-over protection). SSRF guard proven against 9 real test cases. **All four feed routes (feed-web, feed-gov, contractor/roles, job-feed) now satisfy all 7 Cost Guardrails rules** — full breakdown below. **Blocker found, not resolved: `wishlists` table has the same Data-API/GRANT issue `jobs_cache` had earlier** — confirmed via live 403, blocks both new code paths in production until fixed.  
+**Last commit:** fix: job-feed rule-7 redesign — nightly cron + pure cache reader, SSRF hardened  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,50 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 23 — Session D: job-feed rule-7 redesign, SSRF hardening, all 4 feeds now compliant (2026-07-14)
+
+**The problem.** `job-feed` was the last route violating Cost Guardrails, and the only one needing a genuinely different design (not a mechanical port like Sessions A-C). It called Anthropic's `web_search_20250305` tool (up to 5 live searches) AND scraped arbitrary company career-page URLs by fetch, per authenticated click. Rule 7 requires web_search-derived discovery to have ZERO per-user live path — not even allowance-gated, unlike `feed-web`/`feed-gov`/`contractor-roles`' `{fresh:true}` exception under rule 1.
+
+**SSRF finding — a real, live gap, not just unconfirmed protection.** Checked whether Stage 13's SSRF hardening ("resolve-url: restrict to adzuna domains", "check-links: reject non-http/https schemes") covered `job-feed`'s career-page fetch. **It never did.** That fetch call (`fetch(co.link, ...)` on an arbitrary client-supplied URL) had zero validation of any kind, and was about to move into an unattended cron with service-role credentials in its execution context — raising the stakes considerably (a malicious wishlist `careers_url` could otherwise target `169.254.169.254` — the AWS/GCP cloud metadata endpoint — or an internal service, from inside the hosting environment with no user in the loop).
+
+Built `lib/safe-fetch.js`: protocol check (http/https only) + DNS resolution + rejection of private/reserved IP ranges (RFC1918 10.x/172.16-31.x/192.168.x, loopback 127.x, link-local 169.254.x including the metadata endpoint, IPv6 equivalents). **Documented the residual risk in the file itself, not silently**: this resolves DNS once to check the IP, then the platform `fetch()` resolves DNS again — a sophisticated DNS-rebinding attacker could theoretically serve a safe IP on the first lookup and a private one on the second. Fully closing that means fetching by the resolved IP directly (manual `Host` header + TLS SNI) — meaningfully more complex, out of scope this pass.
+
+**Verified live against 9 real cases** (not just unit-style assertions on mocked inputs — actual DNS resolution against real hostnames): blocked the cloud metadata endpoint, loopback, `localhost`, all three RFC1918 ranges, `ftp://` and `file://` schemes — all correctly blocked. A genuine public site (`https://www.google.com`) — correctly allowed. 9/9 as expected.
+
+**Redesign.** `app/api/cron/wishlist-scrape/route.js` (new): scrapes the shared UNION of company career pages across ALL users' wishlists once per night (cost rule 1 — one scrape per company benefits every user who has it wishlisted, capped at 30 companies/run, a larger union just takes a few nights to fully cycle), extracts postings with ONE shared Sonnet call (cost rule 2 — candidate-agnostic: describes what roles exist, doesn't judge fit for anyone), inserts them **unscored** (`source:'manual'`, `track_tags:['wishlist']`). No separate scoring call needed — the existing `cron/score-cache` sweep is source-agnostic and already picks up any unscored row, reusing the same shared Haiku baseline as every other feed. Registered at `45 4 * * *` (after `contract`, before `archive-inactive`/`score-cache`). `job-feed` itself rewritten as a pure, zero-AI-cost cache reader: reads the shared cache, filters to each user's OWN wishlist companies (personalisation happens here, deterministically, via `lib/match-engine.js`), ranks, returns. **No `{fresh:true}` branch at all** — per the explicit instruction that web_search-derived discovery gets no live exception, stricter than the other three routes.
+
+**What's cut, stated plainly rather than quietly degraded.** `job-feed`'s old generic Sonnet `web_search` fallback ("senior manager UK remote"-style queries) was **not** converted into the cron — it's gone. Judgement call: it was redundant with `feed-web`'s existing Adzuna-based general search, which is already nightly, shared, and structurally more reliable than an LLM guessing at listings via `web_search`. Converting it would have meant reinventing `feed-web`'s job with a strictly worse mechanism. **The genuinely distinct value — checking whether a user's OWN target companies have open roles on their own career pages, which may never appear on an aggregator like Adzuna — is fully preserved**, just moved to the shared nightly cron.
+
+**Self-test, honest about what's proven vs blocked:**
+- SSRF guard: proven against 9 real cases (above) — genuine DNS resolution, not mocked.
+- Extraction pipeline: proven against a **real** scraped page (Monzo's `/careers`) with a real Sonnet call — returned 0 postings, because that specific page is JS-rendered and the static-HTML fetch (the exact same approach the *original* `job-feed` already used) doesn't contain listing text in the raw HTML. A pre-existing limitation of plain-fetch scraping, not a regression introduced by this redesign.
+- Wishlist-matching + ranking logic: verified against the real `lib/match-engine.js` using the real extraction output and a mock wishlist (since the real table couldn't be queried — see below).
+- `node --check` clean on all new/edited plain-JS files; no sampling params or manual `thinking:` blocks anywhere in the app (re-confirmed across the whole codebase, not just the new files).
+
+**Found and could NOT fully resolve: `wishlists` has the same Data-API/GRANT issue `jobs_cache` had in an earlier stage.** Confirmed via a live `403 permission denied for table wishlists` — `jobs_cache` and `profiles` both return 200 on the identical check, so this is specific to `wishlists`, not a broader regression. This blocks both the new cron and `job-feed`'s rewritten route in production until fixed. Same fix as before: Table Editor → check the Data API toggle for `wishlists`, then `GRANT SELECT ON public.wishlists TO service_role, anon, authenticated`. `job-feed`'s error handling was deliberately written to surface this distinctly ("Could not load your wishlist right now") rather than show the misleading "add companies to your wishlist" empty-state message that a naive implementation would show for both a real empty wishlist and a silent permissions failure.
+
+**Also noted, not addressed this session:** `job-feed`, like `feed-web`/`feed-gov` before Stage 22, has no UI caller in `app/app/page.js` — confirmed by grep. Wiring a "Wishlist roles" UI surface (mirroring Stage 22's Fresh Scan work) is a separate follow-up, not attempted here since it wasn't part of this session's ask.
+
+**All 7 Cost Guardrails rules, confirmed across all four feed routes:**
+
+| Rule | feed-web | feed-gov | contractor/roles | job-feed |
+|---|---|---|---|---|
+| 1. Nightly + shared, never live-per-click | ✅ cache-read default, `{fresh:true}` Pro-gated exception | ✅ same | ✅ same | ✅ **no live path at all** (stricter, per rule 7) |
+| 2. Score/extract once, globally | ✅ `score-jobs-batch.js` shared baseline | ✅ same | ✅ same | ✅ extraction shared (cron), scoring shared (`score-cache` sweep) |
+| 3. Tidy-up chatbot (N/A to these 4 routes) | — | — | — | — |
+| 4. Prompt-cache the rubric | ✅ via shared `score-jobs-batch.js` | ✅ same | ✅ same | ✅ scored via the same shared pipeline |
+| 5. Sonnet 5, no sampling params, `max_tokens` headroom | ✅ | ✅ | ✅ | ✅ extraction call on `claude-sonnet-5`, `max_tokens:3900` |
+| 6. Allowance check before every per-user model call | ✅ `feed_fresh_scan` gate | ✅ same | ✅ same | N/A — no per-user model call exists in this route anymore |
+| 7. Web search metered / nightly-cron-only, zero per-user path | ✅ N/A (no web_search) | ✅ N/A | ✅ N/A | ✅ **web_search dropped entirely**; career-page scrape now nightly-only + SSRF-hardened |
+
+**NOT done — carried forward:**
+- Apply the `wishlists` Data-API/GRANT fix (blocks both new code paths in production).
+- Wire a UI surface for `job-feed` (currently unreachable from the client, matching feed-web/feed-gov's pre-Stage-22 state).
+- G3 loop-guard full 4-site wiring (from Stage 21).
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for Greenhouse board coverage.
+
+---
 
 ### Stage 22 — Session C: contractor/roles feed-port + Fresh Scan wired into the UI (2026-07-14)
 
