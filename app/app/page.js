@@ -1957,6 +1957,17 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [coverAllowance, setCoverAllowance] = useState(null) // { allowed, used, cap, tier } — cover letters only
+
+  // Cover letters are a paid feature; load the allowance so Free users see a
+  // locked state up front (not a failed attempt) and paid users see remaining.
+  useEffect(() => {
+    if (!isCover) return
+    fetch('/api/profile/cover-letter-allowance').then(r => r.ok ? r.json() : null).then(d => d && setCoverAllowance(d)).catch(() => {})
+  }, [isCover])
+
+  const coverLocked = isCover && coverAllowance && coverAllowance.cap === 0
+  const coverRemaining = isCover && coverAllowance && coverAllowance.cap > 0 ? Math.max(0, coverAllowance.cap - coverAllowance.used) : null
 
   const selectedJob = eligibleJobs.find(j => j.id === selectedJobId) || eligibleJobs[0]
 
@@ -1995,6 +2006,21 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Free tier: show the locked door, not a failed attempt — a one-line
+  // description of what it produces plus an upgrade prompt (keeps the upsell).
+  if (coverLocked) {
+    return (
+      <div style={{ padding: '28px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+        <div style={{ fontSize: 26 }}>🔒</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>Cover letters</div>
+        <div style={{ fontSize: 13, color: 'var(--marker-mid)', maxWidth: 340, lineHeight: 1.6 }}>
+          Requite writes a tailored cover letter for any role in your pipeline, matched to your CV and the job description, and it never invents a number that is not in your CV. Available on Pro (20/month) and Max (60/month).
+        </div>
+        <a href="/pricing" className="btn btn-primary" style={{ fontSize: 14, fontWeight: 600 }}>Upgrade to unlock →</a>
+      </div>
+    )
   }
 
   if (eligibleJobs.length === 0) {
@@ -2046,6 +2072,10 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
         style={{ padding: '11px', borderRadius: 8, background: loading ? 'var(--marker-mid)' : 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}>
         {loading ? (isCover ? 'Writing…' : 'Generating…') : (isCover ? 'Write cover letter' : 'Generate')}
       </button>
+
+      {coverRemaining !== null && (
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', textAlign: 'center' }}>{coverRemaining} of {coverAllowance.cap} cover letters left this month</div>
+      )}
 
       {error && <div style={{ padding: 10, borderRadius: 8, background: '#fef2f2', border: '1px solid #fca5a5', fontFamily: 'var(--font-body)', fontSize: 13, color: '#dc2626' }}>{error}</div>}
 

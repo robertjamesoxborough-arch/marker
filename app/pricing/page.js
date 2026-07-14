@@ -32,6 +32,7 @@ export default function PricingPage() {
         'Everything in Free',
         'Unlimited AI job scoring',
         'CV tailoring with verified-stats guardrail (20/mo)',
+        'Cover letters, tailored to each role (20/mo)',
         'Interview prep pack for any role (8/mo)',
         'Salary benchmark and negotiation rehearsal (8/mo)',
         'Priority freshness: daily feed refresh',
@@ -141,7 +142,7 @@ export default function PricingPage() {
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 28, textAlign: 'center' }}>Common questions</div>
         {[
           { q: 'Is the free tier really free?', a: 'Yes. The pipeline board, nightly job feed, Memory Card, and 30 AI scores per month are free with no trial period and no credit card required. Limits are shown upfront.' },
-          { q: 'What does Pro include?', a: 'Unlimited AI scoring, CV tailoring (20/mo), interview prep packs (8/mo), salary benchmarks, and negotiation rehearsal tied to your tracked roles.' },
+          { q: 'What does Pro include?', a: 'Unlimited AI scoring, CV tailoring (20/mo), cover letters (20/mo), interview prep packs (8/mo), salary benchmarks, and negotiation rehearsal tied to your tracked roles.' },
           { q: 'What does Max include?', a: 'Everything in Pro at 3x the volume: 3,000 AI scores, 60 CV tailors, 30 interview packs, 30 negotiation packs, and 60 cover letters per month. Built for high-intensity or multi-track searches.' },
           { q: 'Can I cancel Pro or Max?', a: 'Yes, at any time from Settings. Your account stays active until the end of the billing period. No cancellation fees. Refunds are available within 7 days of any charge.' },
           { q: 'Are the job scores guaranteed?', a: 'No. Scores are AI estimates based on your profile; they are a starting point for your own judgement, not a hiring prediction or professional recommendation. See the full disclaimer in our Terms.' },

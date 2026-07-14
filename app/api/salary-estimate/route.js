@@ -1,11 +1,25 @@
-// Salary estimation — Adzuna histogram (free) + static seniority floor check
-// Accepts optional profileSeniority to ground the estimate in the user's actual seniority.
-// No Claude usage. Results persisted in IndexedDB — only fetched once per job.
-// Auth-gated: the Adzuna call shares the ingest crons' monthly quota, so an
-// unauthenticated caller must not be able to trigger it (cost guardrail: no
-// external spend/quota reachable by an unauthenticated user).
+// Salary estimation — Adzuna histogram (real market data) + static seniority
+// floor fallback. No Claude usage.
+//
+// Cost/quota control (Session V): the Adzuna histogram shares the ingest
+// crons' monthly Adzuna quota, so salary lookups must not scale per-user-
+// per-click. Two defences:
+//   1. Shared per-role cache in admin_metrics_cache — the FIRST user to look
+//      up a role title pays the one Adzuna call; every other user (and every
+//      repeat view) reads that row. Real results cached 30 days (salaries
+//      don't move week to week); static fallbacks cached 3 days so we retry
+//      Adzuna soon without hammering it.
+//   2. A daily-budget backstop — once SALARY_DAILY_BUDGET live calls have been
+//      made in a UTC day, further misses fall back to static instead of
+//      calling Adzuna, so salary can never exhaust the quota mid-month.
+// Auth-gated so an unauthenticated caller can't trigger the Adzuna call at all.
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+
+const SALARY_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const STATIC_TTL_MS = 3 * 24 * 60 * 60 * 1000
+const SALARY_DAILY_BUDGET = 150 // crons use ~42 Adzuna calls/night; this bounds salary's live calls well within any realistic plan
 
 const SENIORITY_FLOORS = [
   { match: ['chief', 'cto', 'cmo', 'coo', 'cpo'], floor: 150, cap: 250 },
@@ -48,20 +62,60 @@ export async function POST(req) {
   const { roleTitle, company, profileSeniority } = await req.json()
   if (!roleTitle) return Response.json({ salary: null })
 
-  // If the user's profile seniority is provided, use it to override the role-title based lookup
-  // so estimates are grounded in the candidate's actual level, not just the job title
+  // Seniority keyword tightens the histogram to the candidate's actual level.
   const effectiveTitle = profileSeniority ? `${profileSeniority} ${roleTitle}` : roleTitle
-
-  const adzunaId = process.env.ADZUNA_APP_ID
-  // Was ADZUNA_APP_KEY (a typo — that env var does not exist), so this branch
-  // never ran and every estimate silently fell back to the static floor. The
-  // real var is ADZUNA_API_KEY (same one the ingest crons use).
-  const adzunaKey = process.env.ADZUNA_API_KEY
   const bounds = getSeniorityBounds(effectiveTitle)
 
-  if (adzunaId && adzunaKey) {
+  const adzunaId = process.env.ADZUNA_APP_ID
+  const adzunaKey = process.env.ADZUNA_API_KEY // was ADZUNA_APP_KEY (typo, never resolved)
+
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    : null
+
+  const cacheKey = `salary:${effectiveTitle.toLowerCase().trim().slice(0, 120)}`
+
+  // ── 1. Shared cache read ──────────────────────────────────────────────────
+  if (service) {
+    const { data } = await service.from('admin_metrics_cache').select('value, computed_at').eq('metric', cacheKey).maybeSingle()
+    if (data?.value?.salary && data.computed_at) {
+      const age = Date.now() - new Date(data.computed_at).getTime()
+      const ttl = data.value.salary.source === 'adzuna' ? SALARY_TTL_MS : STATIC_TTL_MS
+      if (age < ttl) return Response.json({ salary: data.value.salary })
+    }
+  }
+
+  async function cacheAndReturn(salary) {
+    if (service) {
+      await service.from('admin_metrics_cache').upsert(
+        { metric: cacheKey, value: { salary }, computed_at: new Date().toISOString() },
+        { onConflict: 'metric' }
+      )
+    }
+    return Response.json({ salary })
+  }
+
+  // ── 2. Daily-budget backstop ──────────────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10)
+  const budgetKey = `salary_budget:${today}`
+  let budgetUsed = 0
+  if (service && adzunaId && adzunaKey) {
+    const { data: b } = await service.from('admin_metrics_cache').select('value').eq('metric', budgetKey).maybeSingle()
+    budgetUsed = b?.value?.count || 0
+  }
+  const canCallAdzuna = !!(adzunaId && adzunaKey) && budgetUsed < SALARY_DAILY_BUDGET
+
+  // ── 3. Live Adzuna histogram (budget permitting) ──────────────────────────
+  if (canCallAdzuna) {
+    // Count the attempt against today's budget before making it, so the cap
+    // holds even for role titles whose result never passes the sanity check.
+    if (service) {
+      await service.from('admin_metrics_cache').upsert(
+        { metric: budgetKey, value: { count: budgetUsed + 1 }, computed_at: new Date().toISOString() },
+        { onConflict: 'metric' }
+      )
+    }
     try {
-      // Use specific query — include seniority keyword to tighten the histogram
       const query = encodeURIComponent(effectiveTitle)
       const url = `https://api.adzuna.com/v1/api/jobs/gb/histogram?app_id=${adzunaId}&app_key=${adzunaKey}&what=${query}&content-type=application/json`
       const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
@@ -71,7 +125,6 @@ export async function POST(req) {
         if (buckets && Object.keys(buckets).length > 0) {
           const entries = Object.entries(buckets)
             .map(([k, v]) => ({ salary: parseInt(k), count: v }))
-            // Filter to sensible UK range — ignore anything below seniority floor
             .filter(e => e.salary >= bounds.floor * 1000 && e.salary <= bounds.cap * 1000)
             .sort((a, b) => a.salary - b.salary)
 
@@ -80,19 +133,15 @@ export async function POST(req) {
             let cumulative = 0
             let p25 = entries[0].salary
             let p75 = entries[entries.length - 1].salary
-
             for (const e of entries) {
               cumulative += e.count
               if (cumulative / total >= 0.25 && p25 === entries[0].salary) p25 = e.salary
               if (cumulative / total >= 0.75) { p75 = e.salary; break }
             }
-
             const min = Math.round(p25 / 1000)
             const max = Math.round(p75 / 1000)
-
-            // Sanity check: if Adzuna result is suspiciously below floor, use static
             if (min >= bounds.floor && max <= bounds.cap + 20) {
-              return Response.json({ salary: { min, max, source: 'adzuna' } })
+              return cacheAndReturn({ min, max, source: 'adzuna' })
             }
           }
         }
@@ -100,5 +149,7 @@ export async function POST(req) {
     } catch {}
   }
 
-  return Response.json({ salary: staticEstimate(effectiveTitle) })
+  // Fallback: cache the static estimate (short TTL) so repeat lookups of the
+  // same role don't re-call Adzuna every time.
+  return cacheAndReturn(staticEstimate(effectiveTitle))
 }

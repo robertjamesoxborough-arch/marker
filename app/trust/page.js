@@ -183,7 +183,7 @@ export default function TrustPanel() {
                 'AI role scoring: 30 analyses/month on free tier',
                 'Unlimited pipeline tracking',
                 'Memory Card: everything we know about you, most of it editable',
-                'Pro (£19/mo) or Max (£39/mo): unlimited AI, interview prep, CV tailoring',
+                'Pro (£19/mo) or Max (£39/mo): unlimited AI, CV tailoring, cover letters, interview prep',
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ color: i === 0 ? '#F59E0B' : i === 3 ? 'var(--marker-mid)' : 'var(--marker-lime)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>{i === 3 ? '→' : '✓'}</span>
