@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 23 complete — Session D, job-feed redesigned for cost rule 7 (the last non-compliant route). New `cron/wishlist-scrape` + new `lib/safe-fetch.js` SSRF guard (career-page scraping had ZERO URL validation before this — a real, live gap, not carried-over protection). SSRF guard proven against 9 real test cases. **All four feed routes (feed-web, feed-gov, contractor/roles, job-feed) now satisfy all 7 Cost Guardrails rules** — full breakdown below. **Blocker found, not resolved: `wishlists` table has the same Data-API/GRANT issue `jobs_cache` had earlier** — confirmed via live 403, blocks both new code paths in production until fixed.  
-**Last commit:** fix: job-feed rule-7 redesign — nightly cron + pure cache reader, SSRF hardened  
+**Stage:** 24 complete — Session E, multi-ATS engine shipped. `cron/greenhouse` (6 alive boards, ~195 jobs after 14 silently 404'd) rewritten into `cron/ats`, covering Greenhouse + Lever + Ashby + SmartRecruiters via a shared `lib/ats.js` with auto-detect (tries a company's recorded provider, falls back through the other three). Workday explicitly excluded pending legal review. 43 companies live-verified before shipping (not guessed) — tested 93 candidates, caught and excluded 4 false-positive company-identity matches. Real cron run: **764 UK-filtered jobs ingested** (Greenhouse 385, Ashby 279, SmartRecruiters 60, Lever 40), zero errors, all correctly unscored for the existing `score-cache` sweep.  
+**Last commit:** feat: multi-ATS engine — Greenhouse, Lever, Ashby, SmartRecruiters  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,40 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 24 — Session E: multi-ATS engine (Greenhouse + Lever + Ashby + SmartRecruiters) (2026-07-14)
+
+**The problem.** `cron/greenhouse` only ever covered one ATS provider. 14 of the original 20 hardcoded boards had 404'd (companies silently moved to a different ATS), leaving only 6 alive (Monzo, GoCardless, Skyscanner, Farfetch, SumUp, Wayve) and thin coverage (~195 jobs). No mechanism existed to detect or recover from a company migrating providers.
+
+**Built `lib/ats.js`** — one shared interface over all four public, documented, no-auth JSON APIs: Greenhouse (`boards-api.greenhouse.io`), Lever (`api.lever.co/v0/postings`), Ashby (`api.ashbyhq.com/posting-api`), SmartRecruiters (`api.smartrecruiters.com/v1/companies`). Each normalises to a common job shape. **Workday intentionally excluded pending legal review** — the code comment is in the file exactly as required, its endpoint is undocumented and carries commercial risk; not added, not worked around.
+
+**Auto-detect.** `fetchFromAnyProvider(slug, preferredProvider)` tries the company's recorded provider first, then the other three, before giving up — so a company migrating ATS again is found automatically rather than silently 404ing (the exact failure mode this whole rewrite exists to fix). Adding a new company going forward is one line: name, slug, provider.
+
+**Company list — verified live, not guessed.** Built a candidate list of 93 UK-based/UK-hiring companies weighted toward established, senior-friendly employers (matching Requite's "£75k+, decent WLB, not hypergrowth chaos" audience) rather than early-stage startups, and tested all 93 against all 4 providers in parallel via the real APIs. **47 returned real jobs.** Reviewed every winner for company-identity correctness before including any — slug guessing occasionally collides with a totally unrelated company that happens to use the same string as its board slug. Caught and excluded 4 genuine false positives:
+- `peak` → resolved to a US physical-therapy clinic chain, not Peak AI
+- `lunar` → resolved to a hospital-operations company, not the Nordic digital bank Lunar
+- `remote` → resolved to some education/instructor company, not Remote.com
+- `primer` → resolved to a Florida micro-school network, not the UK fintech Primer
+
+Shipping any of these would have injected genuinely wrong, irrelevant company data into the feed — the same class of trust risk as Stage 21's `scoreRoleFit` false-positive fix, just at the company-identity level instead of the role-matching level. **Final list: 43 verified companies**, comfortably over the 40+ target, spanning all four providers.
+
+**`cron/ats` (replaces `cron/greenhouse`)** reuses the established ingest pattern exactly: same UK-location filter regex `cron/greenhouse` already used, same external_id-based dedupe/upsert, rows inserted **unscored** so the existing source-agnostic `cron/score-cache` sweep picks them up via the shared Haiku baseline (cost rules 1+2 — no separate scoring call added, no per-user path of any kind). `source` stays `'greenhouse'` for every provider (not a new enum value — avoids a migration, since this cron directly replaces `cron/greenhouse` and every existing reader — `feed-cache`, `lib/db.js` — already filters on that value); the real provider is recorded in `track_tags` instead, so nothing is lost for debugging or the `moved` auto-detect report. `vercel.json`: `/api/cron/greenhouse` → `/api/cron/ats` at the same `0 2 * * *` slot; old route folder deleted, not kept alongside.
+
+**Self-tested against real data — not a reconstruction.** Ran the exact `cron/ats` logic (same 43-company list, same UK filter, same external_id/upsert scheme) live:
+```
+Per-provider UK-filtered job counts: { greenhouse: 385, ashby: 279, smartrecruiters: 60, lever: 40 }
+Total: 764 rows, zero errors, zero "moved" (expected — every provider was just verified fresh moments before)
+Upsert: HTTP 201, 764 rows written to the real jobs_cache
+```
+Confirmed all 764 rows have `scored_at IS NULL` — the existing `score-cache` sweep will pick them up on its next run, no changes needed there. **764 real jobs now sitting in production, up from ~195 before this session** — the single biggest coverage improvement of the whole feed-port arc.
+
+**NOT done — carried forward:**
+- Run `cron/score-cache` (a few times) to clear the new 764-row backlog.
+- Apply the `wishlists` Data-API/GRANT fix from Stage 23 (still outstanding, blocks `job-feed` and `cron/wishlist-scrape` in production).
+- Wire a UI surface for `job-feed` (Stage 23 follow-up, still open).
+- G3 loop-guard full 4-site wiring (Stage 21 follow-up, still open).
+
+---
 
 ### Stage 23 — Session D: job-feed rule-7 redesign, SSRF hardening, all 4 feeds now compliant (2026-07-14)
 
