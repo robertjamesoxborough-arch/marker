@@ -63,6 +63,34 @@ function Label({ children, sub }) {
   )
 }
 
+function ReferralLinkBox() {
+  const [link, setLink] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/referral/link').then(r => r.ok ? r.json() : null).then(d => { if (d?.link) setLink(d.link) }).catch(() => {})
+  }, [])
+
+  if (!link) return null
+
+  function copy() {
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Refer a friend</div>
+      <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 10 }}>Share your link. If they sign up, you'll be credited as their referrer.</div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--marker-text)', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '8px 12px', overflowX: 'auto', whiteSpace: 'nowrap', maxWidth: 320 }}>{link}</div>
+        <button onClick={copy} style={{ fontSize: 12, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--marker-border)', background: copied ? 'var(--marker-lime)' : 'var(--marker-cream)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{copied ? 'Copied' : 'Copy'}</button>
+      </div>
+    </div>
+  )
+}
+
 const PLAN_LABELS = { free: 'Free', pro: 'Pro', max: 'Max', trial: 'Trial' }
 const PLANS_UI = [
   { id: 'pro', name: 'Pro', price: '£19/mo', desc: 'Full access for active job seekers' },
@@ -491,6 +519,8 @@ export default function SettingsPage() {
         {/* Data & Privacy */}
         <div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 14 }}>Data & privacy</div>
+
+          <ReferralLinkBox />
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Export your data</div>

@@ -4182,6 +4182,11 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
   const [recruitersError,   setRecruitersError]   = useState('')
   const [postedWithinDays,  setPostedWithinDays]   = usePostedWithin(14)
 
+  const [companies,        setCompanies]        = useState(null)
+  const [companiesLoading, setCompaniesLoading] = useState(false)
+  const [companiesError,   setCompaniesError]   = useState('')
+  const [companiesCachedAt,setCompaniesCachedAt]= useState(null)
+
   const CACHE_MS = 7 * 24 * 60 * 60 * 1000
   function isFresh(cachedAt) { return !!cachedAt && Date.now() - new Date(cachedAt).getTime() < CACHE_MS }
 
@@ -4199,6 +4204,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
     } else {
       generateRecruiters()
     }
+    loadCompanies(false)
   }, [])
 
   async function scanRoles() {
@@ -4210,6 +4216,18 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
       setRoles(data.jobs || [])
     } catch { setRolesError('Request failed. Try again.') }
     finally { setRolesLoading(false) }
+  }
+
+  async function loadCompanies(fresh) {
+    setCompaniesLoading(true); setCompaniesError('')
+    try {
+      const res  = await fetch('/api/contractor/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fresh: !!fresh }) })
+      const data = await res.json()
+      if (data.error) setCompaniesError(data.error)
+      setCompanies(data.companies || [])
+      setCompaniesCachedAt(data.cachedAt || null)
+    } catch { setCompaniesError('Request failed. Try again.') }
+    finally { setCompaniesLoading(false) }
   }
 
   async function generateRecruiters() {
@@ -4251,6 +4269,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
 
   const SUBTABS = [
     { id: 'roles',      label: 'Live Roles'  },
+    { id: 'companies',  label: 'Target Companies' },
     { id: 'recruiters', label: 'Recruiters'  },
   ]
 
@@ -4378,6 +4397,42 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
             </>
             )
           })()}
+        </div>
+      )}
+
+      {subTab === 'companies' && (
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.5 }}>
+              UK companies that regularly use senior contractors and interims in your field, scored on contractor volume, conversion confidence and work-life balance.
+            </div>
+            <button onClick={() => loadCompanies(true)} disabled={companiesLoading} style={{ flexShrink: 0, background: 'transparent', border: '1px solid var(--marker-border)', color: 'var(--marker-mid)', padding: '7px 11px', borderRadius: 7, fontSize: 11, fontFamily: 'var(--font-mono)', cursor: companiesLoading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+              {companiesLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+          {companiesCachedAt && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>LAST UPDATED {new Date(companiesCachedAt).toLocaleDateString()}</div>}
+          {companiesError && <div style={{ padding: '10px 12px', borderRadius: 8, background: '#FEE2E2', border: '1px solid #FCA5A5', fontSize: 12, color: '#B91C1C' }}>{companiesError}</div>}
+          {companiesLoading && !companies && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)' }}>LOADING…</div>}
+          {companies && companies.length === 0 && !companiesLoading && (
+            <div style={{ padding: '32px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)' }}>
+              No list yet. Hit Refresh to generate one from your profile.
+            </div>
+          )}
+          {(companies || []).map((c, i) => (
+            <div key={i} style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)' }}>{c.company}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>TIER {c.tier}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 2 }}>{c.sector}</div>
+                {c.why && <div style={{ fontSize: 12, color: 'var(--marker-text)', marginTop: 4, lineHeight: 1.4 }}>{c.why}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                {c.careersUrl && <a href={c.careersUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--marker-mid)', fontFamily: 'var(--font-body)' }}>Careers →</a>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
