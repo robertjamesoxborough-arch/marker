@@ -4896,9 +4896,9 @@ function GettingStartedPanel({ profile, jobs, onProfileSaved, onTabSwitch }) {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setPbSaving(false); return }
-      const { data: p } = await supabase.from('profiles').select('hard_filters_json').eq('id', user.id).single()
+      const { data: p } = await supabase.from('profiles').select('hard_filters_json').eq('user_id', user.id).single()
       const existing = p?.hard_filters_json || {}
-      await supabase.from('profiles').update({ hard_filters_json: { ...existing, cvRaw: newCvRaw } }).eq('id', user.id)
+      await supabase.from('profiles').update({ hard_filters_json: { ...existing, cvRaw: newCvRaw } }).eq('user_id', user.id)
       onProfileSaved(newCvRaw)
       setPbOpen(false)
     } catch {}
@@ -4912,10 +4912,10 @@ function GettingStartedPanel({ profile, jobs, onProfileSaved, onTabSwitch }) {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setSuppSaving(false); return }
-      const { data: p } = await supabase.from('profiles').select('hard_filters_json').eq('id', user.id).single()
+      const { data: p } = await supabase.from('profiles').select('hard_filters_json').eq('user_id', user.id).single()
       const existing = p?.hard_filters_json || {}
       const updated = (existing.cvRaw || '') + `\n\nAdditional context:\n${suppText.trim()}`
-      await supabase.from('profiles').update({ hard_filters_json: { ...existing, cvRaw: updated } }).eq('id', user.id)
+      await supabase.from('profiles').update({ hard_filters_json: { ...existing, cvRaw: updated } }).eq('user_id', user.id)
       onProfileSaved(updated)
       setSuppOpen(false)
       setSuppText('')

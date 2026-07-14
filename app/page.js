@@ -38,7 +38,7 @@ const PROMISES = [
   },
   {
     title: 'A score you can actually read.',
-    body: "Every role gets scored across eight things you care about: skills and role fit, seniority match, industry fit, office/remote flexibility, company culture, parental leave, salary versus market, and career growth. You can see the reasoning behind each one. Not a mystery rating you're meant to take on faith.",
+    body: "Every role is scored across eight things you actually care about, and you can see the reasoning behind every one. Not a mystery rating you're meant to take on faith.",
   },
   {
     title: 'It remembers you.',
@@ -125,9 +125,6 @@ export default async function Home() {
             <a href="#promises" className="btn btn-ghost" style={{ fontSize: 14, padding: '13px 20px' }}>See how it works →</a>
             <span className={styles.heroNote}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</span>
           </div>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--marker-mid)', marginTop: 20, lineHeight: 1.5 }}>
-            No spray-and-pray, no monthly fee to find out a job closed last week.
-          </p>
         </div>
 
         {/* Floating score card */}
@@ -188,8 +185,7 @@ export default async function Home() {
           <div>
             <div className="kicker holo-text" style={{ marginBottom: 16 }}>How it works</div>
             <h2 className="display-lg" style={{ fontSize: 'clamp(40px, 5vw, 64px)', color: 'var(--marker-black)', maxWidth: 720 }}>
-              Three things, done properly.<br />
-              <span style={{ color: 'var(--marker-mid)' }}>Nothing else.</span>
+              Three things. Done properly.
             </h2>
           </div>
           <div className={styles.howSub}>
@@ -207,7 +203,7 @@ export default async function Home() {
         </div>
         <div style={{ textAlign: 'center', marginTop: 40 }}>
           <Link href="/trust" style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--marker-text)', textDecoration: 'underline', textUnderlineOffset: 4 }}>
-            We can back every word of that. Here&apos;s exactly how →
+            How we back this up →
           </Link>
         </div>
       </section>
@@ -217,7 +213,7 @@ export default async function Home() {
       <section className={styles.productShowcase}>
         <Image
           src="/brand/product-showcase.png"
-          alt={`${BRAND_NAME}: AI copilot for experienced job hunters`}
+          alt="Requite product screenshot: scored job feed and pipeline board"
           width={2400}
           height={1200}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -327,26 +323,12 @@ export default async function Home() {
       {/* Holo divider, referral → hiring */}
       <div className="holo-hairline" />
 
-      {/* ── HIRING? STRIP ── */}
-      <section style={{ padding: '80px 64px', background: 'var(--marker-black)' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div className="kicker" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>Hiring, not job-hunting?</div>
-          <h2 className="display-lg" style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: 'var(--marker-cream)', marginBottom: 20, textWrap: 'balance' }}>
-            Requite introduces you to candidates who fit your role and genuinely want it. Pre-screened, no CV spam. You only pay when you actually hire.
-          </h2>
-          <Link href="/hire" className="btn btn-lime btn-iris-sheen" style={{ fontWeight: 600, fontSize: 15, display: 'inline-flex' }}>For employers →</Link>
-        </div>
-      </section>
-
-      {/* Holo divider, hiring → cta */}
-      <div className="holo-hairline" />
-
       {/* ── CTA ── */}
       <section className={`${styles.ctaSection} aurora-bg`}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
           <div className="kicker" style={{ color: 'rgba(250,247,242,0.35)', marginBottom: 20 }}>Your next move</div>
           <h2 className="display-xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)', marginBottom: 28, textWrap: 'balance' }}>
-            <span className="chrome-text">Stop wasting evenings on roles that aren&apos;t right.</span>
+            <span className="chrome-text">Your next move deserves more than a spreadsheet.</span>
           </h2>
           <div className="iris-divider" style={{ margin: '0 auto 28px', maxWidth: 240 }} />
           <p className={styles.ctaSub}>No card. No &ldquo;talk to sales.&rdquo; Cancel by closing the tab.</p>

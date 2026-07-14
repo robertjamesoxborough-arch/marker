@@ -5,7 +5,7 @@
 
 ## CURRENT STATE
 
-**Stage:** 37 complete — Session R, two cleanup items from Session Q. (1) `app/hire/page.js` rewritten from an active "post a role, get a shortlist, pay 8% on hire" page into an honest expression-of-interest page: no present-tense claims about fees, shortlists, or pre-screening remain anywhere on it, per Rob's option (b) (kept live as a waitlist rather than taken down, since capturing genuine employer interest is still useful signal). Swept the rest of the employer-side surface for the same problem: `app/employer/page.js` (dashboard) had its own, previously-unnoticed instance of the "6 vs 7 dimensions" bug (`DIM_LABELS` object and its shortlist header text) — fixed; its own copy ("post a role" language) updated to match the new register-interest framing; transactional employer emails (`sendIntroRequest`/`sendIntroResponse` in `lib/email.js`) checked and left alone since they only fire on a real event, not an aspirational claim. (2) Re-verified every Session P finding against the actually-rendered component, not just the first name match in `app/app/page.js` — found a SECOND dead, unreachable component (`SearchTab` + its `SearchResultCard` helper, zero render sites, zero references anywhere outside their own definitions, exactly like `AnalyseTab`) that hadn't been noticed before; both dead components deleted (–449 lines). All 7 other Session P findings re-confirmed correct against the real, live code path (`cron/freshness`, `cron/gov`, `lib/allowance.js`, `lib/match-engine.js`, `network-meter` route, `MemoryCard.js`, homepage `balancedRows` are all single, non-duplicated sources of truth with no dead-component ambiguity) — G4 remains the only Session P finding that was actually wrong due to auditing dead code. Full detail in the Stage 37 log below.  
+**Stage:** 38 complete — Session S, homepage copy pass (Part One) plus a systematic schema reconciliation (Part Two). Part Two found and fixed the two most serious bugs of the whole engagement: `pipeline_items` has never had an `added_at` column (a genuine schema-vs-code gap since Stage 0), so every pipeline save has been silently failing behind an empty `.catch()` since day one — fixed live via migration 011, confirmed working. And two client-side profile-save functions filtered on `profiles.id`, a column that has never existed (`profiles`' key is `user_id`) — also silently failing, also fixed. Full detail, the complete table-by-table verdict, Part One's 8 copy changes, and the two loose ends (resolve-url, CV export verification) are in the Stage 38 log below.  
 **Last commit:** (pending — see note at end of this session)  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
@@ -35,6 +35,66 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 38 — Session S: homepage copy pass + systematic schema reconciliation (2026-07-14)
+
+**PART ONE — homepage copy (tone, not truth; no new claims made).** All 8 items done in `app/page.js` / `app/PricingSection.js`:
+1. Hero sub-line "No spray-and-pray, no monthly fee to find out a job closed last week." cut entirely.
+2. "Three things, done properly. / Nothing else." → "Three things. Done properly." — the greyed second line deleted.
+3. "We can back every word of that. Here's exactly how →" → "How we back this up →".
+4. The eight-factor wall-of-list replaced with "Every role is scored across eight things you actually care about, and you can see the reasoning behind every one. Not a mystery rating you're meant to take on faith."
+5. Max tier subtitle "Maximum firepower" → "Everything, uncapped."
+6. Closing CTA "Stop wasting evenings on roles that aren't right." → "Your next move deserves more than a spreadsheet."
+7. The orphaned "Requite: AI copilot for experienced job hunters" line was alt text on the Product Showcase image with no visible caption anywhere near it — replaced with a plain, accessibility-appropriate description of the actual image rather than inventing a new visible section (keeping the existing visual design as instructed).
+8. The "Hiring, not job-hunting? ... You only pay when you actually hire." block was still on the homepage (Session R's sweep covered `/hire` and `/employer` but missed this one) — same false marketplace claim, removed entirely along with the redundant divider around it.
+All items on the "leave alone" list were left untouched, verified via `git diff`.
+
+**PART TWO — schema reconciliation.** Real live schema pulled via PostgREST's OpenAPI introspection (`GET /rest/v1/` with the service-role key) — genuine Postgres column types/nullability, not the migration files, per Rob's explicit instruction. No direct `psql`/RLS-policy access was available in this environment (Docker wasn't running for `supabase db dump`'s shadow-DB step, and no DB password was available for a direct pooler connection), so RLS was verified *behaviourally* — minting a real session and testing actual authenticated queries — rather than by reading `pg_policies` directly; noted as a limitation below.
+
+| Table | Read by | Written by | Type mismatches | GRANT/RLS | Verdict |
+|---|---|---|---|---|---|
+| `account_members` | none | `lib/db.js` (bootstrap), `account/delete` | none | healthy | Write-only, never read back |
+| `account_usage` | none | none | none | healthy, 0 rows | **Dead** — recommend drop |
+| `accounts` | none | `lib/db.js` (bootstrap) | none | healthy | Write-only; multi-tenant scaffold never actually used (app derives everything from `users.default_account_id`/`user_id` directly, never joins back to `accounts`) |
+| `admin_companies` | none | none | none | healthy, 0 rows | **Dead** — recommend drop |
+| `admin_feature_flags` | `lib/source-flags.js` | `admin/source-flags` route | none | healthy | Healthy (Session O kill-switch) |
+| `admin_metrics_cache` | `lib/robots.js` | `lib/robots.js` | none | healthy | Healthy |
+| `admin_outreach` | none | none | none | healthy, 0 rows | **Dead** — a BD/CRM feature never built; recommend drop unless planned |
+| `admin_taglines` | `app/page.js`, `admin/taglines`, `tagline` route | same | none | healthy | Healthy |
+| `admin_todos` | `admin/todos` route | same | none | healthy | Healthy |
+| `ai_usage` | `admin/metrics`, `admin/status`, `admin/accounts` | `lib/ai-usage.js` | none | healthy (migration 007) | Healthy |
+| `applications` | none | none | none | healthy, 0 rows | **Dead** — superseded by `pipeline_items`'s own `cv_generated_at`/`cv_effort_level` columns; recommend drop |
+| `candidate_employer_matches` | `candidate/intros`, `employer/shortlist`, `employer/intro` | same | none | healthy | Healthy (real, working, just no employers using it yet) |
+| `career_history` | 8 routes (analyse, cv/*, negotiation-prep, interview-prep, profile/memory) | `career-history/parse`, `career-history/save` | `achievements` is `text[]`, correctly handled since Session N's fix | healthy | Healthy |
+| `commission_events` | none | none | none | healthy, 0 rows | Dormant by design, not abandoned — parked with the rest of the employer marketplace per the Session Q pricing decision |
+| `employer_profiles` | 6 employer/candidate/network-meter routes | same | none | healthy | Healthy |
+| `employer_roles` | 6 routes + `cron/freshness` | `employer/role` | none | healthy | Healthy (Session R fixed a related 6-vs-7-dimensions bug in the dashboard's own display of this data) |
+| `interview_preps` | none | none | none | healthy, 0 rows | **Dead** — interview prep content is generated and returned live, never persisted; recommend drop unless prep history is wanted |
+| `intro_receipts` | none | `candidate/intros`, `employer/intro` | none | healthy | Healthy — write-only **by design** (immutable audit log, matches the Trust Panel's "permanently logged" claim) |
+| `intro_requests` | `candidate/intros`, `employer/intro`, `employer/shortlist` | same | none | healthy | Healthy |
+| `jobs_cache` | ~16 files (all feed/cron routes) | same | none | healthy | Healthy |
+| `market_intel` | none | none | none | healthy, 0 rows | **Dead** — salary intel is fetched live (`/api/salary-estimate`) instead; recommend drop |
+| `pipeline_items` | `lib/db.js`, `data-export`, `account/delete` | `lib/db.js` | **`added_at` column did not exist at all** — see below | healthy | **Was broken, now fixed** |
+| `profiles` | 35 files | many routes + 2 client-side functions in `app/app/page.js` | none (once the column-name bug below is fixed) | healthy (RLS confirmed via live authenticated test) | **Was broken, now fixed** |
+| `referrals` | `referral/capture` | same | none | healthy (migration 009) | Healthy |
+| `tier_allowances` | none | none (25 rows exist from an old seed; nothing writes ongoing) | none | healthy | **Needs decision** — seeded but `lib/allowance.js` uses a hardcoded `TIER_CAPS` object instead. Either wire `lib/allowance.js` to read this table (admin-editable caps, needs an admin UI too) or drop it. No code change made pending Rob's call. |
+| `users` | 18 files | many routes + `lib/db.js` | none | healthy | Healthy |
+| `wishlists` | 9 files + `cron/wishlist-scrape` | same | none | healthy | Healthy |
+
+**The two bugs found going "the other direction" (code referencing something that doesn't exist):**
+
+1. **`pipeline_items.added_at` — the most serious finding of this whole engagement.** `lib/db.js`'s `jobToRow()` has included `added_at` in every `saveJobs()`/`updateJobInDb()` payload since the original Stage 0 schema, but `pipeline_items` has never had that column (001_schema.sql's `added_at` line belongs to `wishlists`, immediately above it in the file — an easy line to misread, and apparently what happened when the column was assumed rather than added). Reproduced live: an upsert with `added_at` returns `PGRST204: Could not find the 'added_at' column of 'pipeline_items' in the schema cache`. Every call site wraps this in `.catch(() => {})` (`app/app/page.js`'s `addJob`/`updateJob` callbacks), so the UI always shows success and local React state updates, but the write has been silently failing. The 20 real rows in Rob's own account persisted from whatever point `added_at` genuinely wasn't included, or before this drift; anything since has not survived a reload. **Fixed live**: wrote and applied `supabase/migrations/011_pipeline_items_added_at.sql` (nullable `timestamptz`, no default — the code explicitly sends `null` when `job.addedAt` is unset, so a `NOT NULL` constraint would just move the same failure elsewhere). Applied directly against the linked production project via the Supabase CLI (`supabase migration repair --status applied 001..010` to baseline the already-manually-applied history, then `supabase db push`), then re-ran the exact failing upsert live and confirmed `HTTP 201` with `added_at` correctly populated.
+2. **`profiles.eq('id', ...)`** — two client-side functions in `app/app/page.js` (`saveProfile()`/`saveSupplement()`, the "quick CV" and "add context" panels) filtered on `.eq('id', user.id)`, but `profiles`'s actual key column is `user_id`. Reproduced live via a real minted session: `.eq('id', ...)` returns `42703: column profiles.id does not exist`; `.eq('user_id', ...)` returns the real row correctly. Both functions wrapped the failure in an empty `catch {}`, so the panel would close and report success while never actually saving. Fixed: both functions now filter on `user_id`. This same live test also confirms `profiles`' RLS policy is correctly configured for real authenticated users — the bug was purely the column name, not a permissions problem.
+
+No other `.eq('id', ...)` vs `.eq('user_id', ...)` mismatches were found in a full-codebase grep; every other instance was correctly on the `users` table (whose real key is `id`).
+
+**Two loose ends:**
+- **`resolve-url`**: scoped, not fixed. A real fix needs parsing the HTML Adzuna's own redirect_url actually returns (a 200 landing page, not a redirect) to find the further "apply-iq" tracking hop, which may itself require JS execution to resolve to the true employer URL — likely needing headless-browser rendering, a much bigger dependency than anything else in this codebase, for a purely cosmetic benefit (jobs already correctly link out via Adzuna's own working Apply button either way). **Recommendation: cut it.** It currently always returns `resolved: null` in practice, costing a wasted network round-trip on every Adzuna job added, for zero benefit.
+- **CV export standards (Session I)**: confirmed genuinely shipped. `WORKDAY_FORMAT_RULE` is embedded in both CV generation prompts in `app/api/cv/generate/route.js`. `lib/cv-docx.js` confirmed at 10.5pt body (`size: 21`) / 11pt bullets (`size: 22`), and `DirectCvPanel` in `app/app/page.js` genuinely imports `Packer`/`buildCvDocx` and wires the "Download as Word (.docx)" button to `Packer.toBlob(doc)`.
+
+**Self-test:** all 183 `lib/*.test.js` tests pass. Real `vercel --prod --yes` build clean (`READY`). Homepage copy changes confirmed live by fetching the production page directly (all 4 new phrases present, all old ones absent). The two DB bugs were each reproduced live against production *before* the fix (confirming they were real) and re-tested live *after* the fix (confirming they now succeed) — using a disposable test row for `pipeline_items`, cleaned up immediately after, and a real read-only query for `profiles`.
+
+**Remaining scope, stated honestly:** RLS was checked behaviourally for the tables actually accessed from client-side/browser code (`profiles`, confirmed); the other 26 tables are accessed exclusively server-side with the service-role key, which bypasses RLS entirely, so their RLS policies (if any) are currently irrelevant to correctness — this wasn't independently verified table-by-table since no direct SQL access was available this session. `admin_outreach` and `tier_allowances` are flagged as "needs decision" rather than dropped outright, since both represent plausible unbuilt features rather than pure debris. `app/layout.js`'s SEO metadata (flagged in Stage 36) and `app/hire/page.js`'s underlying shortlist-thinness question (flagged in Stage 37) remain untouched, unrelated to this session's scope.
 
 ### Stage 37 — Session R: /hire honesty fix + Session P re-verification against actually-rendered code (2026-07-14)
 

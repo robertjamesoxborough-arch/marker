@@ -22,7 +22,7 @@ const tiers = [
   },
   {
     name: 'Max',
-    sub: 'Maximum firepower',
+    sub: 'Everything, uncapped.',
     monthly: 39,
     detail: '3× higher limits · 60 CV tailors · 30 interview packs · 30 negotiation packs',
     cta: 'Choose Max',
