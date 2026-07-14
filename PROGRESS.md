@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 21 complete — Session B, five bundled independent fixes: feed-gov query-builder seniority bug, dead buildQuickPrompt deleted, Stripe checkout settings-page tier bug found and fixed (real, live breakage — not just a stale reference), G3 Trust Panel copy corrected (loop guard investigated, found genuinely partial, copy fixed rather than half-wiring), Sonnet 5 swap confirmed live + a follow-on cost-tracking bug caught via self-testing.  
-**Last commit:** fix: five bundled fixes — feed-gov seniority, dead code, Stripe tiers, G3 copy, Sonnet 5  
+**Stage:** 22 complete — Session C, feed-port closed out. New `cron/contract` ingest (no prior cron covered contract/interim roles), `contractor/roles` converted to the shared feed-web/feed-gov pattern, and the Fresh Scan button wired into the UI for the first time (feed-web/feed-gov have accepted `{fresh:true}` since Stage 18/19a but nothing ever sent it). Self-tested score+rank end-to-end with real Anthropic calls; the live Adzuna-fetch portion couldn't be tested — `ADZUNA_APP_ID` is still missing from `.env.local` (only `ADZUNA_API_KEY` was ever added).  
+**Last commit:** feat: contract-role ingest cron, contractor/roles feed-port, Fresh Scan UI  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,34 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 22 — Session C: contractor/roles feed-port + Fresh Scan wired into the UI (2026-07-14)
+
+**1. `contractor/roles` converted to the feed-web/feed-gov pattern; new `cron/contract` ingest added.** Checked all of `app/api/cron/` first — no existing cron ingested contract/interim roles into `jobs_cache`, confirmed by grep before writing anything. Added `app/api/cron/contract/route.js`, same shape as `cron/adzuna` (generic, candidate-agnostic queries — cost rule 1), registered in `vercel.json` at `30 4 * * *` (after `gov`, before `score-cache`, so new rows get scored the same night). Two design decisions worth recording:
+- **Reused `cron/adzuna`'s `adzuna-${job.id}` external_id scheme**, not a separate `contract-` prefix — so if the exact same real Adzuna ad is ever matched by both crons, it correctly merges into one row via the shared `external_id` unique index, rather than duplicating.
+- **Tagged rows via `track_tags: ['contract']`** (an existing, previously-unused `jobs_cache` column) rather than adding `'contract'` to the `source` CHECK constraint, which would have needed a migration — another round-trip through Rob to run in the SQL Editor before anything could be tested this session. `cron/adzuna`'s own upsert payload never references `track_tags`, so a later pass over the same row from that cron can't clobber the tag.
+
+`contractor/roles` itself rewritten to the exact `feed-web`/`feed-gov` shape: default path reads `jobs_cache` (`source='adzuna'`, `track_tags @> ['contract']`, `scored_at IS NOT NULL`) with zero AI cost, ranks via `lib/match-engine.js`; `{fresh:true}` is the only live path, gated by `checkAllowance(user.id,'feed_fresh_scan')`. Kept the personalised query-building (interim/contract/day_rate/ftc/freelance variants of the user's `target_roles`) for the live Adzuna fetch — that's just about *what* to search for — but scoring now goes through the shared `lib/score-jobs-batch.js` baseline (cost rule 2) instead of the old per-request personalised Sonnet prompt. Unauth still 401s before any DB/AI work, unchanged from the original route.
+
+**2. Fresh Scan wired into the UI for the first time.** `feed-web` and `feed-gov` have accepted `{fresh:true}` since Stage 18/19a but nothing in `app/app/page.js` ever sent it — reconfirmed by grep before starting (the whole feature was built and completely unreachable). Added a shared `FreshScanButton` component:
+- Fetches real allowance state up front via a new read-only `GET /api/profile/fresh-scan-allowance` (calls `checkAllowance`, spends nothing) — shows "N of C left today" before the user ever clicks, not just after a 429.
+- Disables with an upgrade hint at `cap=0` (free tier) — "⚡ FRESH SCAN · PRO", not hidden.
+- Handles the 429 `limitReached` response by surfacing the route's own upgrade/retry message inline.
+- On click, POSTs `{fresh:true}` to the relevant route(s) — which live-scan and write the *shared* cache — then reloads the existing passive view (doesn't bypass the established cache-read pipeline).
+
+Wired into two places: `FeedTab`'s Live Roles header (hits `feed-web` AND `feed-gov` together in parallel, then calls the existing `onRefreshFeed` to reload via `feed-cache` — a fresh scan's job is to refresh the shared cache, not replace the reader) and `ContractorTab`'s Live Roles header (hits `contractor/roles`, reloads via the existing `scanRoles`). Visual design matches existing tokens exactly — lime/black/cream, `font-mono` for the button and allowance text, no new colours.
+
+**Self-test — honest about the credential gap.** `ADZUNA_APP_ID` is still not in `.env.local` (only `ADZUNA_API_KEY` was ever added, in an earlier session) — confirmed via a live `401` from Adzuna when I tried to test the real fetch. Adzuna requires both credentials together, so the live-fetch portion of `cron/contract` and `contractor/roles`' fresh-scan branch could not be tested end-to-end this session. Everything else was genuinely tested: upserted clearly-labelled synthetic (not real Adzuna) contract listings, scored them via a **real Anthropic call** using the actual `score-jobs-batch.js` rubric, read them back through the **exact** `contractor/roles` cache-read filter, and ranked them with the real `lib/match-engine.js`. Result: "Contract Project Manager" and "Interim Programme Manager" (genuine domain matches for the test profile) scored 8.4/7.8 and passed the relevance floor; "Interim Finance Director" and "Interim Sales Director" (wrong domain) were correctly filtered out — this also reconfirms Stage 21's `scoreRoleFit` family-conflict fix is working correctly with this session's new route. Allowance logic reconfirmed against the same real free-tier user (`cap=0`, as expected). Test rows cleaned up afterward.
+
+**Self-test — syntax.** `node --check` clean on all new/edited plain-JS route files (`cron/contract`, `contractor/roles`, `profile/fresh-scan-allowance`) and `vercel.json` validated as JSON. `app/app/page.js` contains JSX, which plain `node --check` cannot parse at all (would false-positive as broken) — relying on the Vercel build (real Babel/SWC transform) as the authoritative syntax gate for that file, consistent with this whole session's established pattern for JSX.
+
+**NOT done — carried forward:**
+- Add `ADZUNA_APP_ID` to `.env.local` (Rob), or re-run `cron/contract` in production, to confirm the live Adzuna-fetch portion actually works end-to-end.
+- G3 loop-guard full 4-site wiring (from Stage 21).
+- Multi-ATS layer (Lever/Ashby/SmartRecruiters) for Greenhouse board coverage.
+- `job-feed`'s Rule-7 redesign (nightly-cron-only, no per-user `web_search` path).
+
+---
 
 ### Stage 21 — Session B: five bundled independent fixes (2026-07-13)
 
