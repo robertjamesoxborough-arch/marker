@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 30 complete — Session K, migration 008 verified (all 27 tables now 200 for service_role), career_history's real story clarified, error-logging sweep finished across 13 more files. Confirmed live that `career_history` has zero rows for every user and no write path anywhere in the codebase — its GRANT fix was still correct, but the actual carrier of real candidate work history has always been `profile.hard_filters_json.cvRaw`, proven by running the real `buildAiContext()` against Rob's real profile and confirming Meta/NatWest/PlayStation all appear in the output. `tier_allowances` checked: it's not consulted anywhere (`lib/allowance.js` uses a hardcoded `TIER_CAPS` object instead), so it can't be silently broken — it's just disconnected. Error-logging (`logIfError`) now applied across 17 total files (4 from Session J + 13 this session); 2 files intentionally flagged rather than silently skipped (`app/page.js`, `referral/capture`'s RLS-policy question). Job-feed UI wiring still not reached.  
-**Last commit:** fix: Session K — verify migration 008, career_history reality check, finish error-logging sweep  
+**Stage:** 31 complete — Session L, job-feed finally wired (new Wishlist Roles sub-tab in Discover), a full orphaned-route sweep, and a second genuine RLS gap found and fixed on `referrals`. job-feed now has a dedicated UI surface with copy explicitly distinguishing it from Live Roles. Swept every API route against every client call site (not just literal `fetch()` — dynamic-variable fetches, `<a href>`, `window.location.href` too) and found 5 genuinely orphaned routes: two dead single-user prototypes recommended for deletion (`app/api/cv`, `feed-tasklist`), one real feature that violates Cost Guardrails and isn't safe to wire as-is (`contractor/companies`), and two cheap/safe utilities nobody calls yet (`referral/link`, `resolve-url`). Fixed `app/page.js`'s last unguarded destructure. Verified the `referral/capture` RLS concern directly against Postgres (not the misleading route, which always returned `{ok:true}`) — confirmed genuine: `new row violates row-level security policy for table "referrals"`. Migration 008's GRANT was correct; RLS just has no policy at all, meaning the referral programme has never recorded a single real referral. Migration `009_referrals_rls_policies.sql` written, **not yet applied**.  
+**Last commit:** feat: Session L — wire up job-feed, orphaned-route sweep, app/page.js fix, referrals RLS gap found+fixed  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,40 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 31 — Session L: job-feed wired up, orphaned-route sweep, referrals RLS gap found and fixed (2026-07-14)
+
+**1. job-feed wired up — three sessions overdue, done properly.** New "Wishlist Roles" sub-tab added to Discover's existing tab bar (alongside Target Companies and Live Roles). New `WishlistJobsTab` component calls the already-deployed `POST /api/job-feed` (a pure cache reader, zero AI cost, no live-scan exception at all — cost rule 7). Copy makes the distinction explicit and deliberate: "Roles found directly on the career pages of companies on your wishlist, checked every night. Different from Live Roles, which pulls from the wider job market: this only ever shows roles at companies you've specifically chosen." Empty state shows the route's own message: "Add companies to your wishlist and we'll check their career pages nightly." Visual design unchanged: same `marker-cream-2`/`marker-border`/`marker-lime` card pattern already used for feed cards elsewhere. Also added `logIfError()` to job-feed's own two previously-unguarded queries (`profiles`, `jobs_cache`) while in the file, consistent with the ongoing sweep.
+
+**Self-tested live**: minted a real authenticated session (same technique as Sessions I/K) and POSTed to the production `/api/job-feed` — returned `{"jobs":[],"total":0,"message":"Add companies to your wishlist to see roles scraped from their career pages."}`, the exact empty-state message the new tab now renders for a real account with no wishlisted companies yet.
+
+**2. Orphaned-route sweep — the definitive list asked for.** Extracted every path under `app/api/*/route.js` (63 routes) and every call site across `app/`, `components/` — not just literal `fetch('/api/...')` strings, which would have produced false positives (e.g. `feed-web`/`feed-gov` are called via `FreshScanButton`'s `endpoints` prop, a dynamic array, not a literal string; `perm/recruiters` via a ternary-built `apiPath`; `data-export`/`dev/reset-onboard` via `<a href>`/`window.location.href`, not `fetch()` at all). After checking every candidate directly:
+
+- **`app/api/cv/route.js`** — DEAD. Hardcodes "Rob Oxborough" and his specific work history directly into the prompt string, no auth check, no allowance gate, no caching, calls Sonnet on every hit. A single-user prototype from before the multi-tenant pivot, fully superseded by `cv/generate`. **Recommend deleting.**
+- **`app/api/feed-tasklist/route.js`** — DEAD, same pattern (hardcoded personal profile/keyword constants), superseded by `feed-web`/`feed-gov`. **Recommend deleting.**
+- **`app/api/contractor/companies/route.js`** — a real, per-user feature (reads the actual authenticated user's profile), but calls Sonnet live on every request with no allowance check and no prompt caching — the exact Cost Guardrails violation Sessions C/D fixed for `feed-web`/`feed-gov`/`job-feed`. **Not safe to wire up as-is.** Needs the same nightly-cron + cache-read redesign, or a decision to drop it, before it's exposed to real users.
+- **`app/api/referral/link/route.js`** — cheap and safe (returns the user's own `?ref=<userId>` link, zero cost, zero external calls). No UI shows it to the user anywhere. Flagged, not wired this session — lower priority than job-feed, a natural fit for a small addition to Settings' referral section next time.
+- **`app/api/resolve-url/route.js`** — cheap and safe (follows Adzuna redirect URLs to the real employer careers page, zero AI cost, allowlisted to `adzuna.co.uk`/`adzuna.com` only). No confirmed caller anywhere. Worth tracing its originally-intended integration point (likely the wishlist "add company" flow) next session.
+
+Everything else initially flagged by the narrower literal-`fetch()`-only pass turned out to be genuinely wired via one of the patterns above — no further action needed on those.
+
+**3. Fixed `app/page.js`'s last unguarded destructure**, as flagged last session. The homepage's tagline query now runs through `logIfError()`, and the surrounding `catch` block logs a thrown exception too instead of a silent bare `catch {}`.
+
+**4. Verified the `referral/capture` RLS concern directly — and it was real, not theoretical.** Rather than trust the route's own response (which always returns `{ok:true}` regardless of outcome), bypassed the Next.js layer entirely: minted a real session for a real account, then hit PostgREST directly with that user's own JWT (not the service role key) to insert into `referrals`. Result:
+```
+{"code":"42501","message":"new row violates row-level security policy for table \"referrals\""}
+```
+This is conclusive: migration 008's GRANT was correct and sufficient; RLS is enabled on `referrals` with **no policy at all** permitting an authenticated user to touch their own row, meaning `/api/referral/capture` has been silently doing nothing on every real invocation — the referral programme has never actually recorded a single referral. New `supabase/migrations/009_referrals_rls_policies.sql` adds `SELECT`/`INSERT` policies scoped to `referred_user_id = auth.uid()`. **NOT YET APPLIED** — needs Rob to run it, same path as 007/008. Also fixed the route's own bug while there: it now returns the real `{ok, error}` state instead of always claiming success, which is exactly how this silent failure went unnoticed for however long the table has existed.
+
+**Self-tested**: full existing suite re-run (`match-engine` 28, `uk-eligibility` 26, `scoring`, `usage-window`, `freshness` 20) — zero failures. Vercel production build green, confirming the new `WishlistJobsTab` JSX compiles cleanly.
+
+**NOT done — carried forward:**
+- **Apply `supabase/migrations/009_referrals_rls_policies.sql`** — now alongside 008 as an open action item.
+- `referral/link` and `resolve-url` — flagged as safe-to-wire, not yet wired.
+- `contractor/companies` — needs a decision (redesign to the nightly-cron pattern, or delete) before it can safely go live.
+- Recommend deleting `app/api/cv/route.js` and `app/api/feed-tasklist/route.js` — dead, hardcoded-personal-data prototype code sitting live in production, unreached only by luck of no UI ever calling them.
+
+---
 
 ### Stage 30 — Session K: migration 008 verified, career_history's real story, error-logging sweep finished (2026-07-14)
 
