@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 28 complete — Session I, CV improvements bundle + real browser-equivalent click-test pass + a major live finding. Click-tested Sessions G/H against the real production deployment using a genuine minted session for a real account (no browser tool available, so real authenticated HTTP against `marker-silk.vercel.app` instead) — both features confirmed working, all test mutations reverted. That pass surfaced a serious, currently-live bug: `public.ai_usage` is missing service_role GRANTs entirely (same class of issue `jobs_cache`/`wishlists` hit before), meaning `trackAiUsage()` has been silently failing every insert and `checkAllowance()`'s monthly-cap count has always silently read 0 — no nonzero-cap action has ever actually been enforced by real usage. Migration `007_ai_usage_grant.sql` written, **not yet applied** — needs Rob to run it. CV work shipped: (1) Haiku gap-analysis scan after every tailored CV, cache-verified live, flags honest JD-requirement gaps with a real-evidence-only reframe, never fabricates; (2) Workday parse-safe formatting (title/company/dates each on their own line); (3) a genuine `.docx` export (10.5pt body, looser bullet spacing) via the previously-installed-but-unused `docx` package — the app had no CV export pipeline before this.  
-**Last commit:** feat: Session I — CV improvements bundle, browser click-test pass, ai_usage GRANT fix  
+**Stage:** 29 complete — Session J, ai_usage fix verified end-to-end + a full-schema GRANT sweep found 19 MORE broken tables + fail-closed allowance + error-logging pass started. Proved (not assumed) that the `ai_usage` GRANT actually restores enforcement: a real `checkAllowance`/`trackAiUsage` cycle against the live database went `used:0,allowed:true` → real insert → `used:1,allowed:false`. Then swept all 27 tables the Data API exposes and found 19 more with the identical missing-GRANT bug, including `career_history` — confirmed live that 6 different AI routes (`analyse`, `cv/generate`, `cv/cover-letter`, `cv/questions`, `interview-prep`, `negotiation-prep`) have been building AI context with zero career history this whole time. Migration `008_grants_full_sweep.sql` written, **not yet applied**. `checkAllowance()` now fails closed (blocks) on a query error instead of silently reading `used:0` and allowing everything; `trackAiUsage()` and the 4 highest-traffic routes now log Supabase errors instead of swallowing them. ~15 more files still need the same error-logging treatment — listed explicitly below, not silently skipped.  
+**Last commit:** fix: Session J — verify ai_usage GRANT, full-schema GRANT sweep, fail-closed allowance, error logging  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,37 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 29 — Session J: ai_usage verified, full-schema GRANT sweep (19 more tables), fail-closed allowance (2026-07-14)
+
+**1. Verified the ai_usage GRANT fix end-to-end — proved, not assumed.** Rob applied migration 007 in the SQL Editor. Confirmed via raw REST that both `SELECT` and `INSERT` now succeed (previously both 42501). Then went further: ran the REAL `checkAllowance()`/`trackAiUsage()` logic (copied verbatim into a standalone script, same pattern as Stage 20, since these are ESM files) against the real database for a real free-tier account (`cv` action, cap 1/month):
+```
+Step 1 (before any usage): {"allowed":true,"used":0,"cap":1,"tier":"free"}
+Step 2: real trackAiUsage insert succeeds
+Step 3 (after): {"allowed":false,"used":1,"cap":1,"tier":"free"}
+```
+This proves both the read path and the actual cap enforcement, not just that the table accepts writes. Test row deleted afterward — no lasting effect on the real account's real monthly allowance.
+
+**2. Full-schema GRANT sweep — the more important half of this session.** Rather than trust the user-provided table list was exhaustive, queried PostgREST's own OpenAPI root (`GET /rest/v1/`) to get the definitive list of every table the Data API exposes: 27 tables total, exactly matching the requested list plus `ai_usage` (already fixed). Checked every one against `service_role` with a plain `select=*&limit=1`, and confirmed via grep that none of the affected tables are ever queried from client-side/browser code (`lib/db.js`, `app/app/page.js`) — every reference is server-side, using the service role key — so `service_role` is the load-bearing grant; `authenticated` was included too for consistency with the existing project convention, though nothing currently depends on it.
+
+**Found 19 more tables broken, identical `42501 permission denied` error**: `account_usage`, `admin_companies`, `admin_feature_flags`, `admin_metrics_cache`, `admin_outreach`, `admin_taglines`, `admin_todos`, `applications`, `candidate_employer_matches`, `career_history`, `commission_events`, `employer_profiles`, `employer_roles`, `interview_preps`, `intro_receipts`, `intro_requests`, `market_intel`, `referrals`, `tier_allowances`.
+
+**Real, confirmed-live impact, not theoretical**: `career_history` is read via `buildAiContext()` by `/api/analyse`, `/api/cv/generate`, `/api/cv/cover-letter`, `/api/cv/questions`, `/api/interview-prep` and `/api/negotiation-prep` — every one of these has been silently building its AI context with zero career history for as long as the table has existed, degrading personalisation invisibly across every paid AI feature in the app. `tier_allowances` is a second cap-adjacent table in the same family as `ai_usage`, worth a closer look next session against `lib/allowance.js`.
+
+**Fix**: `supabase/migrations/008_grants_full_sweep.sql` — `GRANT SELECT, INSERT, UPDATE, DELETE` on all 19 to `service_role, authenticated`. **NOT YET APPLIED** — needs Rob to run it, same path as 007.
+
+**3. Swallowed-error audit — started, not finished, and stated honestly as such.** Root cause confirmed exactly as suspected: `const { data } = await service.from(x)...` throughout this codebase discards `error`, so a permission failure reads identically to a legitimate empty result — precisely how three separate GRANT bugs went unnoticed for however long each table existed.
+
+- `lib/allowance.js`: `checkAllowance()` now checks the count query's `error` and **fails closed** — blocks the action and logs loudly — instead of silently reading `used:0` and letting the cap pass unenforced. This is a genuine behaviour change, deliberately: the entire point of Cost Guardrails is that caps are hard rules, so a broken cap-check must block rather than silently permit everything through.
+- `lib/ai-usage.js`: `trackAiUsage()` now logs any insert error. Still non-fatal to the user's request (unchanged, runs via `after()`), but now visible in Vercel logs instead of invisible.
+- New `lib/log-errors.js`: `logIfError(label, result)`, a one-line, reusable helper. Applied to the 4 highest-traffic, already-proven-broken call sites: `app/api/cv/generate`, `app/api/analyse`, `app/api/interview-prep`, `app/api/negotiation-prep` (all read `career_history` via the same `Promise.all` + `.data` destructure pattern).
+
+**NOT done — carried forward, explicitly, not silently dropped:**
+- **Apply `supabase/migrations/008_grants_full_sweep.sql`** — now the single highest-priority open item, alongside re-confirming 007 stays applied.
+- **~15 more files still use the same unguarded `.data`-only pattern against the newly-fixed tables** and need the same `logIfError()` treatment: `app/api/admin/taglines`, `app/api/admin/todos`, `app/api/candidate/intros`, `app/api/cron/freshness`, `app/api/cv/cover-letter`, `app/api/cv/questions`, `app/api/employer/intro`, `app/api/employer/profile`, `app/api/employer/role`, `app/api/employer/shortlist`, `app/api/network-meter`, `app/api/profile/memory`, `app/api/referral/capture`, `app/api/tagline`, `app/page.js`. A full sweep of these plus every other Supabase call site in the ~55 files that touch the database was explicitly out of reach in this session's time budget; this list is the honest scope of what's left, not a guess.
+- **Job-feed UI wiring** — the "if there's time" item — was not reached. The GRANT sweep and error-swallowing fix took clear priority given their severity; still an orphaned, unreachable route.
+
+---
 
 ### Stage 28 — Session I: CV improvements bundle, click-test pass, ai_usage GRANT finding (2026-07-14)
 
