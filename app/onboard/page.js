@@ -361,6 +361,15 @@ export default function OnboardPage() {
           body: JSON.stringify({ id: parseInt(taglineId), field: 'conversion' }),
         }).catch(() => {})
       }
+      // Populate structured career_history from the CV they just gave us.
+      // Fire-and-forget: onboarding must never block or fail on this.
+      if (cvRawFull) {
+        fetch('/api/career-history/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText: cvRawFull }),
+        }).catch(() => {})
+      }
       track('onboard_complete', { field, track: derivedTrack })
       try {
         const ref = localStorage.getItem('marker_ref')

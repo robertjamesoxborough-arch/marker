@@ -91,6 +91,106 @@ function ReferralLinkBox() {
   )
 }
 
+// Session M: users must be able to see and fix what the CV parser got
+// wrong. Low/medium confidence rows are flagged rather than silently
+// presented as fact -- this is a trust feature, not a nicety.
+function CareerHistorySection() {
+  const [roles,   setRoles]   = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState('')
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/career-history/save')
+      const data = await res.json()
+      setRoles(data.roles || [])
+    } catch { setError('Could not load your career history.') }
+    finally { setLoading(false) }
+  }
+
+  function update(i, field, value) {
+    setRoles(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r))
+  }
+
+  function remove(i) {
+    setRoles(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  function addRole() {
+    setRoles(prev => [{ company: '', role_title: '', start_date: '', end_date: '', achievements: '' }, ...prev])
+  }
+
+  async function save() {
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/career-history/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles }),
+      })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setRoles(data.roles || [])
+    } catch { setError('Save failed. Try again.') }
+    finally { setSaving(false) }
+  }
+
+  async function reparse() {
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/career-history/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setRoles(data.roles || [])
+    } catch { setError('Re-parse failed. Try again.') }
+    finally { setSaving(false) }
+  }
+
+  if (loading) return null
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--marker-border)', paddingBottom: 24, marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)' }}>Career history</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={reparse} disabled={saving} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Re-parse from CV</button>
+          <button onClick={addRole} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--marker-border)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>+ Add role</button>
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 14 }}>Parsed from your CV. Roles marked <strong>low</strong> or <strong>medium</strong> confidence are worth checking, fix anything that's wrong, we use this for every scoring and CV feature.</div>
+
+      {error && <div style={{ padding: '10px 12px', borderRadius: 8, background: '#FEE2E2', border: '1px solid #FCA5A5', fontSize: 12, color: '#B91C1C', marginBottom: 12 }}>{error}</div>}
+
+      {(roles || []).length === 0 && <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 12 }}>No career history yet. Add a role, or re-parse from your stored CV.</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+        {(roles || []).map((r, i) => (
+          <div key={r.id || i} style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              {r.confidence && r.confidence !== 'high' && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 7px', borderRadius: 4, background: r.confidence === 'low' ? '#FCA5A5' : '#F5E4A0', color: 'var(--marker-black)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{r.confidence} confidence — check this</span>
+              )}
+              <button onClick={() => remove(i)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#B91C1C', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Remove</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+              <input value={r.role_title || ''} onChange={e => update(i, 'role_title', e.target.value)} placeholder="Job title" style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 6, background: '#fff' }} />
+              <input value={r.company || ''} onChange={e => update(i, 'company', e.target.value)} placeholder="Company" style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 6, background: '#fff' }} />
+              <input type="date" value={r.start_date || ''} onChange={e => update(i, 'start_date', e.target.value)} style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 6, background: '#fff' }} />
+              <input type="date" value={r.end_date || ''} onChange={e => update(i, 'end_date', e.target.value)} placeholder="Present if blank" style={{ padding: '8px 10px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 6, background: '#fff' }} />
+            </div>
+            <textarea value={r.achievements || ''} onChange={e => update(i, 'achievements', e.target.value)} placeholder="Achievements, one per line" rows={2} style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 6, background: '#fff', boxSizing: 'border-box', resize: 'vertical' }} />
+          </div>
+        ))}
+      </div>
+
+      <button onClick={save} disabled={saving} className="btn btn-primary" style={{ fontSize: 13 }}>{saving ? 'Saving…' : 'Save career history'}</button>
+    </div>
+  )
+}
+
 const PLAN_LABELS = { free: 'Free', pro: 'Pro', max: 'Max', trial: 'Trial' }
 const PLANS_UI = [
   { id: 'pro', name: 'Pro', price: '£19/mo', desc: 'Full access for active job seekers' },
@@ -508,6 +608,8 @@ export default function SettingsPage() {
             <input value={contractorField} onChange={e => setContractorField(e.target.value)} placeholder="e.g. Product Management (if you contract in a different discipline)" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box' }} />
           </Section>
         )}
+
+        <CareerHistorySection />
 
         {/* Reset / onboarding */}
         <div style={{ borderBottom: '1px solid var(--marker-border)', paddingBottom: 24, marginBottom: 24 }}>
