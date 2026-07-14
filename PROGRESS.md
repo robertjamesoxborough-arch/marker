@@ -5,8 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 32 complete — Session M. Verified migration 009 end-to-end (a real referral now inserts successfully; the route no longer lies about success). Deleted the two dead single-user prototype routes on Rob's decision. Redesigned and wired `contractor/companies` to the cache-read + allowance-gated pattern. Wired `referral/link` into Settings. Then built structured career history from scratch: a Haiku CV-parser (cache-verified live, allowance-gated, self-tested against Rob's real CV — 8 roles extracted correctly with honest confidence ratings), a Settings edit UI that visibly flags low/medium-confidence rows, `buildAiContext()` rewired to prefer structured history over the raw CV blob, wired into onboarding, and an admin-gated backfill route for existing users. Migrations `010_career_history_confidence.sql` (adds `confidence`/`source` columns) is **not yet applied** — needed before any parse can actually persist.  
-**Last commit:** feat: Session M — structured career history (parsing, edit UI, buildAiContext rewire, backfill)  
+**Stage:** 33 complete — Session N. Re-ran the real career-history parse against production after migration 010 and found a genuine bug: `career_history.achievements` is a real Postgres `text[]` array column, not text — last session's insert joined it into a string and Postgres rejected it. Fixed in three places (parse route, save route, `buildAiContext`), redeployed, re-verified: all 8 roles now genuinely persist with correct confidence ratings, confirmed directly against Postgres. Ran the real before/after `buildAiContext()` comparison: both hit the same 2000-char cap, but the old cvRaw-excerpt version wasted its entire budget on contact details and a summary paragraph, cutting off *before reaching a single real job*, while the new structured version fits 6 fully-detailed roles with real achievements in the same space. Ran the admin backfill for real — 3 existing users backfilled (5/8/8 roles), Rob's own account correctly skipped, all `cvRaw` confirmed untouched. Closed out `resolve-url`: wired into the pipeline-add flow, but live-testing against real Adzuna links revealed its core premise doesn't hold against Adzuna's current API behaviour (a plain 200, not a redirect) — wired safely with a no-op fallback and the real limitation documented rather than claimed as working.  
+**Last commit:** fix: Session N — real bug found+fixed in career_history save, full pipeline verified, backfill run, resolve-url closed out  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
 **Repo:** `~/Desktop/marker` (branch: main)  
@@ -35,6 +35,62 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 33 — Session N: real bug found in career_history's save path, full pipeline verified, backfill run, resolve-url closed out (2026-07-14)
+
+**1. Re-ran the real parse call after migration 010 — and it failed, for real, not a hypothetical.** Confirmed the new `confidence`/`source` columns existed first (`career_history?select=id,confidence,source` returned `[]`, not a schema error). Then called the live production `/api/career-history/parse` endpoint against Rob's real CV. Result:
+```
+error: Parsed but could not save: malformed array literal: "Lead high-impact partnership strategies supporting digital media developers across EMEA region
+Drive growth and platform engagement by identifying new opportunities and executing data-driven strategies
+Facilitate partner adoption of digital solutions including new APIs, ad formats, and analytics"
+roles returned: 8 (parse itself still worked correctly)
+```
+Checked the real column type via PostgREST's own OpenAPI schema rather than guessing: `career_history.achievements` is a genuine Postgres `text[]` array column (`"format": "text[]", "type": "array"`), not plain text. Session M's code joined the AI's array of achievement strings into one newline-separated string before inserting, which Postgres correctly rejected. The parsing logic itself was never wrong; only the save step was.
+
+**Fixed in three places:**
+- `app/api/career-history/parse/route.js` — sends achievements as a real array now, never a joined string.
+- `app/api/career-history/save/route.js` — GET flattens the array into a newline-per-bullet string for the Settings textarea (keeps the client-side contract simple, no UI changes needed); POST splits that string back into an array before inserting.
+- `lib/ai-context.js` — `buildAiContext()` now handles achievements as a real array, staying tolerant of a plain string too (for any older fixture or future caller).
+
+Redeployed, then re-ran the exact same live parse call. All 8 roles saved successfully with real database-generated ids. Verified directly against Postgres (not the route's response, which could theoretically lie) that all 8 rows genuinely persisted:
+```
+Meta (via Adecco) | Strategic Partner Manager | high | ai_parse
+The Goods Agency London | Digital Marketing Specialist | high | ai_parse
+Sony Interactive Entertainment | Senior Manager, Digital Experience & Strategy at PlayStation | high | ai_parse
+NatWest Group | Digital Product Lead | high | ai_parse
+King | Marketing Product Lead | high | ai_parse
+Google | Programme Lead (via Randstad) | high | ai_parse
+UpSkill Digital | Google Digital Garage Trainer | high | ai_parse
+oXo Creatives | Digital Marketing Specialist | medium | ai_parse
+```
+Same 8 roles, same confidence ratings as the parsing self-test in Stage 32 — the fix changed nothing about what gets extracted, only whether it survives being saved.
+
+**2. Before/after `buildAiContext()` comparison — the real improvement, shown honestly.** Ran `buildAiContext()` twice against Rob's real profile: once with an empty `career_history` array (the old behaviour, falls back to a `cvRaw` excerpt), once with the real, now-populated 8-row `career_history` (the new behaviour). Both outputs are exactly 1999 characters — `MAX_CHARS` is a hard 2000-character cap, so the improvement is not raw brevity, it's what fills that identical budget:
+
+*Before* (falls back to `cvRaw`): after the structured profile facts (seniority, target roles, industries, salary floor, etc.), the remaining budget is spent entirely on contact details, a LinkedIn/blog URL block, the CV's headline, and a generic "Summary" paragraph — and runs out mid-sentence ("...Bridgin[g the gap between AI-driven innovation and real business impact]") **before reaching a single one of the 8 real jobs** in the CV. The AI never sees Meta, NatWest, PlayStation, or any real achievement in this version, despite them all being present further down in the raw CV text.
+
+*After* (structured `career_history`): the same budget instead reads — `Experience: Strategic Partner Manager at Meta (via Adecco) (2024-10–present): Lead high-impact partnership strategies for Facebook Play EMEA across gaming and product partners; Drive product feedback loop with partners and internal teams to shape product improvements. Digital Marketing Specialist at The Goods Agency London (2024-02–2024-07): Delivered 35% increase in annual revenue through performance-focused digital campaigns; Drove 30% increase in organic traffic with improved SEO and content strategies. Senior Manager, Digital Experience & Strategy at PlayStation at Sony Interactive Entertainment (2023-09–2024-02): ...` and continues through 6 fully-detailed roles with real employers, exact normalised dates, and real quantified achievements, all within the same 2000-character ceiling the old version never got past its own summary paragraph within.
+
+This is the concrete case for the whole feature: the same token/character budget that used to buy zero real facts about the candidate's actual work history now buys six.
+
+**3. Admin backfill, run for real against production.** Queried which of the 4 real profiles had `cvRaw` but zero `career_history` rows first (3 of them: Rob's own account already had history from the fix-verification test above and was expected to be skipped). Called `POST /api/admin/backfill-career-history` as the real admin account:
+```
+{"user_id":"53781936...","parsed":5,"overallConfidence":"high"}
+{"user_id":"ebd1fd83...","skipped":"already has career_history"}
+{"user_id":"25d12e91...","parsed":8,"overallConfidence":"high"}
+{"user_id":"5118a3c7...","parsed":8,"overallConfidence":"high"}
+```
+Verified directly against Postgres: 29 total `career_history` rows across all 4 users now (8+5+8+8), and every profile's `hard_filters_json.cvRaw` is still fully intact and unchanged (lengths: 5295/12652/17925/17925 characters respectively) — nothing lost, exactly as required.
+
+**4. `resolve-url` closed out — wired, and honestly assessed, not just wired.** Added the resolve step to `app/app/page.js`'s `FeedTab`-level `addToPipeline()`: when a job comes from Adzuna, it now calls `/api/resolve-url` before saving the job into the pipeline, storing the resolved URL if one comes back and silently falling back to the original link on any failure — never blocking the add action. Before calling this done, tested it against real, current Adzuna links from the live cache (both an older cached link and the two most-recently-cached ones) and got `{"resolved":null}` every time. Traced why directly rather than assuming the route was broken: a real `curl -IL` against a live Adzuna job link returned a plain `200 OK` with no `Location` redirect header at all — Adzuna's `redirect_url` field today points to their own listing page, not a server-side HTTP redirect straight to the employer. Checked the actual HTML for an escape hatch (an embedded direct employer link) and found the page's own "Apply" link points to `adzuna.co.uk/jobs/apply-iq` — another Adzuna-internal tracking hop, not the employer site. **The route's core premise (follow an HTTP redirect) doesn't match how Adzuna's API actually behaves today.** The wiring itself is safe and deployed correctly (it will just no-op back to the original link for every real Adzuna URL under current behaviour, never throwing or blocking), but genuinely reaching the real employer page would need HTML/JS-aware scraping of Adzuna's own multi-hop apply flow — a materially larger piece of work, out of scope for a "wire it up" task, and flagged here as a separate follow-up rather than attempted or falsely claimed as functional.
+
+**Self-tested**: full existing suite re-run (`match-engine` 28, `uk-eligibility` 26, `scoring`, `usage-window`, `freshness` 20, `ai-context` 25) — zero regressions. Vercel production build green.
+
+**NOT done — carried forward:**
+- `resolve-url`'s real limitation (Adzuna's actual multi-hop, non-redirect apply flow) is now understood but not fixed. If genuinely resolving to the real employer page matters, that needs HTML parsing (and possibly JS execution) of Adzuna's apply flow — real scoping work for a future session, not a quick fix.
+- No dedicated in-app nudge yet pointing existing/backfilled users toward the new Career History section in Settings to review their AI-parsed entries — it's there and functional, but nothing currently tells a user it exists beyond finding it themselves.
+
+---
 
 ### Stage 32 — Session M: structured career history, plus verification + cleanup carried over from Session L (2026-07-14)
 
