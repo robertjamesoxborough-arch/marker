@@ -7,6 +7,7 @@ import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { buildAiContext } from '../../../lib/ai-context'
 import { checkAllowance } from '../../../lib/allowance'
+import { logIfError } from '../../../lib/log-errors'
 
 
 export async function POST(req) {
@@ -42,6 +43,9 @@ export async function POST(req) {
       service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
       service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
     ])
+    logIfError('interview-prep profiles', profileRes)
+    logIfError('interview-prep career_history', historyRes)
+    logIfError('interview-prep wishlists', wishlistRes)
     const profile    = profileRes.data
     const careerHist = historyRes.data  || []
     const wishlists  = wishlistRes.data || []

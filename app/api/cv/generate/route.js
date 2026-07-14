@@ -8,6 +8,7 @@ import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
 import { checkVerifiedStats } from '../../../../lib/verified-stats'
 import { checkAllowance } from '../../../../lib/allowance'
+import { logIfError } from '../../../../lib/log-errors'
 
 
 // Gap analysis — cheap Haiku scan (~0.4p), run after a full CV tailor
@@ -178,6 +179,9 @@ export async function POST(request) {
     service.from('career_history').select('role_title, company, start_date, end_date, achievements').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
     service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
   ])
+  logIfError('cv/generate profiles', profileRes)
+  logIfError('cv/generate career_history', historyRes)
+  logIfError('cv/generate wishlists', wishlistRes)
   const profile = profileRes.data
   const careerHistory = historyRes.data || []
   const wishlists     = wishlistRes.data || []
