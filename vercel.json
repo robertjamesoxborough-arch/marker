@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/greenhouse",
+      "path": "/api/cron/ats",
       "schedule": "0 2 * * *"
     },
     {
