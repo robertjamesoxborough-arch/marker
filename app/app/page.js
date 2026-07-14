@@ -2219,13 +2219,26 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
     fetch('/api/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId }) }).catch(() => {})
   }
 
-  function addToPipeline(job, source) {
+  // Adzuna links are a redirect, not the real employer careers page; they
+  // can also expire or change. Resolve to the real destination before
+  // saving into the pipeline, so a link opened weeks later still works.
+  // No AI cost -- pure HTTP redirect following (app/api/resolve-url). Never
+  // blocks the add action: falls back to the original link on any failure.
+  async function addToPipeline(job, source) {
+    let link = job.link
+    if (job.source === 'adzuna' || job.adzunaAttributionRequired) {
+      try {
+        const res = await fetch('/api/resolve-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: job.link }) })
+        const data = await res.json()
+        if (data.resolved) link = data.resolved
+      } catch {}
+    }
     addJob({
       id: crypto.randomUUID(),
       company: job.company,
       roleTitle: job.roleTitle,
-      jobLink: job.link,
-      link: job.link,
+      jobLink: link,
+      link,
       officeDays: 2,
       status: 'considering',
       ranking: 1,

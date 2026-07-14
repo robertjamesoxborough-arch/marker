@@ -154,7 +154,11 @@ export async function saveCareerHistory(service, userId, roles) {
     role_title: r.role_title || 'Unknown',
     start_date: r.start_date || null,
     end_date: r.end_date || null,
-    achievements: Array.isArray(r.achievements) ? r.achievements.join('\n') : (r.achievements || ''),
+    // career_history.achievements is a real Postgres text[] array column,
+    // not plain text -- confirmed via PostgREST's schema after this
+    // shipped joined-to-a-string and broke the insert with "malformed
+    // array literal". Send a genuine array, never a joined string.
+    achievements: Array.isArray(r.achievements) ? r.achievements.filter(Boolean) : (r.achievements ? [r.achievements] : []),
     confidence: r.confidence || 'medium',
     source: 'ai_parse',
   }))

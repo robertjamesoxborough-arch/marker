@@ -32,7 +32,12 @@ export async function GET() {
     .order('start_date', { ascending: false })
   logIfError('career-history/save GET', res)
 
-  return Response.json({ roles: res.data || [] })
+  // achievements is a real Postgres text[] column; the client edits it as a
+  // single newline-per-bullet string in a textarea, so flatten it here to
+  // keep the client-side contract simple. POST below converts it back.
+  const roles = (res.data || []).map(r => ({ ...r, achievements: Array.isArray(r.achievements) ? r.achievements.join('\n') : (r.achievements || '') }))
+
+  return Response.json({ roles })
 }
 
 // Body: { roles: [{ id?, company, role_title, start_date, end_date, achievements }] }
@@ -61,7 +66,9 @@ export async function POST(request) {
     role_title: (r.role_title || '').trim() || 'Unknown',
     start_date: r.start_date || null,
     end_date: r.end_date || null,
-    achievements: Array.isArray(r.achievements) ? r.achievements.join('\n') : (r.achievements || ''),
+    // Client sends a newline-per-bullet string; the column is a real
+    // Postgres text[] array, so split it back before inserting.
+    achievements: Array.isArray(r.achievements) ? r.achievements.filter(Boolean) : (r.achievements || '').split('\n').map(s => s.trim()).filter(Boolean),
     confidence: 'high',
     source: 'user',
   }))
