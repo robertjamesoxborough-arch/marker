@@ -104,17 +104,22 @@ async function readFromCache(service, profile) {
 // types, field), then ONE shared baseline Haiku score
 // (lib/score-jobs-batch.js — same rubric as the nightly cron), upserted
 // into the SHARED jobs_cache tagged track_tags:['contract'].
-async function runFreshScan(service, apiKey, userId, profile) {
+async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
   const appId = process.env.ADZUNA_APP_ID
   const appKey = process.env.ADZUNA_API_KEY
   if (!appId || !appKey) return { jobs: [], error: 'Adzuna API keys not configured' }
+
+  // Posted-within filter, from the client's PostedWithinSelect. Passed
+  // through as Adzuna's native max_days_old rather than filtering after
+  // fetch — cheaper and more accurate than a post-hoc filter.
+  const days = Number.isFinite(maxDaysOld) && maxDaysOld > 0 ? maxDaysOld : 21
 
   const salaryMin = profile?.salary_floor || 60000
   const now = new Date().toISOString()
   const raw = []
   for (const query of buildContractQueries(profile)) {
     try {
-      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=21&sort_by=date`
+      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=${days}&sort_by=date`
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
       if (!res.ok) continue
       const data = await res.json()
@@ -195,7 +200,7 @@ export async function POST(req) {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return Response.json({ jobs: [], error: 'No API key configured' }, { status: 500 })
 
-    await runFreshScan(service, apiKey, user.id, profile)
+    await runFreshScan(service, apiKey, user.id, profile, Number(body?.maxDaysOld))
     const { jobs, total } = await readFromCache(service, profile)
     return Response.json({ jobs, total, source: 'fresh' })
   }

@@ -90,16 +90,21 @@ async function readFromCache(service, profile) {
 // baseline Haiku scoring call (lib/score-jobs-batch.js, same rubric as the
 // nightly cron), upserted into jobs_cache so the scan benefits every user
 // from the next cache read onward — not just the one who triggered it.
-async function runFreshScan(service, apiKey, userId) {
+async function runFreshScan(service, apiKey, userId, maxDaysOld) {
   const appId = process.env.ADZUNA_APP_ID
   const appKey = process.env.ADZUNA_API_KEY
   if (!appId || !appKey) return { jobs: [], error: 'Adzuna API keys not configured' }
+
+  // Posted-within filter, from the client's PostedWithinSelect. Passed
+  // through as Adzuna's native max_days_old rather than filtering after
+  // fetch — cheaper and more accurate than a post-hoc filter.
+  const days = Number.isFinite(maxDaysOld) && maxDaysOld > 0 ? maxDaysOld : 14
 
   const now = new Date().toISOString()
   const rows = []
   for (const { what } of ROLE_QUERIES) {
     try {
-      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(what)}&max_days_old=14&sort_by=date`
+      const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(what)}&max_days_old=${days}&sort_by=date`
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
       if (!res.ok) continue
       const data = await res.json()
@@ -181,7 +186,7 @@ export async function POST(req) {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return Response.json({ jobs: [], error: 'No API key configured' }, { status: 500 })
 
-    await runFreshScan(service, apiKey, user.id)
+    await runFreshScan(service, apiKey, user.id, Number(body?.maxDaysOld))
     // Serve the just-refreshed cache back through the same deterministic path
     const { jobs, total } = await readFromCache(service, profile)
     return Response.json({ jobs, total, source: 'fresh' })

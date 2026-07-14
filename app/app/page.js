@@ -70,13 +70,65 @@ function SignalBadge({ signal }) {
   return <span style={{ background: bg, fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.06em', color }}>{label}</span>
 }
 
+// ── Posted-within filter — shared across all feed tabs. For cached reads
+// this is a deterministic client-side filter (zero cost, jobs are already
+// loaded); for a live Fresh Scan, the same value is passed through as
+// maxDaysOld so the route uses Adzuna's native max_days_old param instead
+// of filtering after fetch.
+const POSTED_WITHIN_OPTIONS = [
+  { label: '1 day', days: 1 },
+  { label: '3 days', days: 3 },
+  { label: '7 days', days: 7 },
+  { label: '14 days', days: 14 },
+  { label: 'Anytime', days: null },
+]
+const POSTED_WITHIN_KEY = 'mkr_posted_within'
+
+function usePostedWithin(defaultDays = 14) {
+  const [days, setDays] = useState(() => {
+    try {
+      const saved = localStorage.getItem(POSTED_WITHIN_KEY)
+      return saved === 'null' ? null : (saved ? parseInt(saved, 10) : defaultDays)
+    } catch { return defaultDays }
+  })
+  const setAndPersist = (d) => {
+    setDays(d)
+    try { localStorage.setItem(POSTED_WITHIN_KEY, d === null ? 'null' : String(d)) } catch {}
+  }
+  return [days, setAndPersist]
+}
+
+function withinPostedWindow(dateStr, days) {
+  if (days == null) return true
+  if (!dateStr) return true // no date info — don't hide, matches missing-info-neutral pattern used elsewhere
+  const ageMs = Date.now() - new Date(dateStr).getTime()
+  return ageMs <= days * 86400000
+}
+
+function PostedWithinSelect({ days, onChange }) {
+  return (
+    <select
+      value={days === null ? 'anytime' : String(days)}
+      onChange={e => onChange(e.target.value === 'anytime' ? null : parseInt(e.target.value, 10))}
+      style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', letterSpacing: '0.02em' }}
+    >
+      {POSTED_WITHIN_OPTIONS.map(o => (
+        <option key={o.label} value={o.days === null ? 'anytime' : String(o.days)}>Posted within: {o.label}</option>
+      ))}
+    </select>
+  )
+}
+
 // ── Fresh Scan — Pro/Max live re-scan, gated by lib/allowance.js's
 // feed_fresh_scan daily cap. Shows real allowance state before the click
 // (fetched read-only, spends nothing); free tier (cap 0) is disabled with
 // an upgrade hint instead of hidden. Posts {fresh:true} to one or more
 // routes (feed-web/feed-gov/contractor-roles), which live-scan and write
 // the shared cache, then calls onScanComplete to reload the passive view.
-function FreshScanButton({ endpoints, onScanComplete }) {
+// maxDaysOld (from the posted-within selector) is passed through so a live
+// scan uses Adzuna's native max_days_old param rather than filtering after
+// the fact.
+function FreshScanButton({ endpoints, onScanComplete, maxDaysOld }) {
   const [allowance, setAllowance] = useState(null)
   const [scanning, setScanning]   = useState(false)
   const [err, setErr]             = useState('')
@@ -94,7 +146,7 @@ function FreshScanButton({ endpoints, onScanComplete }) {
     setErr(''); setScanning(true)
     try {
       const results = await Promise.all(endpoints.map(ep =>
-        fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fresh: true }) })
+        fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fresh: true, maxDaysOld: maxDaysOld ?? undefined }) })
           .then(async r => ({ status: r.status, data: await r.json().catch(() => ({})) }))
       ))
       const limited = results.find(r => r.status === 429)
@@ -1905,6 +1957,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
   const [linkedinCopied,  setLinkedinCopied]  = useState(null)
   const [refreshing,      setRefreshing]      = useState(false)
   const [refreshCooldownMsg, setRefreshCooldownMsg] = useState(false)
+  const [postedWithinDays, setPostedWithinDays] = usePostedWithin(14)
   const [showWebTour,      dismissWebTour]      = useTutorial('feed_web')
   const [showWishlistTour, dismissWishlistTour] = useTutorial('feed_wishlist')
 
@@ -2054,16 +2107,20 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
     )
   }
 
-  const filteredWeb = webJobs.filter(j => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return (j.roleTitle || '').toLowerCase().includes(q) || (j.company || '').toLowerCase().includes(q) || (j.location || '').toLowerCase().includes(q)
-  })
-  const filteredGov = govJobs.filter(j => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return (j.roleTitle || '').toLowerCase().includes(q) || (j.company || '').toLowerCase().includes(q)
-  })
+  const filteredWeb = webJobs
+    .filter(j => withinPostedWindow(j.foundAt || j.created, postedWithinDays))
+    .filter(j => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      return (j.roleTitle || '').toLowerCase().includes(q) || (j.company || '').toLowerCase().includes(q) || (j.location || '').toLowerCase().includes(q)
+    })
+  const filteredGov = govJobs
+    .filter(j => withinPostedWindow(j.foundAt || j.created, postedWithinDays))
+    .filter(j => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      return (j.roleTitle || '').toLowerCase().includes(q) || (j.company || '').toLowerCase().includes(q)
+    })
   const showWebAdzuna = filteredWeb.some(j => j.source === 'adzuna' || j.adzunaAttributionRequired)
 
   return (
@@ -2153,20 +2210,23 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
             </div>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={feedSource === 'gov' ? 'Filter civil service roles…' : 'Filter by role, company, or location…'}
               style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: 'var(--marker-cream)', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
-                {feedSource === 'gov'
-                  ? `${filteredGov.length} CIVIL SERVICE ROLES`
-                  : `${filteredWeb.length} OF ${webJobs.length} · NIGHTLY SCAN`}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 6 }}>
+              <PostedWithinSelect days={postedWithinDays} onChange={setPostedWithinDays} />
               <button onClick={handleRefresh} disabled={refreshing}
                 style={{ background: 'none', border: 'none', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', cursor: refreshing ? 'default' : 'pointer', letterSpacing: '0.04em', padding: 0 }}>
                 {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
               </button>
               {refreshCooldownMsg && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Refreshed &lt;1h ago. Check back later.</span>}
             </div>
+            <div style={{ marginTop: 6 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
+                {feedSource === 'gov'
+                  ? `${filteredGov.length} CIVIL SERVICE ROLES`
+                  : `${filteredWeb.length} OF ${webJobs.length} · NIGHTLY SCAN`}
+              </div>
+            </div>
             <div style={{ marginTop: 8 }}>
-              <FreshScanButton endpoints={['/api/feed-web', '/api/feed-gov']} onScanComplete={onRefreshFeed} />
+              <FreshScanButton endpoints={['/api/feed-web', '/api/feed-gov']} onScanComplete={onRefreshFeed} maxDaysOld={postedWithinDays} />
             </div>
           </div>
           {feedLoading ? (
@@ -3809,6 +3869,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
   const [recruiters,        setRecruiters]        = useState(null)
   const [recruitersLoading, setRecruitersLoading] = useState(false)
   const [recruitersError,   setRecruitersError]   = useState('')
+  const [postedWithinDays,  setPostedWithinDays]   = usePostedWithin(14)
 
   const CACHE_MS = 7 * 24 * 60 * 60 * 1000
   function isFresh(cachedAt) { return !!cachedAt && Date.now() - new Date(cachedAt).getTime() < CACHE_MS }
@@ -3916,23 +3977,26 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
               {rolesError} <button onClick={scanRoles} style={{ background: 'none', border: 'none', color: '#B91C1C', cursor: 'pointer', textDecoration: 'underline', fontSize: 13, padding: 0 }}>try again</button>
             </div>
           )}
-          {roles && !rolesLoading && (
+          {roles && !rolesLoading && (() => {
+            const filteredRoles = roles.filter(j => withinPostedWindow(j.foundAt || j.created, postedWithinDays))
+            return (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{roles.length} contract roles · scored</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{filteredRoles.length} of {roles.length} contract roles · scored</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <PostedWithinSelect days={postedWithinDays} onChange={setPostedWithinDays} />
                   <button onClick={scanRoles} style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer', color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>↻ Rescan</button>
-                  <FreshScanButton endpoints={['/api/contractor/roles']} onScanComplete={scanRoles} />
+                  <FreshScanButton endpoints={['/api/contractor/roles']} onScanComplete={scanRoles} maxDaysOld={postedWithinDays} />
                 </div>
               </div>
-              {roles.length === 0 ? (
+              {filteredRoles.length === 0 ? (
                 <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: '20px', textAlign: 'center' }}>
                   <div style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 10 }}>No matching contract roles found right now.</div>
                   <button onClick={scanRoles} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '8px 16px', borderRadius: 7, fontSize: 12, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>Try again</button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {roles.map(job => {
+                  {filteredRoles.map(job => {
                     const isAdded   = addedRoles.has(job.id) || pipelineJobs.some(j => j.jobLink === job.url || j.link === job.url)
                     const scoreN    = parseFloat(job.score) || 0
                     const scoreBg   = scoreN >= 8 ? 'var(--marker-lime)' : scoreN >= 6 ? '#F5E4A0' : 'var(--marker-border)'
@@ -4001,7 +4065,8 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
                 </div>
               )}
             </>
-          )}
+            )
+          })()}
         </div>
       )}
 
@@ -4990,6 +5055,10 @@ export default function AppPage() {
   const [checkingLinks, setCheckingLinks] = useState(false)
   const [tabTooltip, setTabTooltip] = useState(null)
   const [pipelineStatsOpen, setPipelineStatsOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [bulkStatus, setBulkStatus] = useState('')
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [expiredBannerDismissed, setExpiredBannerDismissed] = useState(false)
   const [showEngineTour,   dismissEngineTour]   = useTutorial('engine')
   const [showPipelineTour, dismissPipelineTour] = useTutorial('pipeline')
   const [showCvTour,       dismissCvTour]       = useTutorial('cv')
@@ -5136,13 +5205,50 @@ export default function AppPage() {
 
   const activeCol = COLUMNS[colIdx]
   const colJobs = jobs
-    .filter(j => j.status === activeCol.id)
+    .filter(j => j.status === activeCol.id && !j.archived)
     .filter(j => {
       if (!pipelineSearch.trim()) return true
       const q = pipelineSearch.toLowerCase()
       return (j.company || '').toLowerCase().includes(q) || (j.roleTitle || '').toLowerCase().includes(q)
     })
     .sort((a, b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0))
+
+  // Feature: bulk select/move/delete — all plain DB writes via the existing
+  // updateJob/deleteJob, no model calls.
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+  function toggleSelectAllInColumn() {
+    setSelectedIds(prev => {
+      const allSelected = colJobs.length > 0 && colJobs.every(j => prev.has(j.id))
+      const next = new Set(prev)
+      if (allSelected) colJobs.forEach(j => next.delete(j.id))
+      else colJobs.forEach(j => next.add(j.id))
+      return next
+    })
+  }
+  function applyBulkStatus(newStatus) {
+    if (!newStatus) return
+    selectedIds.forEach(id => updateJob(id, { status: newStatus }))
+    setSelectedIds(new Set())
+    setBulkStatus('')
+  }
+  function applyBulkDelete() {
+    selectedIds.forEach(id => deleteJob(id))
+    setSelectedIds(new Set())
+    setConfirmBulkDelete(false)
+  }
+
+  // Feature: expired-jobs banner — dead-linked or clearly stale active-stage
+  // roles, offered as a one-click bulk archive (flag + hide, never delete).
+  const expiredJobs = jobs.filter(j => !j.archived && j.deadLink && ['considering', 'to_apply', 'applied'].includes(j.status))
+  function archiveAllExpired() {
+    expiredJobs.forEach(j => updateJob(j.id, { archived: true }))
+  }
 
   async function checkDeadLinks() {
     const targets = jobs.filter(j => ['considering', 'to_apply', 'applied'].includes(j.status) && j.jobLink)
@@ -5345,6 +5451,19 @@ export default function AppPage() {
               })}
             </div>
 
+            {/* Expired jobs banner — dead-linked active-stage roles, one-click bulk archive */}
+            {expiredJobs.length > 0 && !expiredBannerDismissed && (
+              <div style={{ margin: '10px 16px 0', padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 12, color: 'var(--marker-black)' }}>
+                  <strong>{expiredJobs.length}</strong> role{expiredJobs.length !== 1 ? 's' : ''} in your pipeline {expiredJobs.length !== 1 ? 'have' : 'has'} a dead link. Archive them to keep your board current — the row stays, just hidden from active columns.
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <button onClick={archiveAllExpired} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>Archive all</button>
+                  <button onClick={() => setExpiredBannerDismissed(true)} style={{ background: 'none', border: '1px solid var(--marker-border)', color: 'var(--marker-mid)', padding: '6px 10px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-mono)', cursor: 'pointer' }}>Dismiss</button>
+                </div>
+              </div>
+            )}
+
             {/* Search + actions bar */}
             <div style={{ padding: '10px 16px', display: 'flex', gap: 8, borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', alignItems: 'center' }}>
               <input
@@ -5362,11 +5481,46 @@ export default function AppPage() {
               </button>
             </div>
 
+            {/* Bulk action bar — appears only when something is selected */}
+            {selectedIds.size > 0 && (
+              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--marker-lime)', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--marker-black)' }}>{selectedIds.size} selected</span>
+                <select
+                  value={bulkStatus}
+                  onChange={e => applyBulkStatus(e.target.value)}
+                  style={{ fontFamily: 'var(--font-body)', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--marker-black)', background: 'var(--marker-cream)', cursor: 'pointer' }}
+                >
+                  <option value="">Move to…</option>
+                  {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+                {confirmBulkDelete ? (
+                  <>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-black)' }}>Delete {selectedIds.size} role{selectedIds.size !== 1 ? 's' : ''}?</span>
+                    <button onClick={applyBulkDelete} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '5px 10px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-mono)', cursor: 'pointer' }}>Confirm delete</button>
+                    <button onClick={() => setConfirmBulkDelete(false)} style={{ background: 'none', border: '1px solid var(--marker-black)', color: 'var(--marker-black)', padding: '5px 10px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-mono)', cursor: 'pointer' }}>Cancel</button>
+                  </>
+                ) : (
+                  <button onClick={() => setConfirmBulkDelete(true)} style={{ background: 'none', border: '1px solid var(--marker-black)', color: 'var(--marker-black)', padding: '5px 10px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-mono)', cursor: 'pointer' }}>Delete</button>
+                )}
+                <button onClick={() => { setSelectedIds(new Set()); setConfirmBulkDelete(false) }} style={{ background: 'none', border: 'none', color: 'var(--marker-black)', fontSize: 11, fontFamily: 'var(--font-mono)', cursor: 'pointer', marginLeft: 'auto' }}>Clear</button>
+              </div>
+            )}
+
             {/* Column header */}
             <div style={{ padding: '14px 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>{activeCol.label}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{colJobs.length} card{colJobs.length !== 1 ? 's' : ''} · sorted by score</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {colJobs.length > 0 && (
+                  <input type="checkbox"
+                    checked={colJobs.every(j => selectedIds.has(j.id))}
+                    onChange={toggleSelectAllInColumn}
+                    title="Select all in this column"
+                    style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--marker-lime)' }}
+                  />
+                )}
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>{activeCol.label}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{colJobs.length} card{colJobs.length !== 1 ? 's' : ''} · sorted by score</div>
+                </div>
               </div>
               <button onClick={() => setShowAdd(true)} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '8px 14px', borderRadius: 8, fontSize: 12, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>+ Add</button>
             </div>
@@ -5381,7 +5535,14 @@ export default function AppPage() {
                   {!pipelineSearch && <button onClick={() => setShowAdd(true)} className="btn btn-ghost" style={{ fontSize: 13 }}>Add your first role</button>}
                 </div>
               ) : colJobs.map(job => (
-                <PipelineCard key={job.id} job={job}
+                <div key={job.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <input type="checkbox"
+                    checked={selectedIds.has(job.id)}
+                    onChange={() => toggleSelect(job.id)}
+                    style={{ width: 15, height: 15, marginTop: 14, flexShrink: 0, cursor: 'pointer', accentColor: 'var(--marker-lime)' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                <PipelineCard job={job}
                   onEditDetails={j => setEditingJob(j)}
                   onDelete={deleteJob}
                   onTailorCv={tailorCv}
@@ -5396,6 +5557,8 @@ export default function AppPage() {
                     updateJob(j.id, { score: data.score, factors: data.factors, signal: data.signal, signalReason: data.signalReason, officeDays: data.officeDays ?? j.officeDays })
                   }}
                 />
+                  </div>
+                </div>
               ))}
 
               {colJobs.length > 0 && (
