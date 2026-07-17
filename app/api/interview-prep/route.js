@@ -181,7 +181,7 @@ STYLE RULES: Write in British English. Never use em dashes (—) in any output. 
         model: MODELS.sonnet,
         max_tokens: 2600,
         system: [{ type: 'text', text: SYSTEM_STABLE, cache_control: { type: 'ephemeral' } }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
         messages: [{ role: 'user', content }]
       })
     })

@@ -98,7 +98,7 @@ Identify 10 UK recruitment agencies and search firms that actively place ${senio
       model: MODELS.sonnet,
       max_tokens: 5200,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
       messages: [{ role: 'user', content: userMsg }],
     }),
   })
