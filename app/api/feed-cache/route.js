@@ -67,12 +67,13 @@ export async function GET(request) {
 
   // Rank every row for THIS user with the deterministic match engine (zero
   // AI cost — safe to run over the whole page on every request). Hard
-  // mismatches (score 1 on location or seniority) are excluded exactly as
-  // before unless ?broaden=1; everything else is now SORTED by overall
-  // relevance instead of being left in raw cached_at order.
+  // exclusions (location/seniority/role-relevance gate — see the GATING
+  // PRINCIPLE docstring in lib/match-engine.js) apply exactly as computed
+  // by scoreMatch itself unless ?broaden=1; everything else is SORTED by
+  // overall relevance instead of being left in raw cached_at order.
   const ranked = rows.map(row => ({ row, relevance: scoreMatch(profile, row) }))
   const filtered = (!broaden && profile)
-    ? ranked.filter(({ relevance }) => relevance.dimensions.locationFit?.score !== 1 && relevance.dimensions.seniorityFit?.score !== 1)
+    ? ranked.filter(({ relevance }) => !relevance.excluded)
     : ranked
   filtered.sort((a, b) => b.relevance.score - a.relevance.score)
 

@@ -81,7 +81,7 @@ export async function POST() {
   const fresh = filterAndSortByFreshness(mine.map(row => applyFreshnessToRow(row, now)))
   const ranked = fresh
     .map(row => ({ row, relevance: scoreMatch(profile, row) }))
-    .filter(({ row, relevance }) => (row.match_score ?? 6) >= 5 && relevance.score >= 6)
+    .filter(({ row, relevance }) => (row.match_score ?? 6) >= 5 && !relevance.excluded && relevance.score >= 6)
     .sort((a, b) => b.relevance.score - a.relevance.score)
     .map(({ row }) => rowToJob(row))
 

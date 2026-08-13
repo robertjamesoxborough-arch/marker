@@ -83,7 +83,7 @@ async function readFromCache(service, profile) {
   const withRelevance = fresh
     .map(row => ({ row, relevance: scoreMatch(profile, row) }))
     // Global baseline quality floor (nightly score) AND per-user relevance floor
-    .filter(({ row, relevance }) => (row.match_score ?? 6) >= 5 && relevance.score >= 6)
+    .filter(({ row, relevance }) => (row.match_score ?? 6) >= 5 && !relevance.excluded && relevance.score >= 6)
     .sort((a, b) => b.relevance.score - a.relevance.score)
     .map(({ row }) => rowToJob(row))
 
