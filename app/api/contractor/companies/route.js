@@ -33,7 +33,7 @@ async function readCache(service, userId) {
 
 async function generate(service, apiKey, userId, profile) {
   const hfj = profile?.hard_filters_json || {}
-  const field = hfj.contractorField || hfj.field || 'general management'
+  const field = hfj.contractorField || (Array.isArray(hfj.field) ? hfj.field.join(', ') : hfj.field) || 'general management'
   const roles = (profile?.target_roles || []).slice(0, 5).join(', ') || 'senior manager, director'
   const contractTypes = (hfj.contractTypes || ['interim']).join(', ')
   const location = profile?.postcode ? `near ${profile.postcode}, UK` : 'UK'

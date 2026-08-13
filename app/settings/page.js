@@ -31,6 +31,19 @@ const TRACK_LABELS = {
   returner: 'Returner', career_changer: 'Career changer',
 }
 
+const PROFESSIONAL_FIELDS = [
+  'Software/IT', 'Data/Analytics', 'Product', 'Design/UX', 'Marketing',
+  'Sales/BD', 'Partnerships', 'Operations', 'Finance/Accounting', 'HR/People',
+  'Legal', 'Customer Success/Support', 'Engineering (non-software)',
+  'Healthcare/Clinical', 'Education/Academia', 'Public sector/Policy',
+  'Project/Programme Management', 'Consulting', 'Other',
+]
+
+// Fixed dropdown, not free text — a free-text £-value field caused a real
+// data bug (85 typed where "85" meant 85k, stored as £85,000,000; see
+// PROGRESS.md Stage 44 #9).
+const SALARY_FLOOR_OPTIONS = [50, 60, 70, 80, 90, 100, 120, 150]
+
 function Chip({ label, selected, onClick }) {
   return (
     <button onClick={onClick} style={{
@@ -221,7 +234,7 @@ export default function SettingsPage() {
   const [deleteError, setDeleteError]       = useState('')
 
   // Profile enrichment
-  const [field, setField]                     = useState('')
+  const [fields, setFields]                   = useState([]) // multi-select: professional field(s)
   const [yearsExperience, setYearsExperience] = useState('')
   const [careerSummary, setCareerSummary]     = useState('')
   const [wlbPriority, setWlbPriority]         = useState('medium')
@@ -295,8 +308,9 @@ export default function SettingsPage() {
       setPostcode(p.postcode || '')
       setCvText(hfj.cvRaw || '')
       setExcludeSalesQuotas(hfj.excludeSalesQuotas || false)
-      // Profile enrichment
-      setField(hfj.field || '')
+      // Profile enrichment — hfj.field may still be a plain string on older
+      // profiles saved before the multi-select change; normalise to an array.
+      setFields(Array.isArray(hfj.field) ? hfj.field : (hfj.field ? [hfj.field] : []))
       setYearsExperience(hfj.yearsExperience || '')
       setCareerSummary(hfj.careerSummary || '')
       setWlbPriority(hfj.wlbPriority || 'medium')
@@ -334,7 +348,7 @@ export default function SettingsPage() {
         excludeSalesQuotas,
         cvRaw: cvText.trim() || null,
         // Profile enrichment
-        field: field || null,
+        field: fields,
         yearsExperience: yearsExperience || null,
         careerSummary: careerSummary.trim() || null,
         wlbPriority,
@@ -491,9 +505,24 @@ export default function SettingsPage() {
               <Label>Max office days / week</Label>
               <input type="number" min="0" max="5" step="0.5" value={maxOfficeDays} onChange={e => setMaxOfficeDays(e.target.value)} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <div>
-              <Label>Salary floor (£k)</Label>
-              <input type="number" value={salaryFloor} onChange={e => setSalaryFloor(e.target.value)} placeholder="e.g. 90" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <Label>Salary floor</Label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setSalaryFloor('')} style={{
+                padding: '7px 13px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
+                background: salaryFloor === '' ? 'var(--marker-black)' : 'transparent',
+                color: salaryFloor === '' ? 'var(--marker-cream)' : 'var(--marker-text)',
+                border: `1px solid ${salaryFloor === '' ? 'var(--marker-black)' : 'var(--marker-border)'}`,
+              }}>No minimum</button>
+              {SALARY_FLOOR_OPTIONS.map(k => (
+                <button key={k} onClick={() => setSalaryFloor(String(k))} style={{
+                  padding: '7px 13px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
+                  background: salaryFloor === String(k) ? 'var(--marker-black)' : 'transparent',
+                  color: salaryFloor === String(k) ? 'var(--marker-cream)' : 'var(--marker-text)',
+                  border: `1px solid ${salaryFloor === String(k) ? 'var(--marker-black)' : 'var(--marker-border)'}`,
+                }}>£{k}k+</button>
+              ))}
             </div>
           </div>
           <div style={{ marginBottom: 16 }}>
@@ -504,6 +533,7 @@ export default function SettingsPage() {
             <input type="checkbox" checked={excludeSalesQuotas} onChange={e => setExcludeSalesQuotas(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--marker-black)' }} />
             <span style={{ fontSize: 13 }}>Exclude quota-carrying sales roles</span>
           </label>
+          <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 4, marginLeft: 26, lineHeight: 1.5 }}>Roles where part of your pay depends on hitting sales targets, e.g. commission or a quota-based bonus.</div>
         </Section>
 
         {/* CV */}
@@ -521,11 +551,13 @@ export default function SettingsPage() {
 
         {/* Background */}
         <Section title="Professional background">
-          <Label sub="Used to tune job searches, scoring, and CV generation">Field</Label>
-          <select value={field} onChange={e => setField(e.target.value)} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}>
-            <option value="">Not set</option>
-            {['Software/IT','Data/Analytics','Product','Design/UX','Marketing','Sales/BD','Partnerships','Operations','Finance/Accounting','HR/People','Legal','Customer Success/Support','Engineering (non-software)','Healthcare/Clinical','Education/Academia','Public sector/Policy','Project/Programme Management','Consulting','Other'].map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
+          <Label sub="Used to tune job searches, scoring, and CV generation — pick all that apply">Field</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {PROFESSIONAL_FIELDS.map(f => (
+              <Chip key={f} label={f} selected={fields.includes(f)}
+                onClick={() => setFields(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])} />
+            ))}
+          </div>
 
           <Label>Years of experience</Label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>

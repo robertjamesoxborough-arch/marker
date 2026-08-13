@@ -69,7 +69,11 @@ ${STYLE_RULES}`,
       }],
     })
 
-    const raw = msg.content[0]?.text?.trim() || '{}'
+    // content[0] is not always the text block — Sonnet/Haiku can prepend a
+    // "thinking" block on complex prompts even without thinking explicitly
+    // requested (verified live, Stage 45 self-test: content[0]="thinking",
+    // content[1]="text" — content[0]?.text silently returned '' in prod).
+    const raw = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || '{}'
     const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
     const parsed = JSON.parse(text)
 

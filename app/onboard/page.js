@@ -174,6 +174,12 @@ const RADIUS_OPTIONS = [
   { value: null, label: 'Anywhere' },
 ]
 
+// Fixed dropdown, not free text — a free-text £-value field caused a real
+// data bug (85 typed where "85" meant 85k, stored as £85,000,000; see
+// PROGRESS.md Stage 44 #9). Values are in whole £k, matching how the rest
+// of the app displays and reasons about salary_floor.
+const SALARY_FLOOR_OPTIONS = [50, 60, 70, 80, 90, 100, 120, 150]
+
 // ── Main page ─────────────────────────────────────────────────────
 
 export default function OnboardPage() {
@@ -184,7 +190,7 @@ export default function OnboardPage() {
   const [userEmail, setUserEmail] = useState('')
 
   // Section A — Background
-  const [field, setField]                           = useState('')
+  const [fields, setFields]                         = useState([]) // multi-select: professional field(s)
   const [customField, setCustomField]               = useState('')
   const [currentJobTitle, setCurrentJobTitle]       = useState('')
   const [yearsExperience, setYearsExperience]       = useState('')
@@ -287,7 +293,12 @@ export default function OnboardPage() {
       if (suggested.length > 0) setTargetRoles(prev => [...new Set([...prev, ...suggested])])
       if (seniority.length > 0) setSeniorities(prev => prev.length === 0 ? seniority : [...new Set([...prev, ...seniority])])
       if (industrySuggestions.length > 0) setIndustries(prev => prev.length === 0 ? industrySuggestions : [...new Set([...prev, ...industrySuggestions])])
-      if (data.salaryHint && !salaryFloor) setSalaryFloor(String(data.salaryHint))
+      if (data.salaryHint && !salaryFloor) {
+        // Snap the AI-suggested figure to the nearest fixed option so the
+        // pre-fill always lands on a real button, not an orphan value.
+        const nearest = SALARY_FLOOR_OPTIONS.reduce((best, k) => Math.abs(k - data.salaryHint) < Math.abs(best - data.salaryHint) ? k : best, SALARY_FLOOR_OPTIONS[0])
+        setSalaryFloor(String(nearest))
+      }
     } catch {
       setCvParseError('Request failed. Continue and pick roles manually.')
     } finally {
@@ -339,7 +350,7 @@ export default function OnboardPage() {
         cvKeywords,
         refCode,
         isFirstSave: true,
-        field: field === 'Other' ? (customField.trim() || 'Other') : field,
+        field: fields.map(f => f === 'Other' ? (customField.trim() || 'Other') : f),
         yearsExperience,
         careerSummary: careerSummary.trim() || null,
         wlbPriority,
@@ -370,7 +381,7 @@ export default function OnboardPage() {
           body: JSON.stringify({ cvText: cvRawFull }),
         }).catch(() => {})
       }
-      track('onboard_complete', { field, track: derivedTrack })
+      track('onboard_complete', { fields, track: derivedTrack })
       try {
         const ref = localStorage.getItem('marker_ref')
         if (ref) {
@@ -389,7 +400,7 @@ export default function OnboardPage() {
     null,
     !!status,
     true,
-    !!field && targetRoles.length > 0 && seniorities.length > 0,
+    fields.length > 0 && targetRoles.length > 0 && seniorities.length > 0,
     true,
     true,
     true,
@@ -595,15 +606,15 @@ export default function OnboardPage() {
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Your professional profile</h2>
             <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 28, lineHeight: 1.6 }}>Roles, level, sectors. We use all three to filter and score everything.</p>
 
-            {/* Professional field */}
+            {/* Professional field — multi-select: many people span more than one */}
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 14 }}>What's your professional field?</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 14 }}>What's your professional field? (pick all that apply)</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {PROFESSIONAL_FIELDS.map(f => (
-                  <Chip key={f} label={f} selected={field === f} onClick={() => setField(f)} />
+                  <Chip key={f} label={f} selected={fields.includes(f)} onClick={() => toggleMulti(fields, setFields, f)} />
                 ))}
               </div>
-              {field === 'Other' && (
+              {fields.includes('Other') && (
                 <input
                   value={customField}
                   onChange={e => setCustomField(e.target.value)}
@@ -745,13 +756,23 @@ export default function OnboardPage() {
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 8 }}>Minimum salary</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="number" value={salaryFloor} onChange={e => setSalaryFloor(e.target.value)}
-                  placeholder="e.g. 80"
-                  style={{ width: 100, padding: '12px 14px', fontSize: 15, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', color: 'var(--marker-text)', outline: 'none' }}
-                />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--marker-mid)' }}>k / year</span>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => setSalaryFloor('')} style={{
+                  padding: '9px 16px', borderRadius: 10,
+                  border: `1px solid ${salaryFloor === '' ? 'var(--marker-black)' : 'var(--marker-border)'}`,
+                  background: salaryFloor === '' ? 'var(--marker-black)' : 'var(--marker-cream-2)',
+                  color: salaryFloor === '' ? 'var(--marker-cream)' : 'var(--marker-text)',
+                  fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer',
+                }}>No minimum</button>
+                {SALARY_FLOOR_OPTIONS.map(k => (
+                  <button key={k} onClick={() => setSalaryFloor(String(k))} style={{
+                    padding: '9px 16px', borderRadius: 10,
+                    border: `1px solid ${salaryFloor === String(k) ? 'var(--marker-black)' : 'var(--marker-border)'}`,
+                    background: salaryFloor === String(k) ? 'var(--marker-black)' : 'var(--marker-cream-2)',
+                    color: salaryFloor === String(k) ? 'var(--marker-cream)' : 'var(--marker-text)',
+                    fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer',
+                  }}>£{k}k+</button>
+                ))}
               </div>
             </div>
 
@@ -824,7 +845,7 @@ export default function OnboardPage() {
             </div>
 
             <div style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--marker-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0 6px', borderBottom: '1px solid var(--marker-border)' }}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--marker-black)' }}>Exclude roles with sales quotas</div>
                 <button onClick={() => setExcludeSalesQuotas(v => !v)} style={{
                   width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
@@ -833,6 +854,7 @@ export default function OnboardPage() {
                   <span style={{ position: 'absolute', top: 2, left: excludeSalesQuotas ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: 'var(--marker-black)', transition: 'left 0.15s' }} />
                 </button>
               </div>
+              <div style={{ fontSize: 12, color: 'var(--marker-mid)', paddingBottom: 12, lineHeight: 1.5 }}>Roles where part of your pay depends on hitting sales targets, e.g. commission or a quota-based bonus.</div>
             </div>
 
             <div>
@@ -938,12 +960,12 @@ export default function OnboardPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 4 }}>Contractor field (if different from {field || 'your main field'}</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 4 }}>Contractor field (if different from {fields.join(', ') || 'your main field'})</label>
               <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 8 }}>Some people contract in a different discipline. Leave blank if it's the same.</div>
               <input
                 value={contractorField}
                 onChange={e => setContractorField(e.target.value)}
-                placeholder={`Leave blank if same as ${field || 'your main field'}`}
+                placeholder={`Leave blank if same as ${fields.join(', ') || 'your main field'}`}
                 style={{ display: 'block', width: '100%', padding: '11px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>

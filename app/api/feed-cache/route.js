@@ -3,6 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
 import { scoreMatch } from '../../../lib/match-engine'
+import { dedupeByContent } from '../../../lib/dedupe-jobs'
+
+// Cost rules 1 + 2: this route only ever READS jobs_cache, already
+// baseline-scored ONCE nightly by /api/cron/score-cache (lib/score-jobs-
+// batch.js, Haiku, shared across every user). Per-user relevance is applied
+// here with the deterministic, zero-AI match engine (lib/match-engine.js)
+// and used to SORT the list, not just to exclude hard mismatches — this
+// route previously filtered on hard location/seniority mismatches only and
+// left everything else in raw cached_at order, which is why the Live Roles
+// feed read as an unranked recent dump regardless of the user's profile
+// (Stage 44 Critical 1). This never re-scores with a model per request —
+// scoreMatch is plain JS run over an already-fetched page of rows.
 
 export async function GET(request) {
   const cookieStore = await cookies()
@@ -23,10 +35,10 @@ export async function GET(request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
-  // Fetch profile for location/seniority pre-filter
+  // Fetch profile for relevance ranking + location/seniority pre-filter
   const { data: profile } = await service
     .from('profiles')
-    .select('target_roles, seniority, max_office_days, salary_floor, hard_filters_json')
+    .select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track')
     .eq('user_id', user.id)
     .single()
 
@@ -44,21 +56,27 @@ export async function GET(request) {
   // Apply read-time freshness override (G2 invariant)
   let rows = data.map(row => applyFreshnessToRow(row, now))
 
-  // Hard location/seniority pre-filter (skip if ?broaden=1 or no profile)
-  if (!broaden && profile) {
-    rows = rows.filter(row => {
-      const { dimensions } = scoreMatch(profile, row)
-      // Score of 1 = hard structural mismatch (wrong country / wildly wrong seniority)
-      if (dimensions.locationFit?.score === 1)  return false
-      if (dimensions.seniorityFit?.score === 1) return false
-      return true
-    })
-  }
-
-  // Filter expired (default off) and sort Fresh → Aging → Stale → Expired
+  // Filter expired (default off) — its internal sort is superseded by the
+  // relevance sort below, matching the pattern already used by feed-web/
+  // feed-gov/job-feed/contractor-roles.
   rows = filterAndSortByFreshness(rows, { showExpired })
 
-  const jobs = rows.map(row => ({
+  // Collapse reposts/cross-source duplicates of the same real ad BEFORE
+  // ranking, so a duplicate never displaces a genuinely different role.
+  rows = dedupeByContent(rows)
+
+  // Rank every row for THIS user with the deterministic match engine (zero
+  // AI cost — safe to run over the whole page on every request). Hard
+  // mismatches (score 1 on location or seniority) are excluded exactly as
+  // before unless ?broaden=1; everything else is now SORTED by overall
+  // relevance instead of being left in raw cached_at order.
+  const ranked = rows.map(row => ({ row, relevance: scoreMatch(profile, row) }))
+  const filtered = (!broaden && profile)
+    ? ranked.filter(({ relevance }) => relevance.dimensions.locationFit?.score !== 1 && relevance.dimensions.seniorityFit?.score !== 1)
+    : ranked
+  filtered.sort((a, b) => b.relevance.score - a.relevance.score)
+
+  const jobs = filtered.map(({ row, relevance }) => ({
     id:                        row.id,
     company:                   row.company,
     roleTitle:                 row.role_title,
@@ -72,6 +90,9 @@ export async function GET(request) {
     relativeTime:              row.relativeTime,
     lastVerifiedAt:            row.last_verified_at,
     adzunaAttributionRequired: row.adzuna_attribution_required,
+    matchScore:                row.match_score ?? null,
+    relevanceScore:            profile ? relevance.score : null,
+    relevanceDimensions:       profile ? relevance.dimensions : null,
     ...(row.raw_json || {}),
   }))
 

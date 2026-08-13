@@ -100,7 +100,8 @@ Return the cover letter only; no commentary, no title, no labels.`
       system: [{ type: 'text', text: SYSTEM_CACHED, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: prompt }],
     })
-    const text = msg.content[0]?.text?.trim() || ''
+    // content[0] is not always the text block — see Stage 45 note in cv/generate.
+    const text = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || ''
     if (msg.usage) {
       after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cover_letter', usage: msg.usage }))
     }

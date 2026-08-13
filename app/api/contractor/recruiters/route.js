@@ -39,7 +39,7 @@ export async function POST() {
     .eq('user_id', user.id).single()
 
   const hfj = profile?.hard_filters_json || {}
-  const field = hfj.contractorField || hfj.field || 'general management'
+  const field = hfj.contractorField || (Array.isArray(hfj.field) ? hfj.field.join(', ') : hfj.field) || 'general management'
   const roles = (profile?.target_roles || []).slice(0, 4).join(', ') || 'director, senior manager'
   const contractTypes = (hfj.contractTypes || ['interim']).join(', ')
   const location = profile?.postcode ? `near ${profile.postcode}, UK` : 'UK'

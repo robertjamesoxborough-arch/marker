@@ -1,67 +1,118 @@
 'use client'
 
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { BRAND_NAME } from '../../lib/brand'
+import { createClient } from '../../lib/supabase/client'
 
-export default function PricingPage() {
-  const plans = [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '£0',
-      period: 'forever',
-      tagline: 'Start your search today',
-      features: [
-        'Pipeline board: track every stage of your search',
-        'Job feed filtered to your profile, refreshed nightly',
-        'AI job scoring: 30 scores per month',
-        'Memory Card: everything Requite knows about you',
-        'Basic AI intake and profile setup',
-        'Honest limits shown upfront — no hidden paywalls',
-      ],
-      cta: 'Start free',
-      href: '/auth',
-      highlight: false,
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: '£19',
-      period: '/month',
-      tagline: 'For an active, serious search',
-      features: [
-        'Everything in Free',
-        'Unlimited AI job scoring',
-        'CV tailoring with verified-stats guardrail (20/mo)',
-        'Cover letters, tailored to each role (20/mo)',
-        'Interview prep pack for any role (8/mo)',
-        'Salary benchmark and negotiation rehearsal (8/mo)',
-        'Priority freshness: daily feed refresh',
-        'Advanced filters and profile controls',
-      ],
-      cta: 'Choose Pro',
-      href: '/auth',
-      highlight: true,
-    },
-    {
-      id: 'max',
-      name: 'Max',
-      price: '£39',
-      period: '/month',
-      tagline: 'For a high-intensity or multi-track search',
-      features: [
-        'Everything in Pro',
-        '3× higher AI job scoring limit (3,000/mo)',
-        'CV tailoring: 60 per month',
-        'Interview prep: 30 per month',
-        'Negotiation rehearsal: 30 per month',
-        'Cover letters: 60 per month',
-        'First access to new features',
-      ],
-      cta: 'Choose Max',
-      href: '/auth',
-      highlight: false,
-    },
-  ]
+const PLAN_DEFS = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: '£0',
+    period: 'forever',
+    tagline: 'Start your search today',
+    features: [
+      'Pipeline board: track every stage of your search',
+      'Job feed filtered to your profile, refreshed nightly',
+      'AI job scoring: 30 scores per month',
+      'Memory Card: everything Requite knows about you',
+      'Basic AI intake and profile setup',
+      'Honest limits shown upfront — no hidden paywalls',
+    ],
+    cta: 'Start free',
+    highlight: false,
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: '£19',
+    period: '/month',
+    tagline: 'For an active, serious search',
+    features: [
+      'Everything in Free',
+      'Unlimited AI job scoring',
+      'CV tailoring with verified-stats guardrail (20/mo)',
+      'Cover letters, tailored to each role (20/mo)',
+      'Interview prep pack for any role (8/mo)',
+      'Salary benchmark and negotiation rehearsal (8/mo)',
+      'Priority freshness: daily feed refresh',
+      'Advanced filters and profile controls',
+    ],
+    cta: 'Choose Pro',
+    highlight: true,
+  },
+  {
+    id: 'max',
+    name: 'Max',
+    price: '£39',
+    period: '/month',
+    tagline: 'For a high-intensity or multi-track search',
+    features: [
+      'Everything in Pro',
+      '3× higher AI job scoring limit (3,000/mo)',
+      'CV tailoring: 60 per month',
+      'Interview prep: 30 per month',
+      'Negotiation rehearsal: 30 per month',
+      'Cover letters: 60 per month',
+      'First access to new features',
+    ],
+    cta: 'Choose Max',
+    highlight: false,
+  },
+]
+
+function PricingContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [user, setUser] = useState(undefined) // undefined = still checking, null = logged out
+  const [upgrading, setUpgrading] = useState(null) // plan id currently starting checkout
+  const [checkoutError, setCheckoutError] = useState('')
+  const [autoTried, setAutoTried] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setUser(data.user || null))
+  }, [])
+
+  async function startCheckout(plan) {
+    setCheckoutError('')
+    setUpgrading(plan)
+    try {
+      const r = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      const data = await r.json()
+      if (data.url) { window.location.href = data.url; return }
+      throw new Error(data.error || 'No checkout URL returned')
+    } catch {
+      setUpgrading(null)
+      setCheckoutError('Checkout failed to start. Try again, or contact support@upstreaminsights.co.uk.')
+    }
+  }
+
+  // Logged-out visitor clicked Pro/Max: send to auth, then straight back here
+  // with the chosen plan still attached so checkout continues automatically —
+  // never dumped on the dashboard with no idea what they were doing.
+  function handlePlanClick(planId) {
+    if (planId === 'free') { router.push(user ? '/app' : '/auth'); return }
+    if (user) { startCheckout(planId); return }
+    router.push(`/auth?next=${encodeURIComponent(`/pricing?checkout=${planId}`)}`)
+  }
+
+  // Returning from /auth with a plan still queued (?checkout=pro) — fire
+  // checkout the moment we know the user is actually signed in.
+  useEffect(() => {
+    const intent = searchParams.get('checkout')
+    if (intent && user && !autoTried) { setAutoTried(true); startCheckout(intent) }
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const plans = PLAN_DEFS.map(p => ({
+    ...p,
+    ctaLabel: upgrading === p.id ? 'Starting checkout…' : p.cta,
+  }))
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--marker-cream)', fontFamily: 'var(--font-body)' }}>
@@ -83,6 +134,12 @@ export default function PricingPage() {
           Start free and stay free for as long as it works for you. Upgrade only if you want the unlimited AI tools. No employer pays us, so nothing pulls us away from your side.
         </p>
       </div>
+
+      {checkoutError && (
+        <div style={{ maxWidth: 640, margin: '0 auto 24px', padding: '0 24px' }}>
+          <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#B91C1C', textAlign: 'center' }}>{checkoutError}</div>
+        </div>
+      )}
 
       {/* Plans */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', padding: '0 24px 64px', maxWidth: 1060, margin: '0 auto' }}>
@@ -111,19 +168,24 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <a href={plan.href} style={{
+            <button onClick={() => handlePlanClick(plan.id)} disabled={upgrading === plan.id} style={{
               display: 'block',
+              width: '100%',
               textAlign: 'center',
               padding: '12px',
               borderRadius: 8,
               fontSize: 14,
               fontWeight: 500,
               textDecoration: 'none',
+              border: 'none',
+              cursor: upgrading === plan.id ? 'default' : 'pointer',
+              opacity: upgrading && upgrading !== plan.id ? 0.5 : 1,
               background: plan.highlight ? 'var(--marker-lime)' : 'var(--marker-black)',
               color: plan.highlight ? 'var(--marker-black)' : 'var(--marker-cream)',
+              fontFamily: 'var(--font-body)',
             }}>
-              {plan.cta}
-            </a>
+              {plan.ctaLabel}
+            </button>
           </div>
         ))}
       </div>
@@ -168,5 +230,13 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense>
+      <PricingContent />
+    </Suspense>
   )
 }

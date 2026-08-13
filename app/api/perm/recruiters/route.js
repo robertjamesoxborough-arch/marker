@@ -40,7 +40,7 @@ export async function POST() {
     .eq('user_id', user.id).single()
 
   const hfj = profile?.hard_filters_json || {}
-  const field = hfj.field || 'professional services'
+  const field = (Array.isArray(hfj.field) ? hfj.field.join(', ') : hfj.field) || 'professional services'
   const roles = (profile?.target_roles || []).slice(0, 4).join(', ') || 'director, senior manager, head of'
   const seniorities = (hfj.seniorities || [])
     .map(s => ({ senior_manager: 'Senior Manager', head_of: 'Head of', director: 'Director', vp: 'VP', c_suite: 'C-Suite / VP' }[s]))

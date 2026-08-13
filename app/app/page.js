@@ -1391,231 +1391,24 @@ const EFFORT_LEVELS = [
   { id: 'deep',   label: 'Deep',        sub: '7 questions · maximum precision',   cvEffort: 'deep'     },
 ]
 
-function buildCvPrompt(level, roleTitle, company, jobLink, cvRaw) {
+// Copy-paste fallback prompts — used only inside DirectCvPanel's "prefer
+// your own AI?" toggle. AI Generate (DirectCvPanel's own in-app call) is the
+// primary path; this is the one deliberately-kept fallback for people who'd
+// rather paste into their own Claude/ChatGPT than spend an in-app allowance
+// (previously there were two separate copy-paste tabs plus the API path —
+// consolidated to one API path + one fallback, see PROGRESS.md Stage 44 #7).
+function buildCvFallbackPrompt(roleTitle, company, jobLink, cvRaw, jd) {
   const jobLine = `Role: ${roleTitle}${company ? ` at ${company}` : ''}${jobLink ? `\nJob link: ${jobLink}` : ''}`
+  const jdBlock = jd ? `\nJob description:\n${jd}` : ''
   const cvBlock = cvRaw ? `\nMy CV:\n${cvRaw}` : ''
-  const footer = `\nATS + AI screening defence: Use exact-match keywords from the JD. Keep bullet points action-verb led with metrics. Avoid tables, text boxes, and headers/footers which ATS parsers cannot read. Do not add skills or experience that are not in my CV.\n\nImportant: share download links to the final CV only. Do not paste the CV text directly in this chat.`
-
-  if (level === 1) return `You are helping me tailor my CV for a specific role. Analyse it against the job description and give me actionable guidance; I will make the edits myself.\n\n${jobLine}${cvBlock}\n\nPlease:\n1. List the 10–15 most important keywords from the JD I should include in my CV\n2. Identify the 3 biggest gaps between my CV and what they are asking for\n3. Suggest 5 specific bullet point rewrites I could make (keep my authentic experience, just tighten the language and add metrics where possible)\n4. Flag any ATS risks: formatting issues, missing keywords, vague phrases${footer}`
-
-  if (level === 2) return `Please rewrite my CV to better match this specific role. Keep my authentic experience; improve how it is framed, not what I have done.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Rewrite bullet points to mirror language from the JD where genuinely applicable\n- Optimise for ATS: ensure exact-match keywords appear naturally, remove filler phrases, keep formatting clean\n- Optimise for AI screening: ensure the skills section, first page, and each role's opening line are keyword-dense but readable\n- Keep every job title, company, and date. Do not invent experience.\n- Aim for a relevance score of 8+/10 for this specific role${footer}`
-
-  return `Please create a fully tailored, ATS-optimised version of my CV for this specific role. This is a deep rewrite; pull every relevant piece of experience forward and present it in the strongest possible way.\n\n${jobLine}${cvBlock}\n\nInstructions:\n- Reorder and reframe bullet points to lead with what this employer cares most about\n- Rewrite the profile/summary to be a direct pitch for this exact role\n- Use exact keywords from the JD throughout, especially in the summary, skills section, and each role's opening bullets\n- ATS: no tables, no text boxes, no columns, no headers/footers with key info, bullet points only, clean section headers\n- AI screening defence: ensure the first page, summary, and every role heading directly echo the language of the JD\n- Remove or de-prioritise anything clearly irrelevant to this role\n- Keep every job title, company, and date. Do not invent experience or qualifications.${footer}`
+  return `Please rewrite my CV to better match this specific role. Keep my authentic experience; improve how it is framed, not what I have done.\n\n${jobLine}${jdBlock}${cvBlock}\n\nInstructions:\n- Rewrite bullet points to mirror language from the JD where genuinely applicable\n- Optimise for ATS: ensure exact-match keywords appear naturally, remove filler phrases, keep formatting clean\n- Optimise for AI screening: ensure the skills section, first page, and each role's opening line are keyword-dense but readable\n- Keep every job title, company, and date. Do not invent experience.\n- Aim for a relevance score of 8+/10 for this specific role\n\nATS + AI screening defence: use exact-match keywords from the JD, action-verb-led bullets with metrics, no tables or text boxes. Do not add skills or experience that are not in my CV.`
 }
 
-const CV_EFFORT_OPTIONS = [
-  { level: 1, label: 'Level 1: Keywords and gaps', sub: 'You write it, ChatGPT guides you', tool: 'ChatGPT' },
-  { level: 2, label: 'Level 2: Guided rewrite',    sub: 'AI rewrites, you review and edit', tool: 'Claude or ChatGPT' },
-  { level: 3, label: 'Level 3: Deep rewrite',      sub: 'Claude does the full tailoring',   tool: 'Claude' },
-]
-
-function CvGeneratorFlow({ mode, allJobs, cvRaw, updateJob, prefill, onClearPrefill, onSwitchToEngine }) {
-  const eligibleJobs = (allJobs || [])
-    .filter(j => ['considering', 'to_apply', 'applied'].includes(j.status))
-    .sort((a, b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0))
-
-  const [step,          setStep]          = useState(1)
-  const [selectedJobId, setSelectedJobId] = useState('')
-  const [effortLevel,   setEffortLevel]   = useState(null)
-  const [prompt,        setPrompt]        = useState('')
-  const [copied,        setCopied]        = useState(false)
-  const [markedApplied, setMarkedApplied] = useState(false)
-
-  const selectedJob = eligibleJobs.find(j => j.id === selectedJobId) || null
-  const recentHistory = (allJobs || [])
-    .filter(j => j.cvGeneratedAt)
-    .sort((a, b) => new Date(b.cvGeneratedAt) - new Date(a.cvGeneratedAt))
-    .slice(0, 10)
-
-  useEffect(() => {
-    if (!prefill || mode !== 'cv') return
-    const job = (allJobs || []).find(j => j.id === prefill.jobId)
-    if (job && ['considering', 'to_apply', 'applied'].includes(job.status)) {
-      setSelectedJobId(prefill.jobId)
-    }
-    onClearPrefill?.()
-  }, [prefill])
-
-  function goStep1() { setStep(1); setEffortLevel(null); setPrompt(''); setCopied(false); setMarkedApplied(false) }
-
-  function pickEffort(level) {
-    if (selectedJob) updateJob(selectedJob.id, { cvEffortLevel: level })
-    setEffortLevel(level)
-    const roleTitle = selectedJob?.roleTitle || ''
-    const company   = selectedJob?.company || ''
-    const jobLink   = selectedJob?.jobLink || ''
-    const p = buildCvPrompt(level, roleTitle, company, jobLink, cvRaw)
-    setPrompt(p)
-    setStep(3)
-  }
-
-  function copyPrompt() {
-    navigator.clipboard.writeText(prompt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) })
-  }
-
-  function confirmApplied() {
-    if (selectedJob) updateJob(selectedJob.id, { status: 'applied', appliedAt: new Date().toISOString(), cvGeneratedAt: new Date().toISOString() })
-    setMarkedApplied(true)
-    track(mode === 'cv' ? 'cv_generated' : 'cover_letter_generated', { level: effortLevel })
-  }
-
-  // ── Step 1: Pick job ──
-  if (step === 1) return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Step 1 of 4</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>Pick a role</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 3 }}>From your Worth applying, Going to apply, and Applied columns</div>
-      </div>
-
-      {eligibleJobs.length === 0 ? (
-        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: 'var(--marker-mid)', marginBottom: 10 }}>No roles in your active pipeline yet.</div>
-          <button onClick={onSwitchToEngine} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--marker-black)', cursor: 'pointer', letterSpacing: '0.04em', textDecoration: 'underline' }}>Analyse a role first →</button>
-        </div>
-      ) : (
-        <select value={selectedJobId} onChange={e => setSelectedJobId(e.target.value)}
-          style={{ display: 'block', width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}>
-          <option value="">Choose a role…</option>
-          {eligibleJobs.map(j => (
-            <option key={j.id} value={j.id}>
-              {j.company}{j.roleTitle ? `: ${j.roleTitle}` : ''}{j.score ? ` (${j.score})` : ''}
-            </option>
-          ))}
-        </select>
-      )}
-
-      <button onClick={() => setStep(2)} disabled={!selectedJobId}
-        style={{ background: selectedJobId ? 'var(--marker-black)' : 'var(--marker-border)', color: selectedJobId ? 'var(--marker-cream)' : 'var(--marker-mid)', border: 'none', padding: '12px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: selectedJobId ? 'pointer' : 'default' }}>
-        Next: choose effort level →
-      </button>
-
-      {recentHistory.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Recent {mode === 'cv' ? 'CVs' : 'cover letters'}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {recentHistory.map(j => (
-              <div key={j.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8 }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-black)', textTransform: 'uppercase' }}>{j.company}</div>
-                  <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 2 }}>{j.roleTitle || '–'}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  {j.cvEffortLevel && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)' }}>L{j.cvEffortLevel}</div>}
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)' }}>{timeAgo(j.cvGeneratedAt)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-
-  // ── Step 2: Pick effort level ──
-  if (step === 2) return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <button onClick={goStep1} style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '6px 10px', borderRadius: 7, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', color: 'var(--marker-mid)', flexShrink: 0 }}>← Back</button>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Step 2 of 4</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)' }}>Choose effort level</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 2 }}>{selectedJob?.company}{selectedJob?.roleTitle ? `: ${selectedJob.roleTitle}` : ''}</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {CV_EFFORT_OPTIONS.map(o => (
-          <button key={o.level} onClick={() => pickEffort(o.level)}
-            style={{ textAlign: 'left', padding: '14px', borderRadius: 10, border: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <div>
-              <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>{o.label}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)' }}>{o.sub}</div>
-            </div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-border)', color: 'var(--marker-mid)', padding: '3px 7px', borderRadius: 4, whiteSpace: 'nowrap' }}>{o.tool}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
-  // ── Step 3: Copy prompt ──
-  if (step === 3) return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <button onClick={() => setStep(2)} style={{ background: 'none', border: '1px solid var(--marker-border)', padding: '6px 10px', borderRadius: 7, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', color: 'var(--marker-mid)', flexShrink: 0 }}>← Back</button>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Step 3 of 4</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: 'var(--marker-black)' }}>Your prompt for Claude / ChatGPT</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 2 }}>Copy this → paste into {CV_EFFORT_OPTIONS.find(o => o.level === effortLevel)?.tool} → it writes your CV</div>
-        </div>
-      </div>
-
-      {/* JD tip */}
-      <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '3px solid var(--marker-lime)', borderRadius: '0 8px 8px 0', padding: '10px 13px' }}>
-        <div style={{ fontSize: 11, color: 'var(--marker-mid)', lineHeight: 1.5 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--marker-black)', marginRight: 6 }}>If AI can't find the JD:</span>
-          Paste the full job description text manually into Claude or ChatGPT after the prompt. This happens when job boards block automated access.
-        </div>
-      </div>
-
-      <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Your prompt: copy and paste into AI</div>
-          <button onClick={copyPrompt}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: copied ? 'var(--marker-lime)' : 'var(--marker-border)', color: 'var(--marker-black)', border: 'none', padding: '5px 12px', borderRadius: 4, cursor: 'pointer', letterSpacing: '0.04em', fontWeight: 600 }}>
-            {copied ? 'COPIED ✓' : 'COPY'}
-          </button>
-        </div>
-        <pre style={{ padding: 14, fontSize: 11, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--marker-text)', fontFamily: 'var(--font-mono)', margin: 0, maxHeight: 400, overflowY: 'auto' }}>
-          {prompt}
-        </pre>
-      </div>
-
-      <button onClick={() => setStep(4)}
-        style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '12px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>
-        Next: confirm application →
-      </button>
-    </div>
-  )
-
-  // ── Step 4: Mark applied ──
-  return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Step 4 of 4</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>Did you apply?</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 3 }}>{selectedJob?.company}{selectedJob?.roleTitle ? `: ${selectedJob.roleTitle}` : ''}</div>
-      </div>
-
-      {markedApplied ? (
-        <div style={{ padding: '20px', background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#065F46', marginBottom: 6 }}>Applied. Good luck!</div>
-          <div style={{ fontSize: 12, color: '#047857' }}>Status updated to Applied in your pipeline.</div>
-        </div>
-      ) : (
-        <>
-          <button onClick={confirmApplied}
-            style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '13px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>
-            Yes, I applied. Mark as Applied.
-          </button>
-          <button onClick={goStep1}
-            style={{ background: 'transparent', color: 'var(--marker-mid)', border: '1px solid var(--marker-border)', padding: '12px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
-            Not yet. Back to start.
-          </button>
-        </>
-      )}
-
-      {markedApplied && (
-        <button onClick={goStep1}
-          style={{ background: 'transparent', color: 'var(--marker-mid)', border: '1px solid var(--marker-border)', padding: '11px', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
-          Generate another →
-        </button>
-      )}
-
-      <div className="legal-line">AI-generated prompts. Review all CV output before submitting. Do not add experience you do not have.</div>
-    </div>
-  )
+function buildCoverLetterFallbackPrompt(roleTitle, company, jobLink, cvRaw, jd) {
+  const jobLine = `Role: ${roleTitle}${company ? ` at ${company}` : ''}${jobLink ? `\nJob link: ${jobLink}` : ''}`
+  const jdBlock = jd ? `\nJob description:\n${jd}` : ''
+  const cvBlock = cvRaw ? `\nMy CV:\n${cvRaw}` : ''
+  return `Please write a tailored cover letter for this specific role, based on my real CV. UK English, no cliches, no invented experience or numbers.\n\n${jobLine}${jdBlock}${cvBlock}\n\nInstructions:\n- Reference specific, real achievements from my CV that match what this role asks for\n- Keep it to 3-4 short paragraphs, direct and specific, not generic\n- Do not invent any number, metric, or piece of experience that is not in my CV\n- UK English throughout\n\nReturn the letter text only, no preamble.`
 }
 
 // ── Recruiter Panel (perm + contractor) ──────────────────────────
@@ -1888,7 +1681,7 @@ function ContractorCvPanel({ profile }) {
   const [copied, setCopied] = useState(false)
 
   const roles       = (hfj.targetRoles || []).join(', ') || 'senior contractor'
-  const field       = hfj.field || 'your field'
+  const field       = (Array.isArray(hfj.field) ? hfj.field.join(', ') : hfj.field) || 'your field'
   const yearsExp    = hfj.yearsExperience || ''
   const summary     = hfj.careerSummary || ''
   const cvRaw       = (hfj.cvRaw || '').slice(0, 3000)
@@ -1949,7 +1742,7 @@ Return the CV text only, no preamble, no explanation.`
   )
 }
 
-function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
+function DirectCvPanel({ allJobs, profile, updateJob, docType = 'cv', prefill, onClearPrefill }) {
   const isCover = docType === 'cover'
   const eligibleJobs = (allJobs || []).filter(j => j.status && !['saved', 'rejected', 'withdrawn'].includes(j.status))
   const [selectedJobId, setSelectedJobId] = useState(eligibleJobs[0]?.id || '')
@@ -1957,6 +1750,8 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [jdDraft, setJdDraft] = useState('')
+  const [showCopyFallback, setShowCopyFallback] = useState(false)
   const [coverAllowance, setCoverAllowance] = useState(null) // { allowed, used, cap, tier } — cover letters only
 
   // Cover letters are a paid feature; load the allowance so Free users see a
@@ -1971,6 +1766,16 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
 
   const selectedJob = eligibleJobs.find(j => j.id === selectedJobId) || eligibleJobs[0]
 
+  useEffect(() => { setJdDraft(''); setShowCopyFallback(false) }, [selectedJobId])
+
+  // "Tailor CV" clicked on a pipeline card pre-selects that role here.
+  useEffect(() => {
+    if (!prefill || isCover) return
+    const job = eligibleJobs.find(j => j.id === prefill.jobId)
+    if (job) setSelectedJobId(prefill.jobId)
+    onClearPrefill?.()
+  }, [prefill]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function downloadDocx(text) {
     const doc = buildCvDocx(text)
     const blob = await Packer.toBlob(doc)
@@ -1982,17 +1787,18 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
     URL.revokeObjectURL(url)
   }
 
-  async function generate() {
-    if (!selectedJob?.roleTitle || !selectedJob?.jdRaw) {
-      setError('Selected role has no job description stored. Add it from the pipeline.')
+  async function generate(jdOverride) {
+    const jd = jdOverride ?? selectedJob?.jd
+    if (!selectedJob?.roleTitle || !jd) {
+      setError('Selected role has no job description stored. Paste it below, then generate.')
       return
     }
     setLoading(true); setError(''); setResult(null)
     try {
       const endpoint = isCover ? '/api/cv/cover-letter' : '/api/cv/generate'
       const body = isCover
-        ? { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd: selectedJob.jdRaw }
-        : { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd: selectedJob.jdRaw, effort }
+        ? { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd }
+        : { roleTitle: selectedJob.roleTitle, company: selectedJob.company || '', jd, effort }
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2006,6 +1812,16 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Paste-JD path: persist it onto the pipeline item (so it's there next
+  // time too) and generate immediately with the pasted text — no need to
+  // wait for the updateJob round-trip before this can proceed.
+  function saveJdAndGenerate() {
+    const jd = jdDraft.trim()
+    if (!jd || !selectedJob) return
+    updateJob?.(selectedJob.id, { jd })
+    generate(jd)
   }
 
   // Free tier: show the locked door, not a failed attempt — a one-line
@@ -2048,13 +1864,27 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
             <option key={j.id} value={j.id}>{j.roleTitle}{j.company ? `: ${j.company}` : ''} ({j.status})</option>
           ))}
         </select>
-        {selectedJob && !selectedJob.jdRaw && (
-          <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#d97706' }}>No JD stored for this role. Paste it from the pipeline card first.</div>
-        )}
       </div>
 
+      {/* No JD stored — a real, obvious way to fix it right here, not a dead end */}
+      {selectedJob && !selectedJob.jd && (
+        <div style={{ padding: 16, borderRadius: 10, background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 4 }}>No job description stored for this role yet</div>
+          <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 10 }}>
+            Paste the full JD below and generate straight away.
+            {selectedJob.jobLink && <> Don&apos;t have it handy? <a href={selectedJob.jobLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--marker-black)', fontWeight: 500 }}>Open the job posting ↗</a> and copy it from there.</>}
+          </div>
+          <textarea value={jdDraft} onChange={e => setJdDraft(e.target.value)} placeholder="Paste the full job description here…" rows={7}
+            style={{ display: 'block', width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--marker-border)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--marker-text)', background: '#fff', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
+          <button onClick={saveJdAndGenerate} disabled={!jdDraft.trim() || loading}
+            style={{ width: '100%', padding: '11px', borderRadius: 8, background: jdDraft.trim() ? 'var(--marker-black)' : 'var(--marker-border)', color: jdDraft.trim() ? 'var(--marker-cream)' : 'var(--marker-mid)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: jdDraft.trim() && !loading ? 'pointer' : 'default' }}>
+            {loading ? (isCover ? 'Writing…' : 'Generating…') : 'Save JD & generate →'}
+          </button>
+        </div>
+      )}
+
       {/* Effort — CV only; cover letters have a single mode */}
-      {!isCover && (
+      {!isCover && selectedJob?.jd && (
       <div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--marker-mid)', marginBottom: 5 }}>DEPTH</div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -2068,14 +1898,63 @@ function DirectCvPanel({ allJobs, profile, docType = 'cv' }) {
       </div>
       )}
 
-      <button onClick={generate} disabled={loading || !selectedJob?.jdRaw}
-        style={{ padding: '11px', borderRadius: 8, background: loading ? 'var(--marker-mid)' : 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}>
-        {loading ? (isCover ? 'Writing…' : 'Generating…') : (isCover ? 'Write cover letter' : 'Generate')}
-      </button>
+      {selectedJob?.jd && (
+        <button onClick={() => generate()} disabled={loading}
+          style={{ padding: '11px', borderRadius: 8, background: loading ? 'var(--marker-mid)' : 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}>
+          {loading ? (isCover ? 'Writing…' : 'Generating…') : (isCover ? 'Write cover letter' : 'Generate')}
+        </button>
+      )}
 
       {coverRemaining !== null && (
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em', textAlign: 'center' }}>{coverRemaining} of {coverAllowance.cap} cover letters left this month</div>
       )}
+
+      {/* One deliberately-kept copy-paste fallback (Stage 44 #7/#8): for
+          people who'd rather use their own Claude/ChatGPT than spend an
+          in-app allowance. Clearly secondary to the Generate button above. */}
+      {selectedJob && !showCopyFallback && (
+        <button onClick={() => setShowCopyFallback(true)}
+          style={{ background: 'none', border: 'none', padding: '4px 0', fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--marker-mid)', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' }}>
+          Prefer to use your own ChatGPT/Claude? Copy the prompt instead →
+        </button>
+      )}
+
+      {selectedJob && showCopyFallback && (() => {
+        const prompt = isCover
+          ? buildCoverLetterFallbackPrompt(selectedJob.roleTitle, selectedJob.company, selectedJob.jobLink, profile?.hard_filters_json?.cvRaw, selectedJob.jd)
+          : buildCvFallbackPrompt(selectedJob.roleTitle, selectedJob.company, selectedJob.jobLink, profile?.hard_filters_json?.cvRaw, selectedJob.jd)
+        return (
+          <div style={{ border: '1px solid var(--marker-border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)' }}>Copy-paste fallback</div>
+              <button onClick={() => setShowCopyFallback(false)} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--marker-mid)', cursor: 'pointer', textDecoration: 'underline' }}>Back to Generate</button>
+            </div>
+            <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--marker-black)', color: 'var(--marker-cream)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 6 }}>Copy this prompt</div>
+                  <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 8, padding: 10, maxHeight: 220, overflowY: 'auto' }}>
+                    <pre style={{ margin: 0, fontSize: 11, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono)', color: 'var(--marker-text)' }}>{prompt}</pre>
+                  </div>
+                  <button onClick={() => navigator.clipboard.writeText(prompt)}
+                    style={{ marginTop: 8, width: '100%', padding: '10px', borderRadius: 8, background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                    Copy prompt
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--marker-black)', color: 'var(--marker-cream)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
+                <div style={{ fontSize: 13, color: 'var(--marker-text)', paddingTop: 3 }}>Paste it into Claude or ChatGPT in a new tab, and let it write your {isCover ? 'cover letter' : 'CV'}.</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--marker-lime)', borderRadius: 8, padding: '10px 12px' }}>
+                <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--marker-black)', color: 'var(--marker-cream)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
+                <div style={{ fontSize: 13, color: 'var(--marker-black)', fontWeight: 500, paddingTop: 3 }}>Come back to this tab when it's done — nothing here needs saving in the meantime.</div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {error && <div style={{ padding: 10, borderRadius: 8, background: '#fef2f2', border: '1px solid #fca5a5', fontFamily: 'var(--font-body)', fontSize: 13, color: '#dc2626' }}>{error}</div>}
 
@@ -2136,7 +2015,11 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
   const hfj   = profile?.hard_filters_json || {}
   const searchMode = hfj.searchMode || (hfj.openToContract === true ? 'both' : 'perm')
   const isContractorOnly = searchMode === 'contractor'
-  const [section, setSection] = useState(isContractorOnly ? 'contractor_cv' : 'cv')
+  const [section, setSection] = useState(isContractorOnly ? 'contractor_cv' : 'generate')
+
+  // A pipeline card's "Tailor CV" button always means the primary AI Generate
+  // path — jump there even if the user was last looking at another section.
+  useEffect(() => { if (prefill && !isContractorOnly) setSection('generate') }, [prefill]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!cvRaw) {
     return (
@@ -2163,15 +2046,17 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
         <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
           {isContractorOnly
             ? 'Generate a skills-based CV to send directly to recruiters, no specific JD needed. Designed for contractor market.'
-            : 'Pick a role from your pipeline and generate a tailored CV prompt or cover letter, matched to the JD in seconds.'}
+            : 'Pick a role from your pipeline and generate a tailored CV or cover letter in seconds, matched to the JD — with a copy-paste option if you’d rather use your own Claude or ChatGPT.'}
         </div>
       </div>
 
-      {/* Section toggle */}
+      {/* Section toggle — AI Generate is the primary, default path; the old
+          separate "Tailor CV" copy-paste tab is gone, folded into AI
+          Generate as a one-click fallback (see the toggle inside it). */}
       <div style={{ display: 'flex', gap: 6, padding: '12px 16px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)' }}>
         {[
+          ...(searchMode !== 'contractor' ? [{ id: 'generate', label: 'AI Generate' }, { id: 'cover', label: 'Cover Letter' }] : []),
           ...(searchMode !== 'perm' ? [{ id: 'contractor_cv', label: 'Contractor CV' }] : []),
-          ...(searchMode !== 'contractor' ? [{ id: 'cv', label: 'Tailor CV' }, { id: 'cover', label: 'Cover Letter' }, { id: 'generate', label: 'AI Generate' }] : []),
           { id: 'recruiters', label: 'Recruiters' },
         ].map(s => (
           <button key={s.id} onClick={() => setSection(s.id)}
@@ -2189,23 +2074,11 @@ function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onS
         <RecruiterPanel profile={profile} mode={isContractorOnly ? 'contractor' : 'perm'} />
       )}
 
-      {section === 'cv' && (
-        <CvGeneratorFlow
-          key="cv"
-          mode="cv"
-          allJobs={allJobs}
-          cvRaw={cvRaw}
-          updateJob={updateJob}
-          prefill={prefill}
-          onClearPrefill={onClearPrefill}
-          onSwitchToEngine={onSwitchToEngine}
-        />
-      )}
       {section === 'cover' && (
-        <DirectCvPanel allJobs={allJobs} profile={profile} docType="cover" />
+        <DirectCvPanel allJobs={allJobs} profile={profile} updateJob={updateJob} docType="cover" />
       )}
       {section === 'generate' && (
-        <DirectCvPanel allJobs={allJobs} profile={profile} />
+        <DirectCvPanel allJobs={allJobs} profile={profile} updateJob={updateJob} prefill={prefill} onClearPrefill={onClearPrefill} />
       )}
     </div>
   )
@@ -2267,6 +2140,9 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
   const [refreshing,      setRefreshing]      = useState(false)
   const [refreshCooldownMsg, setRefreshCooldownMsg] = useState(false)
   const [postedWithinDays, setPostedWithinDays] = usePostedWithin(14)
+  const [sortBy,           setSortBy]           = useState('relevance') // 'relevance' | 'date' | 'salary'
+  const [minRelevance,     setMinRelevance]     = useState(0)           // 0 = any, else minimum relevanceScore
+  const [includeOutOfArea, setIncludeOutOfArea] = useState(false)
   const [showWebTour,      dismissWebTour]      = useTutorial('feed_web')
   const [showWishlistTour, dismissWishlistTour] = useTutorial('feed_wishlist')
 
@@ -2323,6 +2199,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
     }
     addJob({
       id: crypto.randomUUID(),
+      jobCacheId: job.id || null,
       company: job.company,
       roleTitle: job.roleTitle,
       jobLink: link,
@@ -2419,7 +2296,7 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
             </a>
           )}
           <button onClick={() => !isAdded && addToPipeline(job, source)} disabled={isAdded}
-            style={{ background: isAdded ? 'var(--marker-lime)' : 'var(--marker-black)', color: 'var(--marker-black)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: isAdded ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+            style={{ background: isAdded ? 'var(--marker-lime)' : 'var(--marker-black)', color: isAdded ? 'var(--marker-black)' : 'var(--marker-cream)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: isAdded ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
             {isAdded ? '✓ Added to pipeline' : 'Add to pipeline'}
           </button>
           {!isAdded && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>→ Considering</span>}
@@ -2430,20 +2307,41 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
     )
   }
 
-  const filteredWeb = webJobs
+  // Client-side sort: default mirrors the server's relevance ranking
+  // (feed-cache already sorts by it); "Newest" / "Salary" re-sort the same
+  // already-fetched page, no re-fetch needed.
+  function parseSalaryClient(s) {
+    if (!s) return null
+    const nums = String(s).match(/[\d.]+/g)
+    if (!nums || nums.length === 0) return null
+    const vals = nums.map(Number).filter(n => !isNaN(n)).map(n => n < 1000 ? n * 1000 : n)
+    if (vals.length === 0) return null
+    return vals.reduce((a, b) => a + b, 0) / vals.length
+  }
+  function applySort(list) {
+    const sorted = [...list]
+    if (sortBy === 'date') sorted.sort((a, b) => new Date(b.foundAt || b.created || 0) - new Date(a.foundAt || a.created || 0))
+    else if (sortBy === 'salary') sorted.sort((a, b) => (parseSalaryClient(b.salary) ?? -1) - (parseSalaryClient(a.salary) ?? -1))
+    else sorted.sort((a, b) => (b.relevanceScore ?? -1) - (a.relevanceScore ?? -1))
+    return sorted
+  }
+
+  const filteredWeb = applySort(webJobs
     .filter(j => withinPostedWindow(j.foundAt || j.created, postedWithinDays))
+    .filter(j => minRelevance === 0 || (j.relevanceScore ?? 0) >= minRelevance)
     .filter(j => {
       if (!search.trim()) return true
       const q = search.toLowerCase()
       return (j.roleTitle || '').toLowerCase().includes(q) || (j.company || '').toLowerCase().includes(q) || (j.location || '').toLowerCase().includes(q)
-    })
-  const filteredGov = govJobs
+    }))
+  const filteredGov = applySort(govJobs
     .filter(j => withinPostedWindow(j.foundAt || j.created, postedWithinDays))
+    .filter(j => minRelevance === 0 || (j.relevanceScore ?? 0) >= minRelevance)
     .filter(j => {
       if (!search.trim()) return true
       const q = search.toLowerCase()
       return (j.roleTitle || '').toLowerCase().includes(q) || (j.company || '').toLowerCase().includes(q)
-    })
+    }))
   const showWebAdzuna = filteredWeb.some(j => j.source === 'adzuna' || j.adzunaAttributionRequired)
 
   return (
@@ -2542,6 +2440,26 @@ function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoading, profile, d
                 {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
               </button>
               {refreshCooldownMsg && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Refreshed &lt;1h ago. Check back later.</span>}
+            </div>
+            {/* Sort + filter row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--marker-border)', background: 'var(--marker-cream)', fontSize: 11, fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }}>
+                <option value="relevance">Sort: Best match</option>
+                <option value="date">Sort: Newest</option>
+                <option value="salary">Sort: Salary</option>
+              </select>
+              <select value={minRelevance} onChange={e => setMinRelevance(Number(e.target.value))}
+                style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--marker-border)', background: 'var(--marker-cream)', fontSize: 11, fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }}>
+                <option value={0}>Any relevance</option>
+                <option value={6}>6+ match</option>
+                <option value={8}>8+ match</option>
+              </select>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontFamily: 'var(--font-body)', color: 'var(--marker-mid)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={includeOutOfArea}
+                  onChange={e => { const v = e.target.checked; setIncludeOutOfArea(v); onRefreshFeed?.({ broaden: v }) }} />
+                Include out-of-area roles
+              </label>
             </div>
             <div style={{ marginTop: 6 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>
@@ -2756,10 +2674,11 @@ function WishlistJobsTab({ jobs: pipelineJobs, addJob }) {
   }
 
   const addedLinks = new Set(pipelineJobs.flatMap(j => [j.link, j.jobLink]).filter(Boolean))
+  const addedJobCacheIds = new Set(pipelineJobs.map(j => j.jobCacheId).filter(Boolean))
 
   function addToPipeline(job) {
     addJob({
-      id: crypto.randomUUID(), company: job.company, roleTitle: job.title,
+      id: crypto.randomUUID(), jobCacheId: job.id || null, company: job.company, roleTitle: job.title,
       jobLink: job.url, link: job.url, officeDays: 2, status: 'considering',
       ranking: 1, signal: '', signalReason: '', score: job.score || 0,
       scoreBreakdown: '', jd: '', source: 'wishlist_scrape', addedAt: new Date().toISOString(),
@@ -2802,8 +2721,8 @@ function WishlistJobsTab({ jobs: pipelineJobs, addJob }) {
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '3px 9px', borderRadius: 6 }}>{job.score}</div>
             )}
             {job.url && <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--marker-mid)', fontFamily: 'var(--font-body)' }}>View →</a>}
-            <button onClick={() => addToPipeline(job)} disabled={addedLinks.has(job.url)} className="btn btn-primary" style={{ fontSize: 11, padding: '6px 10px' }}>
-              {addedLinks.has(job.url) ? 'Added' : 'Add'}
+            <button onClick={() => addToPipeline(job)} disabled={addedJobCacheIds.has(job.id) || addedLinks.has(job.url)} className="btn btn-primary" style={{ fontSize: 11, padding: '6px 10px' }}>
+              {addedJobCacheIds.has(job.id) || addedLinks.has(job.url) ? 'Added' : 'Add'}
             </button>
           </div>
         </div>
@@ -4037,7 +3956,7 @@ function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
                             </a>
                           )}
                           <button onClick={() => !isAdded && addRoleToPipeline(job)} disabled={isAdded}
-                            style={{ background: isAdded ? 'var(--marker-lime)' : 'var(--marker-black)', color: 'var(--marker-black)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: isAdded ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+                            style={{ background: isAdded ? 'var(--marker-lime)' : 'var(--marker-black)', color: isAdded ? 'var(--marker-black)' : 'var(--marker-cream)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: isAdded ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
                             {isAdded ? '✓ Added to pipeline' : 'Add to pipeline'}
                           </button>
                           {!isAdded && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>→ Considering</span>}
@@ -5158,10 +5077,10 @@ export default function AppPage() {
     }).catch(() => setFeedLoading(false))
   }, [])
 
-  const refreshFeed = useCallback(async () => {
+  const refreshFeed = useCallback(async (opts) => {
     setFeedLoading(true)
     try {
-      const d = await fetch('/api/feed-cache').then(r => r.ok ? r.json() : [])
+      const d = await fetch(`/api/feed-cache${opts?.broaden ? '?broaden=1' : ''}`).then(r => r.ok ? r.json() : [])
       setFeedJobs(Array.isArray(d) ? d : [])
     } finally {
       setFeedLoading(false)

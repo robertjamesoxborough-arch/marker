@@ -8,6 +8,7 @@ node_modules/
 *.log
 *.tar.gz
 .DS_Store
+supabase/.temp/
 
 # Large images (>1MB) — keep locally, use CDN/LFS for production
 # All 18 files listed here are preserved on disk; none deleted

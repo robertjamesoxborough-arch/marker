@@ -7,6 +7,7 @@ import { checkAllowance } from '../../../lib/allowance'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { scoreJobsBatch } from '../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
+import { dedupeByContent } from '../../../lib/dedupe-jobs'
 import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
 import { pullAtsRows } from '../../../lib/ats'
@@ -78,7 +79,7 @@ async function readFromCache(service, profile) {
   if (!rows || rows.length === 0) return { jobs: [], total: 0 }
 
   const now = new Date()
-  const fresh = filterAndSortByFreshness(rows.map(row => applyFreshnessToRow(row, now)))
+  const fresh = dedupeByContent(filterAndSortByFreshness(rows.map(row => applyFreshnessToRow(row, now))))
   const withRelevance = fresh
     .map(row => ({ row, relevance: scoreMatch(profile, row) }))
     // Global baseline quality floor (nightly score) AND per-user relevance floor

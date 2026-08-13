@@ -141,7 +141,9 @@ Identify genuine gaps now, following the rules above exactly.`
     system: [{ type: 'text', text: GAP_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userPrompt }],
   })
-  const text = msg.content[0]?.text?.trim() || ''
+  // content[0] is not always the text block — see the note on the main
+  // generation call below.
+  const text = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || ''
   const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
   const match = cleaned.match(/\{[\s\S]*\}/)
   const parsed = match ? JSON.parse(match[0]) : { gaps: [] }
@@ -336,7 +338,15 @@ ${candidateContext}`
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const raw = msg.content[0]?.text?.trim() || ''
+    // content[0] is not always the text block: Sonnet 5 can prepend a
+    // "thinking" block on a complex prompt like this one even without
+    // thinking explicitly requested. Verified live (Stage 45 self-test)
+    // that this exact prompt shape triggers it — content[0]="thinking",
+    // content[1]="text" — so content[0]?.text silently returned '' and the
+    // flagship CV generator produced an empty CV on every real call in this
+    // effort tier. Filter for the actual text block(s) instead of assuming
+    // position.
+    const raw = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || ''
     if (msg.usage) {
       after(() => trackAiUsage({ userId: user.id, model, action: 'cv', usage: msg.usage }))
     }

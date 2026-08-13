@@ -30,7 +30,7 @@ function buildContractQueries(profile) {
   const hfj = profile?.hard_filters_json || {}
   const roles = profile?.target_roles || []
   const contractTypes = hfj.contractTypes || ['interim']
-  const field = hfj.contractorField || hfj.field || ''
+  const field = hfj.contractorField || (Array.isArray(hfj.field) ? hfj.field[0] : hfj.field) || ''
 
   const queries = new Set()
   for (const role of roles.slice(0, 5)) {

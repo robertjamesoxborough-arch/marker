@@ -21,10 +21,6 @@
       "schedule": "45 4 * * *"
     },
     {
-      "path": "/api/cron/archive-inactive",
-      "schedule": "0 5 * * *"
-    },
-    {
       "path": "/api/cron/score-cache",
       "schedule": "30 5 * * *"
     },

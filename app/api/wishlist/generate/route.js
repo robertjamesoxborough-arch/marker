@@ -42,7 +42,7 @@ export async function POST() {
   const hasCV = cvRaw && cvRaw.length >= 100
   const profileFallback = [
     hfj.careerSummary ? `Professional summary: ${hfj.careerSummary}` : '',
-    hfj.field ? `Field: ${hfj.field}` : '',
+    hfj.field ? `Field: ${Array.isArray(hfj.field) ? hfj.field.join(', ') : hfj.field}` : '',
     (hfj.targetRoles || []).length ? `Target roles: ${hfj.targetRoles.join(', ')}` : '',
     hfj.yearsExperience ? `Years experience: ${hfj.yearsExperience}` : '',
   ].filter(Boolean).join('\n')
@@ -90,7 +90,8 @@ ${STYLE_RULES}`
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const text = message.content[0]?.text || ''
+    // content[0] is not always the text block — see Stage 45 note in cv/generate.
+    const text = (message.content || []).filter(c => c.type === 'text').map(c => c.text).join('') || ''
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) return NextResponse.json({ error: 'AI returned unexpected format' }, { status: 500 })
 
