@@ -1,6 +1,6 @@
 # Marker — Master Build Prompt
 
-This is the complete, final build prompt for Marker. Paste everything between the markers below into either Claude Code (`cd ~/Desktop/marker && claude`) or a new claude.ai chat. The prompt detects which mode it's in.
+This is the complete, final build prompt for Marker. Paste everything between the markers below into either Claude Code (`cd ~/dev/marker && claude`) or a new claude.ai chat. The prompt detects which mode it's in.
 
 No references to any other project. Marker stands alone.
 
@@ -10,7 +10,7 @@ No references to any other project. Marker stands alone.
 
 # Build Brief — Marker
 
-You are Claude. Rob is building Marker (`~/Desktop/marker`), a multi-tenant AI-powered job hunt SaaS. The product evolves from Rob's personal Job Hunt Tracker (live at job-hunt-tracker-smoky.vercel.app, source `~/Desktop/job-hunt-tracker`). This build will span many sessions. Read this entire brief before doing anything.
+You are Claude. Rob is building Marker (`~/dev/marker`), a multi-tenant AI-powered job hunt SaaS. The product evolves from Rob's personal Job Hunt Tracker (live at job-hunt-tracker-smoky.vercel.app, source `~/Desktop/job-hunt-tracker`). This build will span many sessions. Read this entire brief before doing anything.
 
 ## Brand identity (use throughout)
 
@@ -55,7 +55,7 @@ You are Claude. Rob is building Marker (`~/Desktop/marker`), a multi-tenant AI-p
 
 ## Mode detection — do this first
 
-Check if `~/Desktop/marker` is directly accessible to your tools.
+Check if `~/dev/marker` is directly accessible to your tools.
 - If yes: Claude Code mode. Edit files directly. No tarballs
 - If no: claude.ai chat mode. Work in `/home/claude/marker-staging`. Package as tarballs. Give Rob `mv` + extract commands
 
@@ -75,7 +75,7 @@ State which mode you're in at the start of every session.
 ## Resume protocol — every session
 
 At session start:
-1. Read `~/Desktop/marker/PROGRESS.md`. Create from template if missing
+1. Read `~/dev/marker/PROGRESS.md`. Create from template if missing
 2. Summarise where you are in two sentences
 3. Ask: "Continue on step X, or jump elsewhere?" Wait for answer
 
@@ -112,7 +112,7 @@ Open issues:
 ## Checklist
 
 WEEK 1 — Multi-tenant foundation (B2B-ready from day one)
-- [ ] 1.1 Scaffold ~/Desktop/marker from job-hunt-tracker source, link Vercel project (name: marker)
+- [ ] 1.1 Scaffold ~/dev/marker from job-hunt-tracker source, link Vercel project (name: marker)
 - [ ] 1.2 Apply brand spec (lime/black/cream colour vars, Inter + Space Grotesk fonts)
 - [ ] 1.3 Supabase project created, env vars set
 - [ ] 1.4 Auth (magic link)
@@ -511,10 +511,10 @@ admin_taglines    (id, tagline_text, active boolean, impressions, conversions)
 
 ### Build conventions
 
-- Build in staging first (`/home/claude/marker-staging` in chat mode, or work on `~/Desktop/marker` in Claude Code)
+- Build in staging first (`/home/claude/marker-staging` in chat mode, or work on `~/dev/marker` in Claude Code)
 - Before any deploy, list files changed and why, in plain English
 - After every deploy, give Rob a 30-second test script
-- Deploys: `cd ~/Desktop/marker && npx vercel --prod`
+- Deploys: `cd ~/dev/marker && npx vercel --prod`
 - Project name in Vercel: `marker`
 - Env vars needed: `ANTHROPIC_API_KEY` (copy from job-hunt-tracker's `jobtrackergeneral`), `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `ADMIN_EMAIL`
 
@@ -548,7 +548,7 @@ Port patterns. Generalise: replace Rob's hardcoded recipe with per-user profile 
 
 ### First task
 
-Read this entire brief. Then read `~/Desktop/marker/PROGRESS.md` if it exists, or create it from the template. Then ask Rob exactly one question: "Continue on step 1.1 (scaffold from job-hunt-tracker), or jump elsewhere?" Wait for his answer before writing any code.
+Read this entire brief. Then read `~/dev/marker/PROGRESS.md` if it exists, or create it from the template. Then ask Rob exactly one question: "Continue on step 1.1 (scaffold from job-hunt-tracker), or jump elsewhere?" Wait for his answer before writing any code.
 
 Begin.
 

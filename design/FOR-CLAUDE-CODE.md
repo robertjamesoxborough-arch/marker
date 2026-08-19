@@ -14,7 +14,7 @@ after the "Brand identity (use throughout)" section.
 ```
 ## Visual reference (look at this before writing UI)
 
-A finished brand + marketing canvas lives at `~/Desktop/marker/design/`. The
+A finished brand + marketing canvas lives at `~/dev/marker/design/`. The
 canvas itself is `design/Marker — Brand & Marketing.html`. Open it in a browser
 to see every surface laid out — logo, palette, type, voice, website desktop,
 website mobile, product UI, ads, marketing assets. It is the source of truth.

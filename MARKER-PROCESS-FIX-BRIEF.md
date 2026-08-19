@@ -2,7 +2,7 @@
 
 ## Context
 
-Marker is a multi-tenant AI job hunt SaaS being built at `~/Desktop/marker/`. The visual design is excellent and should not change. The internal processes, data flows, and feature logic are broken and need rebuilding to match the working reference implementation from Rob's personal Job Hunt Tracker.
+Marker is a multi-tenant AI job hunt SaaS being built at `~/dev/marker/`. The visual design is excellent and should not change. The internal processes, data flows, and feature logic are broken and need rebuilding to match the working reference implementation from Rob's personal Job Hunt Tracker.
 
 Rob's personal tracker (the OG) is the gold standard for how every feature should work. This document translates the OG tracker's processes into Marker's multi-tenant Supabase architecture.
 
@@ -580,7 +580,7 @@ Each session: read PROGRESS.md, make focused changes, deploy, test 30 seconds, u
 Paste this into Claude Code:
 
 ```
-Read ~/Desktop/marker/PROGRESS.md to see what's built. Then read this entire brief at [location of this file]. This is a process fix — the UI looks great, keep it exactly as is. Focus on Session 1: Engine/Wishlist tab.
+Read ~/dev/marker/PROGRESS.md to see what's built. Then read this entire brief at [location of this file]. This is a process fix — the UI looks great, keep it exactly as is. Focus on Session 1: Engine/Wishlist tab.
 
 Fix these 7 process bugs:
 1. Task queue (wishlists table) sorts by rank then staleness but currently doesn't — fix the query

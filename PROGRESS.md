@@ -5,7 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 48 complete — Session AC, fixing the local `next build`. It was never a dependency conflict: `npm ls semver --all` shows exactly one semver in the tree (`next > sharp > semver@7.8.1`) and Next's bin does not use it, it uses its own vendored `next/dist/compiled/semver`, which is intact. The crash signature `_semver.default.satisfies is not a function` is what you get when that `require()` returns `{}`. Real cause: **iCloud was evicting `node_modules` file contents** — proven by the build going from broken to working after nothing but *reading* the vendored file, and then by the second-stage symptom (build parked at 0.0% CPU / 13 MB RSS / no `.next`, holding an open read handle on `node_modules/next/dist/shared/lib/router/utils/get-dynamic-param.js`). Fixed with `npm ci` plus `com.apple.fileprovider.ignore#P` on `node_modules` and `.next`. **No package version changed; `package.json` and `package-lock.json` are untouched.** Two consecutive clean builds, second captured `REAL_EXIT=0`. This also retires the Stage 47 caveat: the analyse caching change is now verified by a real local build, not just the Vercel gate.  
+**Stage:** 49 complete — Session AD, **the repo now lives at `~/dev/marker`, permanently off the iCloud Desktop.** Stage 48 treated the symptom with an `xattr` on `node_modules`; this removes the cause. The move exposed how bad it had got: a plain `mv` wedged in the kernel at 0% CPU (same device, so a bare `rename()`) because iCloud would not release the directory, and two `rsync` attempts stalled on individual **144-byte and 520-byte** files. A `find` then turned up **77 iCloud conflict duplicates**, most of them inside `.git` — including `index 2`, `index 3`, `index 4`, `HEAD 2`, `config 2` and `packed-refs 2`. iCloud had been shredding the git database, exactly as Stage 33 already recorded (`refs/heads/main 2`, SIGBUS on `pack-objects`). Rebuilt from a clean `git clone` at `f8006b2` plus a hand-verified copy of every gitignored local-only file (26/26 brand images, `.env.local`, `.vercel`, `.claude`). `npm ci` now runs in **4s** and `next build` passes with **exit code 0** and a 95-route table. The `xattr` workaround is gone.  
+**Stage 48 (prior):** Session AC, fixing the local `next build`. It was never a dependency conflict: `npm ls semver --all` shows exactly one semver in the tree (`next > sharp > semver@7.8.1`) and Next's bin does not use it, it uses its own vendored `next/dist/compiled/semver`, which is intact. The crash signature `_semver.default.satisfies is not a function` is what you get when that `require()` returns `{}`. Real cause: **iCloud was evicting `node_modules` file contents** — proven by the build going from broken to working after nothing but *reading* the vendored file, and then by the second-stage symptom (build parked at 0.0% CPU / 13 MB RSS / no `.next`, holding an open read handle on `node_modules/next/dist/shared/lib/router/utils/get-dynamic-param.js`). Fixed with `npm ci` plus `com.apple.fileprovider.ignore#P` on `node_modules` and `.next`. **No package version changed; `package.json` and `package-lock.json` are untouched.** Two consecutive clean builds, second captured `REAL_EXIT=0`. This also retires the Stage 47 caveat: the analyse caching change is now verified by a real local build, not just the Vercel gate.  
 **Stage 47 (prior):** Session AB, an estate-wide prompt-caching audit (8 repos, ~75 Anthropic call sites) that landed one real fix here: `app/api/analyse/route.js` declared `cache_control` on a system block whose `JSON_SCHEMA` interpolates the per-job `${company}` / `${roleTitle}`, so the cached prefix changed on every single call and the cache could never once read. Split into a stable `SYSTEM_CACHED` block (intro + CANDIDATE + SCORING, breakpoint here) and a `SYSTEM_VOLATILE` block (JSON_SCHEMA + STYLE_RULES) after it. Prompt text is byte-identical when concatenated: no wording changed. **Caveat recorded honestly:** at ~1,035 tokens the fixed prefix is still under this repo's empirically measured ~4,096-token Haiku minimum (Stage 19g), so this removes the structural bug but does not yet buy a cache read. Full audit table, including the four breakpoints that DO cache and the eight that silently do not, in the Stage 47 log below.  
 **Stage 46 (prior):** Session AA, turning role relevance from a weighted factor into a hard GATE. Rob asked to see the Stage 45 top-10 result directly, and two of the ten (a Business Analyst role, a Software Engineer role) had roleFit correctly scored at 2 ("doesn't match") but still ranked in via strong seniority/location/comp/freshness — the 25%-weighted-average design let good-everything-else roles buy their way past a bad role match. Fixed as a principle, not a patch: `lib/match-engine.js`'s `scoreMatch` now returns `excluded`/`excludeReason`, computed once in one place, and all 5 feed routes (`feed-cache`/`feed-web`/`feed-gov`/`job-feed`/`contractor/roles`) filter on it instead of their own ad-hoc checks. Threshold set at roleFit < 6 (excludes buckets 2/3/4 — jaccard overlap below 12%, which in practice is incidental word overlap, not real functional relevance; keeps 6/8/10). Never excludes on `assessed: false` (no target roles set, no job title) — that's a "we don't know" signal, not a mismatch. Verified live: the two leaked roles are now hard-excluded; new top 10 is clean; 349 of 3,235 cached roles (≈11%) pass the gate for this profile — a healthy working set, not a coverage problem. Full detail in the Stage 46 log below.  
 **Stage 45 (prior):** Session Z, the big fix pass on every item from the Stage 44 diagnostic, plus a mid-session Adzuna-dedup request. All 12 numbered items fixed and self-tested live against production DB/API; 2 new critical bugs found only by that live testing (not in the original diagnosis) and fixed in the same pass — see the Stage 45 log for the full account, including two items that are code-complete but blocked on Rob-side account configuration (Stripe price IDs).  
@@ -19,7 +20,7 @@
 **Last commit:** (pending — see note at end of this session)  
 **Live URL:** https://marker-silk.vercel.app  
 **Trust Panel:** https://marker-silk.vercel.app/trust  
-**Repo:** `~/Desktop/marker` (branch: main)  
+**Repo:** `~/dev/marker` (branch: main)  
 **Supabase project:** `vclhyzpvxipkhptwlnkj.supabase.co`
 
 ---
@@ -45,6 +46,47 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 49 — Session AD: repo moved permanently off iCloud Desktop to `~/dev/marker` (2026-08-19)
+
+**Why.** Stage 48 fixed the `next build` crash by pinning `com.apple.fileprovider.ignore#P` on `node_modules`. That was a plaster: the attribute dies with any `rm -rf node_modules`, and it only protected two directories. Rob asked for the real fix, the one already applied to `job-hunt-tracker` and `meritengine` — get the repo off the iCloud-synced Desktop entirely.
+
+**The move would not go through the front door.** Worth recording, because it shows how far gone the directory was:
+- `mv ~/Desktop/marker ~/dev/marker` **wedged in the kernel**: 0.0% CPU, `0:00.00` total CPU time, no source file ever opened. Both paths are on the same device (`16777231`), so this was a bare `rename()` — iCloud's file provider simply would not release the directory. Killed after several minutes; source left intact.
+- `rsync -a` stalled at 516 KB, blocked reading **`build-debug.log`, a 144-byte file**. Retried with the junk excluded; stalled again at 580 KB on **`.vercel/README.txt`, 520 bytes**. Not a size problem — iCloud was refusing to serve contents at all.
+
+**What the diagnosis turned up.** `find . -name "* [0-9]"` returned **77 iCloud conflict duplicates**, overwhelmingly inside `.git`:
+```
+.git/index 2   .git/index 3   .git/index 4
+.git/HEAD 2    .git/config 2  .git/packed-refs 2
+.git/refs 2    .git/logs 2    .git/objects/8c 2 ...
+```
+These are the files that hang on read. **Stage 33 recorded the same fault** — a `refs/heads/main 2` ref and duplicate index files causing `pack-objects` to SIGBUS on every push. It was never a one-off; iCloud has been corrupting the git database repeatedly.
+
+**How the move was actually done.** Since `.git` was polluted and unreadable, copying it was pointless as well as impossible:
+1. `git clone git@github.com:robertjamesoxborough-arch/marker.git ~/dev/marker` — a pristine `.git` straight from GitHub, no iCloud reads. Verified at `f8006b2`, working tree clean. 5.6 MB against the Desktop copy's 103 MB, the difference being conflict duplicates, logs and tarballs.
+2. Hand-copied every gitignored file that exists **only on disk**, since a clone would silently lose them:
+   - `.env.local` — 2,039 bytes, 8 variables, verified present.
+   - `public/brand/` + `app/opengraph-image.png` — **26 of 26 real files verified** by name diff against the source (18 recovered, 7 already tracked, plus the 1.95 MB opengraph image). The 12 ` 2`-suffixed conflict duplicates were correctly discarded. `.gitignore` explicitly flags these as "preserved on disk; none deleted", so losing them would have been real data loss. A source backup also exists in `~/Downloads/marker-brand-assets/`.
+   - `.vercel/project.json` — rewritten from its exact known contents, because `.vercel/README.txt` hung the copy. `projectId`/`orgId` preserved, so the Vercel link is intact.
+   - `.claude/settings.local.json` — copied, paths rewritten.
+
+**Result.** `npm ci` completes in **4 seconds** (it was 14s on Desktop, and before that the build hung indefinitely). `next build` passes end to end: **`BUILD_EXIT=0`**, compiled in 10.9s, full 95-route table, `Middleware 90.6 kB`, `First Load JS shared by all 102 kB`, and `/opengraph-image.png` renders — confirming the copied image works.
+
+**Paths updated to `~/dev/marker`** (step 3): `MARKER-PROCESS-FIX-BRIEF.md` (2), `WAKING-UP-CHECKLIST.md` (3), `design/FOR-CLAUDE-CODE.md` (1), `REQUITE-MASTER-BRIEF.md` (5), `design/uploads/MARKER-MASTER-BUILD-PROMPT.md` (8), `.claude/settings.local.json` (29), and this file's `**Repo:**` line. **Deliberately left alone:** PROGRESS.md lines 1900/1908/1915, which are Stage 33 historical records of what was true at the time — rewriting them would make the log false.
+
+**Vercel needs no manual change** (step 4). `vercel.json` holds only the eight cron schedules, no path or root settings. `.vercel/project.json` has `"rootDirectory": null` with `buildCommand`, `outputDirectory`, `installCommand` and `devCommand` all `null`, and links by `projectId`/`orgId`, not by local path. Vercel builds from the GitHub repo and Root Directory is relative to the repo root, not the Mac, so a local move cannot affect deploys.
+
+**`xattr` workaround removed** (step 5). The `com.apple.fileprovider.ignore#P` attribute was set on the Desktop copy's `node_modules` and `.next`, both deleted before the move; the new location carries no such attribute on the repo root, `node_modules` or `.next`. Verified.
+
+**NOT done — carried forward:**
+- The old `~/Desktop/marker` still exists and should be deleted once Rob is satisfied. Everything of value is verified copied; what remains there is a corrupted `.git`, build logs, `marker-audit.tar.gz`, `.vercel/output`, and `supabase/.temp`, all disposable or regenerable.
+- `~/Desktop/marker-backup-20260623/` and the stale `~/Desktop/meritengine` are still on iCloud.
+- Everything carried from Stage 47 (grow `analyse`'s cached prefix past ~16,400 chars or move it to Sonnet; decide on the 8 inert `cache_control` declarations).
+- Vercel runs Node `24.x` while local is `20.20.0` — unrelated to this move, but a real local/production difference.
+
+---
+
 
 ### Stage 48 — Session AC: local `next build` fixed; it was iCloud, not a dependency conflict (2026-08-19)
 

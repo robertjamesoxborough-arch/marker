@@ -5,10 +5,10 @@ Run this **every time you come back after a gap of more than a few days**, befor
 First, always start here:
 
 ```
-cd ~/Desktop/marker
+cd ~/dev/marker
 ```
 
-All the checks below read your keys straight out of `~/Desktop/marker/.env.local`, so you do not need to paste any secrets.
+All the checks below read your keys straight out of `~/dev/marker/.env.local`, so you do not need to paste any secrets.
 
 ---
 
@@ -50,7 +50,7 @@ source .env.local; curl -s -I "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/jobs_cache?sele
 ## 3. Is the live site serving the current deploy?
 
 ```
-cd ~/Desktop/marker; vercel ls marker 2>/dev/null | head -20
+cd ~/dev/marker; vercel ls marker 2>/dev/null | head -20
 ```
 
 Confirms the latest production deployment is **Ready** and recent. To confirm the public URL actually responds:

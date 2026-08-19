@@ -149,7 +149,7 @@ Reuse don't rebuild (Marker is the foundation; transform, don't greenfield; ever
 
 ## §16 REUSABLE CLAUDE CODE PROMPT TEMPLATE
 ```
-Read in full first: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md, ASSETS.md (all in ~/Desktop/marker).
+Read in full first: REQUITE-MASTER-BRIEF.md, PROGRESS.md, AUDIT.md, ASSETS.md (all in ~/dev/marker).
 Then state in 3 lines: current stage, last done, this session's plan.
 
 THIS SESSION — STAGE <N>: <name>
@@ -170,13 +170,13 @@ You copy-paste; Claude Code does the work + all git; I'm your consultant at ever
 
 **Today:**
 1. **Name:** accept **Requite** placeholder (rename later = one command) or ask me for more options. Doesn't block.
-2. **Save brief into project:** `mv ~/Downloads/REQUITE-MASTER-BRIEF.md ~/Desktop/marker/REQUITE-MASTER-BRIEF.md` (tell me if your browser saved elsewhere).
-3. **Open Claude Code:** `cd ~/Desktop/marker` then `claude`.
+2. **Save brief into project:** `mv ~/Downloads/REQUITE-MASTER-BRIEF.md ~/dev/marker/REQUITE-MASTER-BRIEF.md` (tell me if your browser saved elsewhere).
+3. **Open Claude Code:** `cd ~/dev/marker` then `claude`.
 4. **Confirm Sonnet:** type `/model`; if not Sonnet, `claude config set model claude-sonnet-4-6`.
 5. **Run Stage 0** — paste this to Claude Code:
 ```
-Read ~/Desktop/marker/REQUITE-MASTER-BRIEF.md in full. This is STAGE 0. Goal: a complete picture of what exists, NO code changes.
-1. Read every file in ~/Desktop/marker AND ~/Desktop/job-hunt-tracker. Produce AUDIT.md: each file + what it does + reusable/dead + repo overlaps + current Supabase schema + all routes + all env var names + all Anthropic model strings (flag deprecated). Check for import-time client init bugs (new Stripe()/new Resend()/new Anthropic() at module top).
+Read ~/dev/marker/REQUITE-MASTER-BRIEF.md in full. This is STAGE 0. Goal: a complete picture of what exists, NO code changes.
+1. Read every file in ~/dev/marker AND ~/Desktop/job-hunt-tracker. Produce AUDIT.md: each file + what it does + reusable/dead + repo overlaps + current Supabase schema + all routes + all env var names + all Anthropic model strings (flag deprecated). Check for import-time client init bugs (new Stripe()/new Resend()/new Anthropic() at module top).
 2. Search my machine (Desktop, Downloads, ~/Desktop/calibre-os, common folders) for Calibre OS / Merit Score design assets and stock photos. Produce ASSETS.md (path, type, dimensions, suggested Requite use).
 3. Create PROGRESS.md per §13 of the brief.
 Change NO code. Commit and push all three files yourself, then tell me in 3 lines what you found and what Stage 1 should do.
