@@ -5,7 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 47 complete — Session AB, an estate-wide prompt-caching audit (8 repos, ~75 Anthropic call sites) that landed one real fix here: `app/api/analyse/route.js` declared `cache_control` on a system block whose `JSON_SCHEMA` interpolates the per-job `${company}` / `${roleTitle}`, so the cached prefix changed on every single call and the cache could never once read. Split into a stable `SYSTEM_CACHED` block (intro + CANDIDATE + SCORING, breakpoint here) and a `SYSTEM_VOLATILE` block (JSON_SCHEMA + STYLE_RULES) after it. Prompt text is byte-identical when concatenated: no wording changed. **Caveat recorded honestly:** at ~1,035 tokens the fixed prefix is still under this repo's empirically measured ~4,096-token Haiku minimum (Stage 19g), so this removes the structural bug but does not yet buy a cache read. Full audit table, including the four breakpoints that DO cache and the eight that silently do not, in the Stage 47 log below.  
+**Stage:** 48 complete — Session AC, fixing the local `next build`. It was never a dependency conflict: `npm ls semver --all` shows exactly one semver in the tree (`next > sharp > semver@7.8.1`) and Next's bin does not use it, it uses its own vendored `next/dist/compiled/semver`, which is intact. The crash signature `_semver.default.satisfies is not a function` is what you get when that `require()` returns `{}`. Real cause: **iCloud was evicting `node_modules` file contents** — proven by the build going from broken to working after nothing but *reading* the vendored file, and then by the second-stage symptom (build parked at 0.0% CPU / 13 MB RSS / no `.next`, holding an open read handle on `node_modules/next/dist/shared/lib/router/utils/get-dynamic-param.js`). Fixed with `npm ci` plus `com.apple.fileprovider.ignore#P` on `node_modules` and `.next`. **No package version changed; `package.json` and `package-lock.json` are untouched.** Two consecutive clean builds, second captured `REAL_EXIT=0`. This also retires the Stage 47 caveat: the analyse caching change is now verified by a real local build, not just the Vercel gate.  
+**Stage 47 (prior):** Session AB, an estate-wide prompt-caching audit (8 repos, ~75 Anthropic call sites) that landed one real fix here: `app/api/analyse/route.js` declared `cache_control` on a system block whose `JSON_SCHEMA` interpolates the per-job `${company}` / `${roleTitle}`, so the cached prefix changed on every single call and the cache could never once read. Split into a stable `SYSTEM_CACHED` block (intro + CANDIDATE + SCORING, breakpoint here) and a `SYSTEM_VOLATILE` block (JSON_SCHEMA + STYLE_RULES) after it. Prompt text is byte-identical when concatenated: no wording changed. **Caveat recorded honestly:** at ~1,035 tokens the fixed prefix is still under this repo's empirically measured ~4,096-token Haiku minimum (Stage 19g), so this removes the structural bug but does not yet buy a cache read. Full audit table, including the four breakpoints that DO cache and the eight that silently do not, in the Stage 47 log below.  
 **Stage 46 (prior):** Session AA, turning role relevance from a weighted factor into a hard GATE. Rob asked to see the Stage 45 top-10 result directly, and two of the ten (a Business Analyst role, a Software Engineer role) had roleFit correctly scored at 2 ("doesn't match") but still ranked in via strong seniority/location/comp/freshness — the 25%-weighted-average design let good-everything-else roles buy their way past a bad role match. Fixed as a principle, not a patch: `lib/match-engine.js`'s `scoreMatch` now returns `excluded`/`excludeReason`, computed once in one place, and all 5 feed routes (`feed-cache`/`feed-web`/`feed-gov`/`job-feed`/`contractor/roles`) filter on it instead of their own ad-hoc checks. Threshold set at roleFit < 6 (excludes buckets 2/3/4 — jaccard overlap below 12%, which in practice is incidental word overlap, not real functional relevance; keeps 6/8/10). Never excludes on `assessed: false` (no target roles set, no job title) — that's a "we don't know" signal, not a mismatch. Verified live: the two leaked roles are now hard-excluded; new top 10 is clean; 349 of 3,235 cached roles (≈11%) pass the gate for this profile — a healthy working set, not a coverage problem. Full detail in the Stage 46 log below.  
 **Stage 45 (prior):** Session Z, the big fix pass on every item from the Stage 44 diagnostic, plus a mid-session Adzuna-dedup request. All 12 numbered items fixed and self-tested live against production DB/API; 2 new critical bugs found only by that live testing (not in the original diagnosis) and fixed in the same pass — see the Stage 45 log for the full account, including two items that are code-complete but blocked on Rob-side account configuration (Stripe price IDs).  
 **Stage 44 (prior):** Session Y, the diagnostic-only pass this session's fixes are built on. The Stage 43 "Anthropic out of credit" finding was confirmed stale (credit restored) and dormancy was confirmed clean — neither explained the feed problems. Full diagnosis table in the Stage 44 log below.  
@@ -44,6 +45,50 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 48 — Session AC: local `next build` fixed; it was iCloud, not a dependency conflict (2026-08-19)
+
+**Symptom.** `npm run build` died instantly at `node_modules/next/dist/bin/next:24` with `TypeError: _semver.default.satisfies is not a function`, before reading a single application file. A plain `npm install` did not fix it (it reported `removed 36 packages` and the very next build failed identically).
+
+**Step 1 — the manifest.** `package.json` pins `next: ^15.0.0`, resolving to **15.5.18**. No `engines` field. `scripts.build` is a bare `next build`. No nested `next` copies anywhere in the tree.
+
+**Step 2 — semver specifically. There is no conflict and no corruption.** `npm ls semver --all` returns exactly one semver in the whole tree:
+```
+marker@0.1.0
+└─┬ next@15.5.18
+  └─┬ sharp@0.34.5
+    └── semver@7.8.1
+```
+That copy is **irrelevant to the crash**. The failing line imports Next's own vendored build:
+```js
+const _semver = _interop_require_default(require("next/dist/compiled/semver"));
+```
+`node_modules/next/dist/compiled/semver/index.js` is intact — 24,838 bytes — and requiring it directly returns a working module with `satisfies` as a function. `next/dist/server/require-hook`, which runs one line earlier and rewrites module resolution, only aliases `styled-jsx`; it never touches semver. So both of the obvious hypotheses (version mismatch, corrupted semver install) are ruled out.
+
+**Step 3 — what the error signature actually means.** `_interop_require_default(x)` returns `x` when `x.__esModule` is set and `{default: x}` otherwise. The vendored semver sets no `__esModule`, so `_semver.default` should be the module itself. The only way `.default.satisfies` is `undefined` is if the `require()` returned an **empty object** — i.e. Node read a zero-length or placeholder file.
+
+**Root cause: iCloud was evicting `node_modules` file contents.** Two independent proofs:
+1. The build went from broken to working with **no install, no version change, no dependency edit** — the only intervening action was *reading* the vendored file (`cat`, then `node -e require(...)`). Immediately afterwards `node node_modules/next/dist/bin/next --version` printed `Next.js v15.5.18`.
+2. Past the crash, the build then exhibited the second half of the same fault: parked at **0.0% CPU, 13 MB RSS, no `.next` directory after 3+ minutes**, holding an open read handle on `node_modules/next/dist/shared/lib/router/utils/get-dynamic-param.js`. Blocked on a materialisation that never returned. This is the long-standing symptom already recorded in Stage 20 ("this machine's local `next build`/`next dev` hang on iCloud-dataless `node_modules`") and the reason `job-hunt-tracker` was moved off the Desktop in July.
+
+**The fix, in two parts:**
+1. `npm ci` — wipes `node_modules` completely and reinstalls exactly what the lockfile pins, so every file is freshly written and materialised. `added 63 packages in 14s`; the 31-package gap against the lockfile's 94 entries is other-platform optionals (`@next/swc-*`, `@img/sharp-*`), and the correct `swc-darwin-arm64` / `sharp-darwin-arm64` binaries are present.
+2. `xattr -w 'com.apple.fileprovider.ignore#P' 1 node_modules` and the same on `.next` — takes both directories out of iCloud's control entirely, applied while the tree was freshly written, so the materialised state is locked in. Both are gitignored, so this is purely local environment state.
+
+**Deliberately NOT done: `package-lock.json` was not deleted.** Rob's instruction included deleting it, but that would float every caret range in the manifest — `next: ^15.0.0`, `@anthropic-ai/sdk: ^0.52.0`, `stripe: ^22` and the rest — to their latest matching versions on a product with launch blockers still open, and it would not have addressed the actual cause. `npm ci` gives the identical clean-tree guarantee with zero version drift. Flagged to Rob at the time; the lockfile is available to delete if he still wants it.
+
+**What version fixed it: none.** No package was upgraded, downgraded, added or removed. `git status` is clean — `package.json` and `package-lock.json` are byte-identical to what was already committed. The entire fix was environmental.
+
+**Self-test:** two consecutive full `next build` runs to completion, both printing the complete route table (Static / SSG / Dynamic markers, `Middleware 90.9 kB`, `First Load JS shared by all 102 kB`). The second was run with the exit code captured directly: **`REAL_EXIT=0`**. `.next` builds out to ~354 MB with real manifests, against 205% CPU and 224 MB RSS — the opposite of the hung run's profile.
+
+**Knock-on:** this retires the Stage 47 caveat that "the Vercel build on push is the authoritative gate". The `app/api/analyse/route.js` prompt-caching change from Stage 47 is now confirmed by a real local production build.
+
+**NOT done — carried forward:**
+- The `com.apple.fileprovider.ignore#P` attribute is local and dies with any `node_modules` deletion that recreates the directory. **After any future `rm -rf node_modules`, re-apply it** or the hang returns. The durable answer is moving this repo off the iCloud Desktop, as was done for `job-hunt-tracker`.
+- Everything still carried from Stage 47 (grow `analyse`'s cached prefix past ~16,400 chars or move it to Sonnet; decide on the 8 inert `cache_control` declarations).
+
+---
+
 
 ### Stage 47 — Session AB: estate-wide prompt-caching audit; analyse's cache breakpoint was structurally broken (2026-08-19)
 
