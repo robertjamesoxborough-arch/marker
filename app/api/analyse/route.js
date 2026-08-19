@@ -131,16 +131,27 @@ export async function POST(req) {
   }
 }`
 
-  const SYSTEM = `You are a senior job matching assistant. Analyse job descriptions against the candidate profile below and return structured JSON scores.
+  // Split for prompt caching. Everything up to and including SCORING is stable for a
+  // given user across every job they analyse, so it is the cached prefix. JSON_SCHEMA
+  // interpolates the per-job company/roleTitle, so it must sit AFTER the breakpoint —
+  // inside it, it changed the prefix on every call and the cache never once read.
+  const SYSTEM_CACHED = `You are a senior job matching assistant. Analyse job descriptions against the candidate profile below and return structured JSON scores.
 
 CANDIDATE:
 ${CANDIDATE}
 
 ${SCORING}
+`
 
+  const SYSTEM_VOLATILE = `
 ${JSON_SCHEMA}
 
 ${STYLE_RULES}`
+
+  const SYSTEM = [
+    { type: 'text', text: SYSTEM_CACHED, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: SYSTEM_VOLATILE },
+  ]
 
   // Strategy 1: JD text pasted directly — most reliable
   if (jdText && jdText.trim().length > 50) {
@@ -308,7 +319,9 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministic
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1000,
-        system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+        // systemPrompt is already an array of blocks; the cache breakpoint sits on the
+        // first (stable) block, set where SYSTEM is built.
+        system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
     })

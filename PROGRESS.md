@@ -5,7 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 46 complete — Session AA, turning role relevance from a weighted factor into a hard GATE. Rob asked to see the Stage 45 top-10 result directly, and two of the ten (a Business Analyst role, a Software Engineer role) had roleFit correctly scored at 2 ("doesn't match") but still ranked in via strong seniority/location/comp/freshness — the 25%-weighted-average design let good-everything-else roles buy their way past a bad role match. Fixed as a principle, not a patch: `lib/match-engine.js`'s `scoreMatch` now returns `excluded`/`excludeReason`, computed once in one place, and all 5 feed routes (`feed-cache`/`feed-web`/`feed-gov`/`job-feed`/`contractor/roles`) filter on it instead of their own ad-hoc checks. Threshold set at roleFit < 6 (excludes buckets 2/3/4 — jaccard overlap below 12%, which in practice is incidental word overlap, not real functional relevance; keeps 6/8/10). Never excludes on `assessed: false` (no target roles set, no job title) — that's a "we don't know" signal, not a mismatch. Verified live: the two leaked roles are now hard-excluded; new top 10 is clean; 349 of 3,235 cached roles (≈11%) pass the gate for this profile — a healthy working set, not a coverage problem. Full detail in the Stage 46 log below.  
+**Stage:** 47 complete — Session AB, an estate-wide prompt-caching audit (8 repos, ~75 Anthropic call sites) that landed one real fix here: `app/api/analyse/route.js` declared `cache_control` on a system block whose `JSON_SCHEMA` interpolates the per-job `${company}` / `${roleTitle}`, so the cached prefix changed on every single call and the cache could never once read. Split into a stable `SYSTEM_CACHED` block (intro + CANDIDATE + SCORING, breakpoint here) and a `SYSTEM_VOLATILE` block (JSON_SCHEMA + STYLE_RULES) after it. Prompt text is byte-identical when concatenated: no wording changed. **Caveat recorded honestly:** at ~1,035 tokens the fixed prefix is still under this repo's empirically measured ~4,096-token Haiku minimum (Stage 19g), so this removes the structural bug but does not yet buy a cache read. Full audit table, including the four breakpoints that DO cache and the eight that silently do not, in the Stage 47 log below.  
+**Stage 46 (prior):** Session AA, turning role relevance from a weighted factor into a hard GATE. Rob asked to see the Stage 45 top-10 result directly, and two of the ten (a Business Analyst role, a Software Engineer role) had roleFit correctly scored at 2 ("doesn't match") but still ranked in via strong seniority/location/comp/freshness — the 25%-weighted-average design let good-everything-else roles buy their way past a bad role match. Fixed as a principle, not a patch: `lib/match-engine.js`'s `scoreMatch` now returns `excluded`/`excludeReason`, computed once in one place, and all 5 feed routes (`feed-cache`/`feed-web`/`feed-gov`/`job-feed`/`contractor/roles`) filter on it instead of their own ad-hoc checks. Threshold set at roleFit < 6 (excludes buckets 2/3/4 — jaccard overlap below 12%, which in practice is incidental word overlap, not real functional relevance; keeps 6/8/10). Never excludes on `assessed: false` (no target roles set, no job title) — that's a "we don't know" signal, not a mismatch. Verified live: the two leaked roles are now hard-excluded; new top 10 is clean; 349 of 3,235 cached roles (≈11%) pass the gate for this profile — a healthy working set, not a coverage problem. Full detail in the Stage 46 log below.  
 **Stage 45 (prior):** Session Z, the big fix pass on every item from the Stage 44 diagnostic, plus a mid-session Adzuna-dedup request. All 12 numbered items fixed and self-tested live against production DB/API; 2 new critical bugs found only by that live testing (not in the original diagnosis) and fixed in the same pass — see the Stage 45 log for the full account, including two items that are code-complete but blocked on Rob-side account configuration (Stripe price IDs).  
 **Stage 44 (prior):** Session Y, the diagnostic-only pass this session's fixes are built on. The Stage 43 "Anthropic out of credit" finding was confirmed stale (credit restored) and dormancy was confirmed clean — neither explained the feed problems. Full diagnosis table in the Stage 44 log below.  
 **Stage 43 (prior):** Session X, a data-driven cost-efficiency pass. Bound `web_search` to `max_uses:4` (was unbounded) on all 5 web_search routes. The "Anthropic out of credit" finding recorded here was correct at the time but is now resolved — see Stage 44 above. Full detail in Stage 43 log.  
@@ -43,6 +44,51 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 47 — Session AB: estate-wide prompt-caching audit; analyse's cache breakpoint was structurally broken (2026-08-19)
+
+**Scope.** Rob asked for a prompt-caching audit across the whole estate, not just Requite: every place any project calls the Anthropic API, whether `cache_control` is set, whether the cached block is genuinely static, and roughly how big the static portion is. 8 repos with Anthropic call sites (`marker`, `calibre-os`, `cheeky-marketing`, `recipe-bank`, `referrd-next`, `vouch`, `dev/job-hunt-tracker`, `dev/meritengine`), ~75 call sites total. This entry records the Requite half plus the cross-project conclusion.
+
+**THE FIX (the only call site in the whole estate that met the brief's criterion).** `app/api/analyse/route.js` built one `SYSTEM` string and put `cache_control` on it. That string ends with `JSON_SCHEMA`, which interpolates `"${company || 'Company name from content'}"` and `"${roleTitle || 'Exact role title from content'}"` — **per-job values**. Prompt caching is a prefix match, so the cached prefix changed on essentially every call: the route paid the 1.25x cache-write premium every time and never once got a cache read. Split into:
+- `SYSTEM_CACHED` = intro + `CANDIDATE` (buildAiContext, stable per user) + `SCORING` (RUBRIC + HARD_FILTERS, stable per user) — the breakpoint sits here.
+- `SYSTEM_VOLATILE` = `JSON_SCHEMA` + `STYLE_RULES` — after the breakpoint.
+
+Passed as a two-element `system` array. **No prompt wording changed** — verified by reconstructing both forms with placeholder values and asserting `SYSTEM_CACHED + SYSTEM_VOLATILE === ` the old string, byte-identical.
+
+**Honest caveat, and it matters.** Stage 19g measured this repo's real minimum cacheable prefix on `claude-haiku-4-5-20251001` at **~4,096 tokens**, not the 1,024 the docs quote for Sonnet-tier. The fixed `analyse` prefix is roughly 4,140 chars ≈ **1,035 tokens**. So this change removes the structural bug and makes the breakpoint correct, but it does **not** yet buy a cache read on Haiku. To actually bank the saving the stable prefix has to grow past ~16,400 chars (exactly the Stage 19g remedy for `score-jobs-batch`), or the route has to move to Sonnet.
+
+**Audit of all 13 `cache_control` breakpoints in this repo.** Sized at ~4 chars/token, the ratio calibrated from Stage 19g's measured 16,462 chars = 4,122 tokens. Haiku needs ~4,096 tokens; Sonnet ~1,024.
+
+| Call site | Model | Stable prefix | Caches? |
+|---|---|---|---|
+| `app/api/career-history/parse/route.js:135` | haiku | ~4,536 tok | YES |
+| `app/api/cv/generate/route.js:141` (GAP_SYSTEM_PROMPT) | haiku | ~4,787 tok | YES |
+| `lib/score-jobs-batch.js:125` | haiku | 4,122 tok (measured) | YES |
+| `app/api/pipeline/tidy-up/route.js:232` (TIDY) | haiku | ~4,678 tok | YES |
+| `app/api/analyse/route.js` | haiku | ~1,035 tok | no — under Haiku minimum (fixed structurally this stage) |
+| `app/api/cv/cover-letter/route.js:100` | haiku | ~620 tok | no |
+| `app/api/cv/generate/route.js:337` (SYSTEM_CACHED) | haiku | ~670 tok | no |
+| `app/api/pipeline/tidy-up/route.js:232` (RESORT) | sonnet | ~561 tok | no |
+| `app/api/perm/recruiters/route.js:100` | sonnet | ~456 tok | no |
+| `app/api/contractor/recruiters/route.js:96` | sonnet | ~417 tok | no |
+| `app/api/negotiation-prep/route.js:135` | sonnet | ~88 tok | no |
+| `app/api/interview-prep/route.js:183` | sonnet | ~87 tok | no |
+
+So **4 of 13 breakpoints actually cache**; the other 8 (plus analyse) are inert declarations. They cost nothing, but they are not the saving they look like on the page. `candidateContext` is capped at `MAX_CHARS = 2000` in `lib/ai-context.js`, which is why the two CV routes cannot reach the Haiku floor on their own.
+
+**Uncached call sites checked and deliberately left alone** — `analyse`'s `runClaudeWithSearch`, `contractor/companies`, `cron/wishlist-scrape`, `onboard/parse-cv`, `wishlist/generate`. Every one is a single template literal with per-request values (`${field}`, `${roles}`, `${cvText}`, the job link) woven through the instruction sentences themselves. There is no static prefix to hoist without rewriting the prompts, and Rob's brief was explicit: caching config only, no wording or logic changes. Their static portions are 250–450 tokens anyway, an order of magnitude under the Haiku floor.
+
+**Cross-project conclusion (the useful part).** The same shape holds everywhere. `dev/meritengine` has 25 `cache_control` breakpoints and **not one of them caches** — the system blocks are 80–250 token persona strings ("You are a senior digital marketing strategist… British English. No em dashes."), far under any model's floor; `app/api/freelance/assistant/route.js` additionally puts live client state (`${context.text}`) *inside* its cached block. `calibre-os` has the estate's largest prompts (the admin audit generator is ~6,400 tokens) and zero caching, but every one is a template literal with `${companyName}` / `${industry}` / `${apsScore}` interpolated into the instruction prose, so none is cacheable without a prompt rewrite. `vouch`, `cheeky-marketing`, `recipe-bank` and the loose `0*.py` scripts are all well under 1,000 tokens of static text. `referrd-next`'s `app/page.js:107` calls `api.anthropic.com` from the browser with no API key at all — dead code, not a caching question.
+
+**Self-test:** prompt-text identity proven byte-identical via placeholder reconstruction; `app/api/analyse/route.js` parses clean as ESM (`node --check` on a `.mjs` copy). `next build` could NOT be run locally: `node_modules/next/dist/bin/next` dies at line 24 with `_semver.default.satisfies is not a function` before it reads a single app file, and a full `npm install` did not clear it. That failure is upstream of this change and unrelated to it, but it means the Vercel build on push is the authoritative gate for this stage.
+
+**NOT done — carried forward:**
+- Grow `analyse`'s `SYSTEM_CACHED` past ~16,400 chars (the Stage 19g remedy) so the breakpoint actually reads, or move the route to Sonnet where the floor is ~1,024.
+- Decide whether to strip the 8 inert `cache_control` declarations or grow the prompts behind them. Leaving them is harmless but misleading to read.
+- Fix the local `next build` toolchain (`semver` interop in `node_modules/next/dist/bin/next`).
+
+---
+
 
 ### Stage 46 — Session AA: role relevance as a hard gate, not a weighted factor (2026-08-13)
 
