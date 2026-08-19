@@ -5,7 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 49 complete — Session AD, **the repo now lives at `~/dev/marker`, permanently off the iCloud Desktop.** Stage 48 treated the symptom with an `xattr` on `node_modules`; this removes the cause. The move exposed how bad it had got: a plain `mv` wedged in the kernel at 0% CPU (same device, so a bare `rename()`) because iCloud would not release the directory, and two `rsync` attempts stalled on individual **144-byte and 520-byte** files. A `find` then turned up **77 iCloud conflict duplicates**, most of them inside `.git` — including `index 2`, `index 3`, `index 4`, `HEAD 2`, `config 2` and `packed-refs 2`. iCloud had been shredding the git database, exactly as Stage 33 already recorded (`refs/heads/main 2`, SIGBUS on `pack-objects`). Rebuilt from a clean `git clone` at `f8006b2` plus a hand-verified copy of every gitignored local-only file (26/26 brand images, `.env.local`, `.vercel`, `.claude`). `npm ci` now runs in **4s** and `next build` passes with **exit code 0** and a 95-route table. The `xattr` workaround is gone.  
+**Stage:** 50 complete — Session AE, switching `app/api/analyse/route.js` from Haiku to Sonnet so the Stage 47 cache breakpoint finally engages. **Proven live, both directions:** on Sonnet, call 1 returns `cache_creation_input_tokens: 1251` and call 2 returns `cache_read_input_tokens: 1251`; the identical request on Haiku returns `0`/`0` on both calls, because the 1,251-token prefix is far below the ~4,096-token Haiku floor measured in Stage 19g. **But the headline is a warning, not a win: this makes each call MORE expensive, not less.** A cached Sonnet call costs **1.67x** a Haiku call on intro pricing and **2.50x** once intro ends on 2026-08-31 — output tokens are 88% of a cached Sonnet call and caching cannot touch them. The 30% caching saving does not come close to paying for the model upgrade. Keep this change only if Sonnet's better scoring quality is worth 1.7-2.5x; if the goal was purely cost, revert to Haiku and grow the prefix past ~4,096 tokens instead (modelled at **0.91x** current Haiku cost). Also found: the cached prefix is profile-dependent - a user with no hard filters set produces only **554 tokens**, which caches on neither model.  
+**Stage 49 (prior):** Session AD, **the repo now lives at `~/dev/marker`, permanently off the iCloud Desktop.** Stage 48 treated the symptom with an `xattr` on `node_modules`; this removes the cause. The move exposed how bad it had got: a plain `mv` wedged in the kernel at 0% CPU (same device, so a bare `rename()`) because iCloud would not release the directory, and two `rsync` attempts stalled on individual **144-byte and 520-byte** files. A `find` then turned up **77 iCloud conflict duplicates**, most of them inside `.git` — including `index 2`, `index 3`, `index 4`, `HEAD 2`, `config 2` and `packed-refs 2`. iCloud had been shredding the git database, exactly as Stage 33 already recorded (`refs/heads/main 2`, SIGBUS on `pack-objects`). Rebuilt from a clean `git clone` at `f8006b2` plus a hand-verified copy of every gitignored local-only file (26/26 brand images, `.env.local`, `.vercel`, `.claude`). `npm ci` now runs in **4s** and `next build` passes with **exit code 0** and a 95-route table. The `xattr` workaround is gone.  
 **Stage 48 (prior):** Session AC, fixing the local `next build`. It was never a dependency conflict: `npm ls semver --all` shows exactly one semver in the tree (`next > sharp > semver@7.8.1`) and Next's bin does not use it, it uses its own vendored `next/dist/compiled/semver`, which is intact. The crash signature `_semver.default.satisfies is not a function` is what you get when that `require()` returns `{}`. Real cause: **iCloud was evicting `node_modules` file contents** — proven by the build going from broken to working after nothing but *reading* the vendored file, and then by the second-stage symptom (build parked at 0.0% CPU / 13 MB RSS / no `.next`, holding an open read handle on `node_modules/next/dist/shared/lib/router/utils/get-dynamic-param.js`). Fixed with `npm ci` plus `com.apple.fileprovider.ignore#P` on `node_modules` and `.next`. **No package version changed; `package.json` and `package-lock.json` are untouched.** Two consecutive clean builds, second captured `REAL_EXIT=0`. This also retires the Stage 47 caveat: the analyse caching change is now verified by a real local build, not just the Vercel gate.  
 **Stage 47 (prior):** Session AB, an estate-wide prompt-caching audit (8 repos, ~75 Anthropic call sites) that landed one real fix here: `app/api/analyse/route.js` declared `cache_control` on a system block whose `JSON_SCHEMA` interpolates the per-job `${company}` / `${roleTitle}`, so the cached prefix changed on every single call and the cache could never once read. Split into a stable `SYSTEM_CACHED` block (intro + CANDIDATE + SCORING, breakpoint here) and a `SYSTEM_VOLATILE` block (JSON_SCHEMA + STYLE_RULES) after it. Prompt text is byte-identical when concatenated: no wording changed. **Caveat recorded honestly:** at ~1,035 tokens the fixed prefix is still under this repo's empirically measured ~4,096-token Haiku minimum (Stage 19g), so this removes the structural bug but does not yet buy a cache read. Full audit table, including the four breakpoints that DO cache and the eight that silently do not, in the Stage 47 log below.  
 **Stage 46 (prior):** Session AA, turning role relevance from a weighted factor into a hard GATE. Rob asked to see the Stage 45 top-10 result directly, and two of the ten (a Business Analyst role, a Software Engineer role) had roleFit correctly scored at 2 ("doesn't match") but still ranked in via strong seniority/location/comp/freshness — the 25%-weighted-average design let good-everything-else roles buy their way past a bad role match. Fixed as a principle, not a patch: `lib/match-engine.js`'s `scoreMatch` now returns `excluded`/`excludeReason`, computed once in one place, and all 5 feed routes (`feed-cache`/`feed-web`/`feed-gov`/`job-feed`/`contractor/roles`) filter on it instead of their own ad-hoc checks. Threshold set at roleFit < 6 (excludes buckets 2/3/4 — jaccard overlap below 12%, which in practice is incidental word overlap, not real functional relevance; keeps 6/8/10). Never excludes on `assessed: false` (no target roles set, no job title) — that's a "we don't know" signal, not a mismatch. Verified live: the two leaked roles are now hard-excluded; new top 10 is clean; 349 of 3,235 cached roles (≈11%) pass the gate for this profile — a healthy working set, not a coverage problem. Full detail in the Stage 46 log below.  
@@ -46,6 +47,59 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 50 — Session AE: analyse switched Haiku to Sonnet so caching engages; it costs more, not less (2026-08-19)
+
+**The change.** One line in `app/api/analyse/route.js`: `runClaude()` now uses `MODELS.sonnet` instead of `MODELS.haiku`, plus an explanatory comment. **No prompt wording, no scoring logic, no `cache_control` placement was touched.** The Stage 47 split into `SYSTEM_CACHED` / `SYSTEM_VOLATILE` is unchanged.
+
+**Why.** Stage 47 fixed the breakpoint's structure (per-job `${company}` / `${roleTitle}` had been sitting inside the cached block) but noted it still would not read, because the prefix was under Haiku's floor. Stage 19g measured that floor at **~4,096 tokens** for `claude-haiku-4-5-20251001`. Sonnet's is ~1,024.
+
+**Measured the prefix properly this time.** Earlier stages estimated prompt sizes at ~4 chars/token, calibrated from `score-jobs-batch`. That ratio does not transfer: this prompt is denser (structured JSON and rubric text), at roughly **2.5 chars/token**. Built the real `SYSTEM_CACHED` by importing `RUBRIC` from `lib/scoring.js` and `buildAiContext` from `lib/ai-context.js` with a representative profile, then counted via the token-counting endpoint:
+
+| | chars | chars/4 estimate | **real tokens** |
+|---|---|---|---|
+| Typical profile, hard filters set | 3,138 | 785 | **1,248** |
+| Sparse profile, no hard filters | 1,361 | 340 | **554** |
+
+The chars/4 estimate was out by 60%. **Every prompt size quoted in the Stage 47 audit is therefore unreliable and should be re-measured before being acted on.**
+
+**Live proof, both directions** (two consecutive calls, identical company/role inputs, same system array the route builds):
+```
+call 1 [claude-sonnet-5]           input=281  cache_creation=1251  cache_read=0     output=532
+call 2 [claude-sonnet-5]           input=281  cache_creation=0     cache_read=1251  output=659
+
+call 1 [claude-haiku-4-5-20251001] input=1087 cache_creation=0     cache_read=0     output=535
+call 2 [claude-haiku-4-5-20251001] input=1087 cache_creation=0     cache_read=0     output=637
+```
+Sonnet writes the cache then reads it back. Haiku shows zero cache activity on both calls and pays full input price every time, exactly as Stage 19g predicted.
+
+**THE COST FINDING - read this before keeping the change.** Using the measured token counts above, Haiku input/output at $1.00/$5.00 per MTok, Sonnet 5 at its intro $2.00/$10.00 (through 2026-08-31) and standard $3.00/$15.00 thereafter, cache writes at 1.25x input and reads at 0.1x:
+
+| Scenario | Cost per call | vs Haiku today |
+|---|---|---|
+| **Haiku, no caching (what we had)** | **$0.004087** | 1.00x |
+| Sonnet intro, cache miss | $0.009690 | 2.37x |
+| **Sonnet intro, cache hit** | **$0.006812** | **1.67x** |
+| Sonnet standard, cache miss | $0.014534 | 3.56x |
+| **Sonnet standard, cache hit** | **$0.010218** | **2.50x** |
+
+Caching saves 30% of a Sonnet call ($0.0029 intro, $0.0043 standard), but **the cheapest possible Sonnet call is still 1.67x the Haiku call it replaced, rising to 2.50x from 1 September.** The reason is structural: output tokens are **88%** of a cached Sonnet call, and caching only ever discounts input. Making the cache work did not make the route cheaper; it made it work on a more expensive model.
+
+**This means the stated goal was not achievable as framed.** "Switch to Sonnet so the cache starts working" is now true and proven. "…so the caching saving pays off" is not: there is no configuration of this route where Sonnet beats Haiku on cost. The decision is purely whether Sonnet's scoring quality is worth 1.67-2.50x per analysis, which is Rob's call, not a technical one.
+
+**Cheaper alternative, modelled:** keep Haiku and grow `SYSTEM_CACHED` past ~4,096 tokens with genuine content (the Stage 19g remedy that worked for `score-jobs-batch`). A cached Haiku call then costs **$0.003701, or 0.91x** the current Haiku cost - the only option here that is actually cheaper than the status quo. It needs ~2,850 more tokens of real rubric/calibration content, not filler.
+
+**Caveat - caching is profile-dependent.** `HARD_FILTERS` is built from the user's own settings (office-day cap, salary floor, benefits, tracks). A user with none set produces a 554-token prefix, which caches on **neither** model. So even on Sonnet, cache hits only accrue for users who have configured hard filters; sparse-profile users pay Sonnet prices with no caching benefit at all. That is the worst cell in the table.
+
+**Self-test:** `next build` passes, exit code 0, compiled in 3.4s, `Middleware 90.6 kB`. Live API calls above were made against the real key in `.env.local` (which is valid - an earlier session wrongly reported it expired after a faulty shell extraction of the value).
+
+**NOT done — carried forward:**
+- **Rob to decide whether to keep Sonnet.** If cost matters more than scoring quality, revert this one line and grow the prefix instead.
+- Re-measure the Stage 47 audit's prompt sizes with the token-counting endpoint rather than chars/4, before acting on any of them.
+- Everything else from Stage 49 (delete `~/Desktop/marker-OLD-icloud-DELETE-ME`; other repos still on iCloud; Vercel Node 24.x vs local 20.20.0).
+
+---
+
 
 ### Stage 49 — Session AD: repo moved permanently off iCloud Desktop to `~/dev/marker` (2026-08-19)
 

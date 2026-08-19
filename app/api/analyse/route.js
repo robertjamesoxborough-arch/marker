@@ -306,7 +306,11 @@ ${JSON_SCHEMA}`
 }
 
 async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministicScore, priorResponse) {
-  const MODEL = MODELS.haiku
+  // Sonnet, not Haiku, purely so prompt caching actually engages. The cached prefix
+  // (SYSTEM_CACHED) measures ~1,248 tokens, which clears Sonnet's ~1,024-token minimum
+  // but sits far under the ~4,096 minimum measured for Haiku in Stage 19g, so on Haiku
+  // the breakpoint could never read. See Stage 50.
+  const MODEL = MODELS.sonnet
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
