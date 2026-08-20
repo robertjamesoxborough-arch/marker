@@ -5,7 +5,8 @@
 
 ## CURRENT STATE
 
-**Stage:** 50 complete — Session AE, switching `app/api/analyse/route.js` from Haiku to Sonnet so the Stage 47 cache breakpoint finally engages. **Proven live, both directions:** on Sonnet, call 1 returns `cache_creation_input_tokens: 1251` and call 2 returns `cache_read_input_tokens: 1251`; the identical request on Haiku returns `0`/`0` on both calls, because the 1,251-token prefix is far below the ~4,096-token Haiku floor measured in Stage 19g. **But the headline is a warning, not a win: this makes each call MORE expensive, not less.** A cached Sonnet call costs **1.67x** a Haiku call on intro pricing and **2.50x** once intro ends on 2026-08-31 — output tokens are 88% of a cached Sonnet call and caching cannot touch them. The 30% caching saving does not come close to paying for the model upgrade. Keep this change only if Sonnet's better scoring quality is worth 1.7-2.5x; if the goal was purely cost, revert to Haiku and grow the prefix past ~4,096 tokens instead (modelled at **0.91x** current Haiku cost). Also found: the cached prefix is profile-dependent - a user with no hard filters set produces only **554 tokens**, which caches on neither model.  
+**Stage:** 51 complete — Session AF, reverting the Sonnet switch and growing the shared `RUBRIC` past Haiku's ~4,096-token floor instead. `analyse` is back on Haiku. `lib/scoring.js` `RUBRIC` went from 1,185 to **18,673 chars** of genuine scoring content: per-factor criteria for all 8 factors (what a 9 versus a 5 means on each, which was simply absent), a signal decision rule defining apply/maybe/dont_apply thresholds (also absent, despite the schema demanding one), 10 worked examples, 9 edge cases, and a common-errors list. **Caching now verified working on Haiku:** call 1 `cache_creation_input_tokens: 4994`, call 2 `cache_read_input_tokens: 4994`. **The HARD_FILTERS edge case is fully closed** — a user with zero filters set now measures **4,508 tokens** and caches too (proven live: 4509 written then read). All 4 test suites pass; build exit 0. **BUT the corrected cost model changes the recommendation:** Stage 50 quoted 0.91x for this option, which was wrong because it modelled only cache hits and ignored the write. Real break-even is a **93% cache hit rate**; below that this is more expensive than the small uncached rubric it replaced (2.49x on a pure miss). With the default 5-minute TTL you need roughly 15+ analyses per window to break even. **Keep this change for the scoring-quality gain, not as a cost saving.**  
+**Stage 50 (prior):** Session AE, switching `app/api/analyse/route.js` from Haiku to Sonnet so the Stage 47 cache breakpoint finally engages. **Proven live, both directions:** on Sonnet, call 1 returns `cache_creation_input_tokens: 1251` and call 2 returns `cache_read_input_tokens: 1251`; the identical request on Haiku returns `0`/`0` on both calls, because the 1,251-token prefix is far below the ~4,096-token Haiku floor measured in Stage 19g. **But the headline is a warning, not a win: this makes each call MORE expensive, not less.** A cached Sonnet call costs **1.67x** a Haiku call on intro pricing and **2.50x** once intro ends on 2026-08-31 — output tokens are 88% of a cached Sonnet call and caching cannot touch them. The 30% caching saving does not come close to paying for the model upgrade. Keep this change only if Sonnet's better scoring quality is worth 1.7-2.5x; if the goal was purely cost, revert to Haiku and grow the prefix past ~4,096 tokens instead (modelled at **0.91x** current Haiku cost). Also found: the cached prefix is profile-dependent - a user with no hard filters set produces only **554 tokens**, which caches on neither model.  
 **Stage 49 (prior):** Session AD, **the repo now lives at `~/dev/marker`, permanently off the iCloud Desktop.** Stage 48 treated the symptom with an `xattr` on `node_modules`; this removes the cause. The move exposed how bad it had got: a plain `mv` wedged in the kernel at 0% CPU (same device, so a bare `rename()`) because iCloud would not release the directory, and two `rsync` attempts stalled on individual **144-byte and 520-byte** files. A `find` then turned up **77 iCloud conflict duplicates**, most of them inside `.git` — including `index 2`, `index 3`, `index 4`, `HEAD 2`, `config 2` and `packed-refs 2`. iCloud had been shredding the git database, exactly as Stage 33 already recorded (`refs/heads/main 2`, SIGBUS on `pack-objects`). Rebuilt from a clean `git clone` at `f8006b2` plus a hand-verified copy of every gitignored local-only file (26/26 brand images, `.env.local`, `.vercel`, `.claude`). `npm ci` now runs in **4s** and `next build` passes with **exit code 0** and a 95-route table. The `xattr` workaround is gone.  
 **Stage 48 (prior):** Session AC, fixing the local `next build`. It was never a dependency conflict: `npm ls semver --all` shows exactly one semver in the tree (`next > sharp > semver@7.8.1`) and Next's bin does not use it, it uses its own vendored `next/dist/compiled/semver`, which is intact. The crash signature `_semver.default.satisfies is not a function` is what you get when that `require()` returns `{}`. Real cause: **iCloud was evicting `node_modules` file contents** — proven by the build going from broken to working after nothing but *reading* the vendored file, and then by the second-stage symptom (build parked at 0.0% CPU / 13 MB RSS / no `.next`, holding an open read handle on `node_modules/next/dist/shared/lib/router/utils/get-dynamic-param.js`). Fixed with `npm ci` plus `com.apple.fileprovider.ignore#P` on `node_modules` and `.next`. **No package version changed; `package.json` and `package-lock.json` are untouched.** Two consecutive clean builds, second captured `REAL_EXIT=0`. This also retires the Stage 47 caveat: the analyse caching change is now verified by a real local build, not just the Vercel gate.  
 **Stage 47 (prior):** Session AB, an estate-wide prompt-caching audit (8 repos, ~75 Anthropic call sites) that landed one real fix here: `app/api/analyse/route.js` declared `cache_control` on a system block whose `JSON_SCHEMA` interpolates the per-job `${company}` / `${roleTitle}`, so the cached prefix changed on every single call and the cache could never once read. Split into a stable `SYSTEM_CACHED` block (intro + CANDIDATE + SCORING, breakpoint here) and a `SYSTEM_VOLATILE` block (JSON_SCHEMA + STYLE_RULES) after it. Prompt text is byte-identical when concatenated: no wording changed. **Caveat recorded honestly:** at ~1,035 tokens the fixed prefix is still under this repo's empirically measured ~4,096-token Haiku minimum (Stage 19g), so this removes the structural bug but does not yet buy a cache read. Full audit table, including the four breakpoints that DO cache and the eight that silently do not, in the Stage 47 log below.  
@@ -47,6 +48,62 @@ Governing doc: `MARKER-COST-GUARDRAILS.md` (now committed). No feature may cause
 ---
 
 ## STAGE LOG
+
+### Stage 51 — Session AF: Sonnet reverted; shared RUBRIC grown past Haiku's cache floor (2026-08-20)
+
+**Revert.** `app/api/analyse/route.js` `runClaude()` is back to `MODELS.haiku`. The Stage 50 Sonnet switch worked technically but cost 1.67x to 2.50x per call, which Rob correctly rejected. The separate web-search path (`runClaudeWithSearch`) was always Sonnet and is untouched.
+
+**The real fix: grow the prefix, not the model.** `lib/scoring.js` `RUBRIC` went from **1,185 to 18,673 characters**. Every addition is content that improves scoring, not padding. Four new sections plus three more:
+- **`FACTOR_CRITERIA`** — what each score means on each of the 8 factors. The rubric previously gave weights and four overall calibration anchors but **never defined a 9 versus a 5 on any individual factor**, which is where inconsistency between two scans of the same role came from. Includes the title-inflation rule (Head of at a ten-person company is usually an IC role) and the remote-washing rule (a stated number of office days beats any adjective).
+- **`SIGNAL_RULE`** — explicit apply / maybe / dont_apply thresholds. The JSON schema has always demanded a signal and **nothing anywhere defined when to use which**. Now: dont_apply on any hard-filter breach, skills 3 or below, or seniority three-plus levels away; apply only when skills 8.0+, no filter breached, and neither seniority nor office flexibility below 7; maybe otherwise, and maybe is stated to be the honest default.
+- **`WORKED_EXAMPLES` and `MORE_EXAMPLES`** — 10 worked scorings, including the exact Technical Sales failure Stage 20 fixed in code (shared vocabulary is not shared skill), hard-filter-beats-strong-score, day-rate conversion at 220 days, and the double-penalty trap where a seniority stretch is also marked down under skills.
+- **`EDGE_CASES`** — 9 real listing problems from scraped feeds: bundled and duplicate postings, truncated descriptions, invented titles, currency and day-rate confusion, title/body seniority disagreement, and an explicit restatement that availability must never be commented on.
+- **`ANTI_PATTERNS`** — the seven scoring errors seen most often, led by double-counting one gap across several factors.
+
+Written to the Marker house style: British English, **zero em dashes** (verified programmatically, count is 0).
+
+**Sizes measured, not estimated.** Rob asked me to confirm with the ~2.5 chars/token ratio measured in Stage 50. **That ratio would have been badly wrong here** and I used the token-counting endpoint instead. The new prose runs closer to 4 chars/token; the old rubric-plus-JSON ran at 2.5. Tokenisers also differ per model, so all figures below are Haiku's, minus a 7-token wrapper baseline:
+
+| Prefix | chars | at 2.5 c/t | at 4 c/t | **measured (Haiku)** |
+|---|---|---|---|---|
+| Typical profile, hard filters set | 20,626 | 8,250 | 5,157 | **4,993** |
+| **Sparse profile, no filters** | 18,849 | 7,540 | 4,712 | **4,508** |
+
+The 2.5 ratio overstated by 65%. **Character ratios are not transferable between prompts and should not be used again.**
+
+**Caching verified live on Haiku**, two consecutive calls with identical company/role inputs:
+```
+typical profile: call 1 cache_creation=4994  cache_read=0
+                 call 2 cache_creation=0     cache_read=4994
+sparse profile:  call 1 cache_creation=4509  cache_read=0
+                 call 2 cache_creation=0     cache_read=4509
+```
+
+**HARD_FILTERS edge case: CLOSED.** At 4,508 tokens the no-filters case clears the 4,096 floor with a 10% margin, and the typical case clears it by 22%. Every user now caches regardless of how much of their profile they have filled in. Note that `HARD_FILTERS` was and remains inside `SYSTEM_CACHED`, not the volatile block: it is per-user but stable across that user's jobs, so caching it is correct. Moving it to volatile would have shrunk the prefix and made the floor harder to clear.
+
+**CORRECTED COST MODEL — this supersedes the 0.91x figure quoted in Stage 50.** That figure modelled only the cache-hit case and ignored the cost of writing the cache, which is the dominant term on a miss. Haiku at $1.00/$5.00 per MTok, write 1.25x, read 0.1x, measured at 196 uncached input and ~500 output tokens:
+
+| Scenario | Cost per call | vs before |
+|---|---|---|
+| **Before (1,087-token rubric, never cached)** | **$0.003587** | 1.00x |
+| After, cache **miss** | $0.008939 | **2.49x** |
+| After, cache **hit** | $0.003195 | **0.89x** |
+
+**Break-even is a 93% cache hit rate.** Blended: 50% hits = 1.69x, 80% = 1.21x, 93% = 1.00x, 99% = 0.91x. One cache write costs about what 13 cache reads do, which is why the bar is so high. With the default 5-minute TTL that means roughly **15+ analyses inside one window** before this pays for itself.
+
+**So the honest recommendation is: keep this for the scoring quality, not as a cost saving.** Given the bigger rubric is wanted, caching is unambiguously right (uncached, the grown prompt would cost $0.00769, or 2.14x). The open question is whether the better rubric is worth a likely small cost increase at realistic usage. If cost is the only concern, the cheapest configuration remains the old small rubric with no caching at all.
+
+**Knock-on: `lib/score-jobs-batch.js` also grew.** `scoring.test.js` enforces that both tiers embed the identical `RUBRIC` verbatim, so the QUICK tier's `SYSTEM_PREFIX` went from 4,122 to **8,222 tokens**. It still caches comfortably. Cost impact per batch call is +$0.00041 on reads and +$0.00051 per 5-minute cache write, which is negligible, and the quick tier gets the same improved rubric for free.
+
+**Self-test:** all four suites pass (`scoring.test.js` 11/11 including the two assertions that both tiers embed the rubric verbatim, `match-engine.test.js` 28/28, `ai-context.test.js` 25/25, `usage-window.test.js`). `next build` exit 0, compiled in 3.3s, 95 routes, `Middleware 90.6 kB`. Cache behaviour proven against the live API on both profile shapes.
+
+**NOT done — carried forward:**
+- **Rob to decide** whether the quality gain justifies the likely cost increase at real hit rates. Options: keep as is; add `"ttl": "1h"` to the `cache_control` (raises break-even to 96% but makes hits far more achievable across a session); or revert the rubric growth entirely.
+- Instrument the real cache hit rate before optimising further. `callClaude` already logs `cache_read`, so the data to settle this is already going to Vercel logs.
+- Everything from Stage 49 (delete `~/Desktop/marker-OLD-icloud-DELETE-ME`; other repos still on iCloud; Vercel Node 24.x vs local 20.20.0).
+
+---
+
 
 ### Stage 50 — Session AE: analyse switched Haiku to Sonnet so caching engages; it costs more, not less (2026-08-19)
 

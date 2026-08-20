@@ -306,11 +306,11 @@ ${JSON_SCHEMA}`
 }
 
 async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministicScore, priorResponse) {
-  // Sonnet, not Haiku, purely so prompt caching actually engages. The cached prefix
-  // (SYSTEM_CACHED) measures ~1,248 tokens, which clears Sonnet's ~1,024-token minimum
-  // but sits far under the ~4,096 minimum measured for Haiku in Stage 19g, so on Haiku
-  // the breakpoint could never read. See Stage 50.
-  const MODEL = MODELS.sonnet
+  // Haiku. Stage 50 briefly moved this to Sonnet so the cache breakpoint would engage,
+  // but measured cost showed a cached Sonnet call is 1.67x-2.50x a Haiku call (output is
+  // 88% of the cost and caching only discounts input). Stage 51 instead grew the shared
+  // RUBRIC past Haiku's ~4,096-token floor, so the breakpoint now reads on Haiku.
+  const MODEL = MODELS.haiku
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
