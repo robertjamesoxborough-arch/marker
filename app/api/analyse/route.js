@@ -347,7 +347,14 @@ async function runClaude(apiKey, systemPrompt, userPrompt, userId, deterministic
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return Response.json({ error: 'Could not parse response', deterministicScore }, { status: 500 })
     const parsed = JSON.parse(jsonMatch[0])
-    return Response.json({ ...finaliseFull(parsed), deterministicScore })
+    // Cache visibility, mirroring lib/score-jobs-batch.js. Without these the only way
+    // to know whether the Stage 51 breakpoint actually reads is to guess. See Stage 52.
+    return Response.json({
+      ...finaliseFull(parsed),
+      deterministicScore,
+      cacheCreationTokens: aiData.usage?.cache_creation_input_tokens || 0,
+      cacheReadTokens: aiData.usage?.cache_read_input_tokens || 0,
+    })
   } catch (err) {
     return Response.json({ error: 'Analysis failed: ' + err.message, deterministicScore }, { status: 500 })
   }
@@ -403,7 +410,12 @@ async function runClaudeWithSearch(apiKey, prompt, deterministicScore, userId) {
       result.score = 5
       result.signalReason = 'Could not retrieve job content; paste the JD below for an accurate score'
     }
-    return Response.json({ ...result, deterministicScore })
+    return Response.json({
+      ...result,
+      deterministicScore,
+      cacheCreationTokens: aiData.usage?.cache_creation_input_tokens || 0,
+      cacheReadTokens: aiData.usage?.cache_read_input_tokens || 0,
+    })
   } catch (err) {
     return Response.json({ error: 'Analysis failed: ' + err.message, deterministicScore }, { status: 500 })
   }
