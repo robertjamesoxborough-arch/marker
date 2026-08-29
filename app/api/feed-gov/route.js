@@ -10,14 +10,28 @@ import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/fres
 import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
 import { reserveAdzuna } from '../../../lib/adzuna-budget'
+import { titleMatchesRoleKeywords } from '../../../lib/role-keywords'
 
 // Cost rules 1 + 2, same pattern as /api/feed-web. Default reads the shared,
 // nightly-scored jobs_cache (cron/gov already ingests source='gov' rows) with
 // zero AI cost; a live gov-flavoured Adzuna scan only runs on {fresh:true},
 // gated by the Pro/Max feed_fresh_scan daily cap (lib/allowance.js).
 
-const TITLE_MUST = ['director', 'head of', 'deputy', 'senior manager', 'programme director', 'chief', 'vp', 'vice president', 'lead']
-const TITLE_REJECT = ['engineer', 'software', 'developer', 'data sci', 'data analy', 'finance', 'accountant', 'legal', 'compliance', 'hr ', 'human resource', 'security', 'infrastructure', 'devops', 'nurse', 'doctor', 'clinical', 'cleaner', 'driver', 'warehouse', 'logistics', 'procurement', 'admin', 'assistant', 'apprentice', 'graduate', 'intern', 'trainee', 'helpdesk', 'support analyst', 'junior']
+// Generic seniority MUST + minimal junk REJECT — used only as a fallback
+// when the user has no target_roles set at all. This used to also carry a
+// profession-name REJECT list (finance/legal/engineer/nurse/doctor/clinical/
+// etc) applied to EVERY user regardless of profile, which blanket-excluded
+// entire professions from their own fresh scan. When target_roles exist,
+// relevance is judged against the user's own words instead (see
+// passesUserTitleFilter below).
+const TITLE_MUST = ['director', 'head of', 'deputy', 'senior manager', 'programme director', 'chief', 'vp', 'vice president', 'lead', 'consultant', 'principal', 'matron', 'sister']
+const TITLE_REJECT = ['apprentice', 'graduate', 'intern', 'trainee', 'helpdesk', 'junior']
+
+function passesUserTitleFilter(title, targetRoles) {
+  if (targetRoles?.length) return titleMatchesRoleKeywords(title, targetRoles)
+  const t = title.toLowerCase()
+  return TITLE_MUST.some(k => t.includes(k)) && !TITLE_REJECT.some(k => t.includes(k))
+}
 
 // profiles.seniority is a single enum column (ic/manager/senior_manager/head/
 // director/vp_plus, per 001_schema.sql) — there is no plural "seniorities"
@@ -128,8 +142,7 @@ async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
       const data = await res.json()
       for (const job of (data.results || [])) {
         if (!job.id) continue
-        const title = (job.title || '').toLowerCase()
-        if (!TITLE_MUST.some(k => title.includes(k)) || TITLE_REJECT.some(k => title.includes(k))) continue
+        if (!passesUserTitleFilter(job.title || '', profile?.target_roles)) continue
         if (!isUkEligible(job.location?.display_name)) continue
         raw.push({
           external_id: `gov-${job.id}`,

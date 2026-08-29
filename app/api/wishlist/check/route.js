@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
+import { extractRoleKeywords } from '../../../../lib/role-keywords'
 
 
 const KNOWN_SLUGS = {
@@ -132,8 +134,13 @@ const CAREERS_URLS = {
   'Diageo':              'https://www.diageo.com/en/careers',
 }
 
-const KW = ['partner','marketing','growth','strategy','digital','business develop','programme','program','product market','commercial','brand','content','head of','director','vp ','senior manager','lead','performance','seo','organic','community','comms','communications','social']
-const REJECT = ['engineer','software','developer','data sci','data anal','finance','accounting','legal','compliance','fraud','recruiter','talent acq','people ops','security','infrastructure','devops','qa ','customer service rep','sales representative','sales development','sdr ','bdr ','account executive','german speaking','french speaking']
+// Last-resort-only fallback, used solely when the signed-in user has no
+// target roles set at all. Any sector-specific keyword list here (the
+// previous version assumed a marketing/BD/partnerships persona, and
+// separately hard-rejected finance/legal/engineering titles outright) would
+// silently hide real openings for anyone in a different field — matching is
+// derived from the user's own profile instead (see buildMatchKeywords).
+const GENERIC_FALLBACK_KW = ['manager', 'director', 'head of', 'lead', 'specialist', 'officer', 'coordinator', 'analyst', 'consultant']
 
 const UK_RE    = /\b(london|uk|england|scotland|wales|remote|hybrid|manchester|edinburgh|bristol|birmingham|leeds|cardiff|belfast|cambridge|oxford|brighton|emea|europe)\b/i
 const NON_UK   = /\b(united states|usa|\bus\b|canada|australia|germany|france|netherlands|india|singapore|new york|san francisco|berlin|amsterdam|paris|toronto|sydney|bangalore|warsaw|prague|bucharest|new delhi)\b/i
@@ -156,12 +163,12 @@ async function trySlug(slug) {
   } catch { return null }
 }
 
-function filterMatch(jobs, slug) {
+function filterMatch(jobs, slug, matchKeywords) {
   return jobs
     .filter(j => {
       const t   = (j.title || '').toLowerCase()
       const loc = (j.location?.name || '').toLowerCase()
-      return isUkRole(loc) && KW.some(k => t.includes(k)) && !REJECT.some(r => t.includes(r))
+      return isUkRole(loc) && matchKeywords.some(k => t.includes(k))
     })
     .slice(0, 10)
     .map(j => ({
@@ -185,6 +192,21 @@ export async function POST(request) {
   const body      = await request.json().catch(() => ({}))
   const companies = Array.isArray(body.companies) ? body.companies : []
   if (!companies.length) return NextResponse.json({ results: [] })
+
+  // Match against THIS user's own target roles/keywords, not a fixed
+  // marketing-persona keyword list — a healthcare, education, or trades
+  // profile must see roles that fit them, not be filtered out for lacking
+  // "partnerships"/"growth"/"seo" in the title.
+  const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  const { data: profile } = await service
+    .from('profiles')
+    .select('target_roles, hard_filters_json')
+    .eq('user_id', user.id)
+    .single()
+  const targetRoles = profile?.target_roles?.length ? profile.target_roles : (profile?.hard_filters_json?.targetRoles || [])
+  const cvKeywords   = profile?.hard_filters_json?.cvKeywords || []
+  const { words, phrases } = extractRoleKeywords([...targetRoles, ...cvKeywords])
+  const matchKeywords = [...phrases, ...words].length ? [...phrases, ...words] : GENERIC_FALLBACK_KW
 
   const settled = await Promise.allSettled(
     companies.map(async ({ name, slug }) => {
@@ -210,7 +232,7 @@ export async function POST(request) {
         return { name, status: 'no_board', jobs: [], slug: null, careersUrl }
       }
 
-      const matched = filterMatch(jobs, resolvedSlug)
+      const matched = filterMatch(jobs, resolvedSlug, matchKeywords)
       return {
         name,
         status:     matched.length > 0 ? 'has_roles' : 'no_roles',

@@ -26,10 +26,22 @@ const GOV_QUERIES = [
   'growth public sector',
   'product management government',
   'digital NHS',
+  // Widened beyond the office/marketing/tech skew this list originally had
+  // — the shared nightly public-sector feed should cover more of the public
+  // sector's actual workforce, not just its digital/comms functions.
+  'nursing leadership NHS',
+  'clinical lead NHS',
+  'headteacher',
+  'school leadership',
+  'social work manager',
 ]
 
-const TITLE_MUST = ['director', 'head of', 'deputy', 'senior manager', 'programme director', 'chief', 'vp ', 'vice president', 'lead']
-const TITLE_REJECT = ['engineer', 'software developer', 'data scientist', 'data analy', 'finance', 'accountant', 'legal', 'compliance', 'human resource', 'security', 'infrastructure', 'devops', 'nurse', 'doctor', 'clinical', 'procurement', 'admin assistant', 'apprentice', 'graduate scheme', 'intern', 'trainee', 'helpdesk', 'junior']
+// Seniority signal only — profession-neutral by design. This used to also
+// carry a profession-name REJECT list (finance/legal/engineer/nurse/doctor/
+// clinical/etc) that blanket-excluded entire professions from the public-
+// sector feed regardless of what any user was looking for; removed.
+const TITLE_MUST = ['director', 'head of', 'deputy', 'senior manager', 'programme director', 'chief', 'vp ', 'vice president', 'lead', 'consultant', 'principal', 'matron', 'sister', 'headteacher']
+const TITLE_REJECT = ['apprentice', 'graduate scheme', 'intern', 'trainee', 'helpdesk', 'junior']
 
 function passesTitleFilter(title) {
   const t = title.toLowerCase()

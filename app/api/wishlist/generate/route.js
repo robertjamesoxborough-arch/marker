@@ -74,7 +74,7 @@ Return a JSON array of exactly 10 company objects. Each object must have:
 Rules:
 - UK companies or companies with a strong UK presence and real UK hiring
 - Spread across 4-6 different sectors to avoid a narrow list
-- Tailor to their actual experience level and domain
+- Tailor to their actual experience level and domain — if this person's background is NOT tech/fintech/startup (e.g. healthcare, education, trades, public sector, law, manufacturing), the list must reflect THEIR sector's real major employers, not generic well-known tech names
 - For contractor mode: include companies known to use contractors/interims in this field, not just direct employers
 - For parent/balanced tracks, weight toward companies publicly known for good culture
 - For returner track, weight toward companies with returnship or re-entry programmes

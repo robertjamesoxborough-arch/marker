@@ -207,6 +207,7 @@ export default function OnboardPage() {
   const [cvKeywords, setCvKeywords]                 = useState([])
   const [cvSuggestions, setCvSuggestions]           = useState(null)
   const [cvSupplement, setCvSupplement]             = useState('')
+  const [showNoCvForm, setShowNoCvForm]             = useState(false)
 
   // Profile
   const [targetRoles, setTargetRoles]               = useState([])
@@ -424,16 +425,17 @@ export default function OnboardPage() {
           {userEmail === 'robertjamesoxborough@gmail.com' && (
             <button
               onClick={() => {
-                setField('Partnerships')
-                setCurrentJobTitle('Director of Partnerships')
-                setYearsExperience('10to15')
+                // Deliberately NOT a fixed persona (was hardcoded to
+                // Partnerships/Fintech/Director — i.e. this dev's own
+                // profile). This just satisfies canContinue's minimum
+                // fields with a neutral placeholder so the rest of the
+                // onboarding flow can be clicked through in dev.
+                setYearsExperience('5to10')
                 setStatus('employed_searching')
-                setTargetRoles(['Partnerships', 'Growth', 'Product Marketing'])
-                setSeniorities(['head', 'director'])
-                setIndustries(['Fintech', 'SaaS'])
+                setSeniorities(['manager'])
                 setPostcode('SW1A')
                 setMaxOfficeDays(2)
-                setStep(4)
+                setStep(3)
               }}
               style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', background: 'none', border: '1px solid var(--marker-border)', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', letterSpacing: '0.04em' }}
             >
@@ -473,7 +475,7 @@ export default function OnboardPage() {
             <div className="kicker holo-text" style={{ marginBottom: 12 }}>Step 2 · Optional</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Drop your CV in. We'll do the reading.</h2>
             <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 24, lineHeight: 1.6 }}>
-              Paste your CV and we'll pre-fill your roles, seniority, and industries on the next step. No CV yet? Skip straight to the form below.
+              Paste your CV and we'll pre-fill your roles, seniority, and industries on the next step — whatever field you're in.
             </p>
             <textarea
               value={cvText}
@@ -507,6 +509,13 @@ export default function OnboardPage() {
             </div>
 
             {cvParseError && <div style={{ marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c0392b' }}>{cvParseError}</div>}
+
+            <button
+              onClick={() => setShowNoCvForm(v => !v)}
+              style={{ display: 'block', marginTop: 14, background: 'none', border: 'none', padding: 0, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              {showNoCvForm ? 'Hide' : "No CV?"}
+            </button>
 
             {cvText.trim().length > 50 && (
               <div style={{ marginTop: 16 }}>
@@ -548,8 +557,8 @@ export default function OnboardPage() {
               </div>
             )}
 
-            {/* No-CV fallback — shown when nothing pasted */}
-            {!cvText.trim() && (
+            {/* No-CV fallback — unfolds inline, same page, on explicit request */}
+            {showNoCvForm && (
               <div style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid var(--marker-border)' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--marker-mid)', marginBottom: 14 }}>No CV yet? Fill this in instead</div>
 
@@ -558,7 +567,7 @@ export default function OnboardPage() {
                   <input
                     value={currentJobTitle}
                     onChange={e => setCurrentJobTitle(e.target.value)}
-                    placeholder="e.g. Head of Partnerships, Senior Data Analyst"
+                    placeholder="e.g. Ward Sister, Secondary School Teacher, Qualified Electrician"
                     style={{ display: 'block', width: '100%', padding: '11px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -584,7 +593,7 @@ export default function OnboardPage() {
                   <textarea
                     value={careerSummary}
                     onChange={e => setCareerSummary(e.target.value)}
-                    placeholder="e.g. 12 years in partnerships and growth, most recently Head of Partnerships at a fintech. Looking for a Director-level role in SaaS or media."
+                    placeholder="e.g. 12 years in acute nursing, most recently a Senior Sister role in an NHS trust. Looking for an advanced practice or clinical leadership role."
                     rows={5}
                     style={{
                       display: 'block', width: '100%', padding: '12px 14px', fontSize: 13, lineHeight: 1.7,
@@ -636,22 +645,10 @@ export default function OnboardPage() {
                 </RecommendationBanner>
               )}
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                {ROLE_FAMILIES.map(r => (
-                  <Chip key={r} label={r} selected={targetRoles.includes(r)} onClick={() => toggleMulti(targetRoles, setTargetRoles, r)} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={customRole} onChange={e => setCustomRole(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addCustomRole()}
-                  placeholder="Not listed? Add your own"
-                  style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
-                />
-                <button onClick={addCustomRole} className="btn btn-primary" style={{ flexShrink: 0, padding: '9px 14px', fontSize: 13 }}>Add</button>
-              </div>
+              {/* CV-derived roles first and prominent — these are the real,
+                  open-vocabulary suggestion, not a pick from a fixed list. */}
               {targetRoles.filter(r => !ROLE_FAMILIES.includes(r)).length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                   {targetRoles.filter(r => !ROLE_FAMILIES.includes(r)).map(r => (
                     <span key={r} className="chip chip-lime" style={{ fontSize: 11 }}>
                       {r}
@@ -660,6 +657,23 @@ export default function OnboardPage() {
                   ))}
                 </div>
               )}
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input
+                  value={customRole} onChange={e => setCustomRole(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addCustomRole()}
+                  placeholder="Add a role (yours from your CV, or type your own)"
+                  style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button onClick={addCustomRole} className="btn btn-primary" style={{ flexShrink: 0, padding: '9px 14px', fontSize: 13 }}>Add</button>
+              </div>
+
+              <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginBottom: 8 }}>Or pick from common role families:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ROLE_FAMILIES.map(r => (
+                  <Chip key={r} label={r} selected={targetRoles.includes(r)} onClick={() => toggleMulti(targetRoles, setTargetRoles, r)} />
+                ))}
+              </div>
             </div>
 
             <div style={{ height: 1, background: 'var(--marker-border)', margin: '24px 0' }} />
@@ -713,22 +727,8 @@ export default function OnboardPage() {
                 </RecommendationBanner>
               )}
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                {INDUSTRIES.map(ind => (
-                  <Chip key={ind} label={ind} selected={industries.includes(ind)} onClick={() => toggleMulti(industries, setIndustries, ind)} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={customIndustry} onChange={e => setCustomIndustry(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addCustomIndustry()}
-                  placeholder="Not listed? Add your own"
-                  style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
-                />
-                <button onClick={addCustomIndustry} className="btn btn-primary" style={{ flexShrink: 0, padding: '9px 14px', fontSize: 13 }}>Add</button>
-              </div>
               {industries.filter(ind => !INDUSTRIES.includes(ind)).length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                   {industries.filter(ind => !INDUSTRIES.includes(ind)).map(ind => (
                     <span key={ind} className="chip chip-lime" style={{ fontSize: 11 }}>
                       {ind}
@@ -737,6 +737,23 @@ export default function OnboardPage() {
                   ))}
                 </div>
               )}
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input
+                  value={customIndustry} onChange={e => setCustomIndustry(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addCustomIndustry()}
+                  placeholder="Add a sector (yours from your CV, or type your own)"
+                  style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button onClick={addCustomIndustry} className="btn btn-primary" style={{ flexShrink: 0, padding: '9px 14px', fontSize: 13 }}>Add</button>
+              </div>
+
+              <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginBottom: 8 }}>Or pick from common sectors:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {INDUSTRIES.map(ind => (
+                  <Chip key={ind} label={ind} selected={industries.includes(ind)} onClick={() => toggleMulti(industries, setIndustries, ind)} />
+                ))}
+              </div>
             </div>
           </div>
         )}

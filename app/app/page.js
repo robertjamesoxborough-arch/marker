@@ -8,6 +8,7 @@ import { createClient } from '../../lib/supabase/client'
 import { Packer } from 'docx'
 import { buildCvDocx } from '../../lib/cv-docx'
 import FreshnessPulse from '../../components/FreshnessPulse'
+import { hashText } from '../../lib/text-hash'
 
 // HARD, NON-REMOVABLE RULE (Session O legal hardening): Requite indexes and
 // scores third-party job listings. It never republishes or intermediates
@@ -1074,7 +1075,7 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
       </div>
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Interviewer name / title <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(optional)</span></label>
-        <input value={interviewer} onChange={e => setInterviewer(e.target.value)} placeholder="e.g. Sarah Chen, VP Product" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
+        <input value={interviewer} onChange={e => setInterviewer(e.target.value)} placeholder="e.g. Sarah Chen, Head of Department" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
       </div>
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Job description <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(paste for best results)</span></label>
@@ -2745,31 +2746,14 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
   const [autoGenPending,  setAutoGenPending]  = useState(false)
   const hasChecked = useRef(false)
 
-  const hasCV = !!(profile?.hard_filters_json?.cvRaw?.length > 100)
+  const cvRaw = profile?.hard_filters_json?.cvRaw || ''
+  const hasCV = !!(cvRaw.length > 100)
+  const cvSignature = hasCV ? hashText(cvRaw) : null
 
-  // Load wishlist once on mount — auto-generate from CV on first ever visit
-  useEffect(() => {
-    const saved = profile?.hard_filters_json?.wishlist
-    if (saved && saved.length > 0) {
-      setWishlist(saved)
-      return
-    }
-    // If user has a CV and hasn't auto-generated before, trigger it
-    let firstVisit = false
-    if (hasCV) {
-      try {
-        if (!localStorage.getItem('mkr_companies_autogen')) {
-          localStorage.setItem('mkr_companies_autogen', '1')
-          firstVisit = true
-        }
-      } catch {}
-    }
-    if (firstVisit) {
-      setWishlist([])
-      setAutoGenPending(true)
-      return
-    }
-    // Fallback: seed from track data
+  // Last-resort-only fallback, used solely when AI generation is unavailable
+  // (no CV/summary yet, or generation genuinely failed). Never merged on top
+  // of a correct AI result — see PROGRESS.md CV-personalisation fixes.
+  function seedFallback(reason) {
     const tracks = profile?.hard_filters_json?.tracks?.length
       ? profile.hard_filters_json.tracks
       : profile?.track ? [profile.track] : ['standard']
@@ -2780,12 +2764,29 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
         if (!seen.has(s.company)) { seen.add(s.company); seeds.push({ name: s.company, sector: s.sector, note: s.note }) }
       })
     })
-    if (!tracks.includes('standard')) {
-      WISHLIST_SEEDS.standard.forEach(s => {
-        if (!seen.has(s.company)) { seen.add(s.company); seeds.push({ name: s.company, sector: s.sector, note: s.note }) }
-      })
+    track('wishlist_fallback_seeds', { reason, tracks: tracks.join(',') })
+    return seeds
+  }
+
+  // Load wishlist once on mount — auto-generate from THIS CV whenever the
+  // account has no wishlist yet, or its wishlist was generated from a CV
+  // that has since changed (server-side signature, not a per-browser flag —
+  // a browser-only flag never re-fired after a CV replacement, which is why
+  // a stale target-company list could survive a totally new CV upload).
+  useEffect(() => {
+    const saved = profile?.hard_filters_json?.wishlist
+    const savedSignature = profile?.hard_filters_json?.wishlistCvSignature || null
+    const staleForThisCv = hasCV && savedSignature !== cvSignature
+    if (saved && saved.length > 0 && !staleForThisCv) {
+      setWishlist(saved)
+      return
     }
-    setWishlist(seeds)
+    if (hasCV) {
+      setWishlist([])
+      setAutoGenPending(true)
+      return
+    }
+    setWishlist(seedFallback('no_cv'))
   }, [])
 
   // Trigger auto-generate once wishlist is set to empty and pending flag is set
@@ -2821,11 +2822,11 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
       })
   }, [wishlist])
 
-  function persistWishlist(newList) {
+  function persistWishlist(newList, signature) {
     fetch('/api/wishlist/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wishlist: newList }),
+      body: JSON.stringify({ wishlist: newList, cvSignature: signature !== undefined ? signature : cvSignature }),
     }).catch(() => {})
   }
 
@@ -2888,16 +2889,8 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
       const data = await res.json()
       if (!res.ok || data.error) {
         setGenerateError(data.error || 'Generation failed')
-        // Fall back to seeds on auto-gen failure
-        if (autoAdd) {
-          const tracks = profile?.hard_filters_json?.tracks?.length
-            ? profile.hard_filters_json.tracks
-            : profile?.track ? [profile.track] : ['standard']
-          const seen = new Set(); const seeds = []
-          tracks.forEach(t => (WISHLIST_SEEDS[t] || []).forEach(s => { if (!seen.has(s.company)) { seen.add(s.company); seeds.push({ name: s.company, sector: s.sector, note: s.note }) } }))
-          if (!tracks.includes('standard')) WISHLIST_SEEDS.standard.forEach(s => { if (!seen.has(s.company)) { seen.add(s.company); seeds.push({ name: s.company, sector: s.sector, note: s.note }) } })
-          setWishlist(seeds)
-        }
+        // Fall back to seeds only when AI generation genuinely failed — logged, never silent.
+        if (autoAdd) setWishlist(seedFallback('generation_failed'))
         return
       }
       const suggs = data.suggestions || []
@@ -2905,13 +2898,13 @@ function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
         const newList = suggs.map(s => ({ name: s.company, sector: s.sector || '', note: s.why || '', addedAt: new Date().toISOString() }))
         hasChecked.current = false
         setWishlist(newList)
-        persistWishlist(newList)
+        persistWishlist(newList, cvSignature)
       } else {
         setSuggestions(suggs)
       }
     } catch {
       setGenerateError('Request failed. Try again.')
-      if (autoAdd) setWishlist([])
+      if (autoAdd) setWishlist(seedFallback('generation_request_error'))
     } finally {
       setGenerating(false)
     }
@@ -3210,13 +3203,18 @@ const BALANCED_COMPANIES = [
   { co: 'Wise',           sector: 'Fintech',      wlb: '4.1', reviews: '1,560', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://wise.com/jobs',                   score: '8.5', note: 'Distributed teams; no-meeting Fridays; profitable and mission-driven.' },
   { co: 'HMRC',           sector: 'Public Sector',wlb: '4.0', reviews: '3,200', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://www.civilservicejobs.service.gov.uk', score: '8.4', note: 'Civil service terms; flexible working by default; large stable employer.' },
   { co: 'DWP Digital',    sector: 'Public Sector',wlb: '4.0', reviews: '2,100', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://www.civilservicejobs.service.gov.uk', score: '8.4', note: 'GDS-aligned digital team; flexible civil service terms; mission-driven tech roles.' },
+  // NHS: real Agenda for Change national terms + Glassdoor's general "NHS"
+  // listing (not one specific trust's PR claim, since Agenda for Change
+  // genuinely applies nationally) — added because this list previously had
+  // no healthcare employer despite the NHS being the UK's largest employer.
+  { co: 'NHS',            sector: 'Healthcare',   wlb: '3.3', reviews: '14,689',leave: '8 weeks full pay + 18 weeks half pay', office: 'Shift-based', wf: false, careers: 'https://www.jobs.nhs.uk', score: '7.8', note: 'Agenda for Change national terms apply across every trust: 8 weeks full pay + 18 weeks half pay maternity leave, and a day-one statutory right to request flexible working.' },
 ]
 
 // WLB lookup by company name (lowercase) — sourced from BALANCED_COMPANIES above
 const WLB_DATA = {}
 BALANCED_COMPANIES.forEach(c => { WLB_DATA[c.co.toLowerCase()] = c })
 
-const BALANCED_SECTORS = ['All', 'Finance', 'Media', 'Tech', 'Public Sector', 'Fintech', 'Energy', 'Regulator', 'Charity', 'Other']
+const BALANCED_SECTORS = ['All', 'Finance', 'Media', 'Tech', 'Public Sector', 'Fintech', 'Energy', 'Regulator', 'Charity', 'Healthcare', 'Other']
 
 function BalancedTab({ jobs: pipelineJobs, addJob }) {
   const [sector, setSector] = useState('All')
@@ -3224,7 +3222,7 @@ function BalancedTab({ jobs: pipelineJobs, addJob }) {
   const filtered = sector === 'All'
     ? BALANCED_COMPANIES
     : sector === 'Other'
-    ? BALANCED_COMPANIES.filter(c => !['Finance', 'Media', 'Tech', 'Public Sector', 'Fintech', 'Energy', 'Regulator', 'Charity', 'Insurance'].includes(c.sector))
+    ? BALANCED_COMPANIES.filter(c => !['Finance', 'Media', 'Tech', 'Public Sector', 'Fintech', 'Energy', 'Regulator', 'Charity', 'Insurance', 'Healthcare'].includes(c.sector))
     : BALANCED_COMPANIES.filter(c => c.sector === sector || (sector === 'Finance' && ['Finance', 'Insurance'].includes(c.sector)))
 
   const watchedCompanies = new Set(pipelineJobs.map(j => j.company?.toLowerCase().trim()))
@@ -4924,9 +4922,9 @@ function GettingStartedPanel({ profile, jobs, onProfileSaved, onTabSwitch }) {
                       <button onClick={e => { e.stopPropagation(); setPbOpen(true) }} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '7px 14px', borderRadius: 7, fontSize: 12, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>Build profile →</button>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }} onClick={e => e.stopPropagation()}>
-                        <input value={pbTitle} onChange={e => setPbTitle(e.target.value)} placeholder="Current job title + company (e.g. Head of Marketing at Sky)" style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-body)', border: '1px solid var(--marker-border)', borderRadius: 7, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-                        <input value={pbSkills} onChange={e => setPbSkills(e.target.value)} placeholder="Key skills, comma separated (e.g. partnerships, SEO, digital strategy)" style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-body)', border: '1px solid var(--marker-border)', borderRadius: 7, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-                        <input value={pbHighlight} onChange={e => setPbHighlight(e.target.value)} placeholder="Biggest career win, one line (e.g. Grew partnerships revenue 3× at Sky)" style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-body)', border: '1px solid var(--marker-border)', borderRadius: 7, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                        <input value={pbTitle} onChange={e => setPbTitle(e.target.value)} placeholder="Current job title + employer (e.g. Senior Sister at an NHS trust)" style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-body)', border: '1px solid var(--marker-border)', borderRadius: 7, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                        <input value={pbSkills} onChange={e => setPbSkills(e.target.value)} placeholder="Key skills, comma separated (e.g. clinical leadership, triage, staff training)" style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-body)', border: '1px solid var(--marker-border)', borderRadius: 7, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                        <input value={pbHighlight} onChange={e => setPbHighlight(e.target.value)} placeholder="Biggest career win, one line (e.g. Cut ward incident rate by a third)" style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-body)', border: '1px solid var(--marker-border)', borderRadius: 7, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
                         <div style={{ display: 'flex', gap: 7 }}>
                           <button onClick={saveProfile} disabled={pbSaving || !pbTitle.trim()} style={{ flex: 1, background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '8px', borderRadius: 7, fontSize: 12, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: pbSaving || !pbTitle.trim() ? 'not-allowed' : 'pointer', opacity: pbSaving || !pbTitle.trim() ? 0.5 : 1 }}>{pbSaving ? 'Saving…' : 'Save profile'}</button>
                           <button onClick={() => setPbOpen(false)} style={{ background: 'transparent', border: '1px solid var(--marker-border)', color: 'var(--marker-mid)', padding: '8px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>Cancel</button>

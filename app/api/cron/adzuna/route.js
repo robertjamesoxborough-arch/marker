@@ -4,26 +4,7 @@ import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
-
-
-// Queries mapped to our role families — each runs as a separate Adzuna search
-const ROLE_QUERIES = [
-  { what: 'partnerships manager',        family: 'Partnerships' },
-  { what: 'business development manager', family: 'BD' },
-  { what: 'product marketing manager',   family: 'Product Marketing' },
-  { what: 'growth manager',              family: 'Growth' },
-  { what: 'product manager',             family: 'Product Management' },
-  { what: 'programme manager',           family: 'Programme Lead' },
-  { what: 'digital strategy manager',    family: 'Digital Strategy' },
-  { what: 'data analyst',                family: 'Data' },
-  { what: 'software engineer',           family: 'Engineering' },
-  { what: 'UX designer',                 family: 'Design' },
-  { what: 'operations manager',          family: 'Ops' },
-  { what: 'customer success manager',    family: 'Customer Success' },
-  { what: 'marketing manager',           family: 'Marketing Generalist' },
-  { what: 'head of partnerships',        family: 'Partnerships' },
-  { what: 'head of product',             family: 'Product Management' },
-]
+import { buildAdzunaRoleQueries } from '../../../../lib/aggregate-role-queries'
 
 const BASE = 'https://api.adzuna.com/v1/api/jobs/gb/search/1'
 
@@ -73,6 +54,13 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+
+  // Query set = a broadened static floor (all sectors, not just marketing/
+  // tech) plus real distinct target_roles pulled from actual user profiles,
+  // bounded and deduped — still one shared nightly batch (Cost Guardrails
+  // RULE 1), just no longer structurally incapable of covering anyone
+  // outside the founder's own profession.
+  const ROLE_QUERIES = await buildAdzunaRoleQueries(supabase)
 
   // Global Adzuna budget: reserve this run's calls up front (kind:'cron', so
   // it may use up to the full daily limit — crons run early after the UTC

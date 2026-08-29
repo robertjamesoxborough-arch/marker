@@ -15,6 +15,10 @@ export async function POST(request) {
 
   const body    = await request.json().catch(() => ({}))
   const wishlist = Array.isArray(body.wishlist) ? body.wishlist : []
+  // Records which CV (by content signature) this wishlist was generated
+  // for, so the client can tell "still matches the current CV" apart from
+  // "stale, CV has since changed" without relying on per-browser state.
+  const cvSignature = typeof body.cvSignature === 'string' ? body.cvSignature : null
 
   const service = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -29,7 +33,7 @@ export async function POST(request) {
 
   await service
     .from('profiles')
-    .update({ hard_filters_json: { ...(profile?.hard_filters_json || {}), wishlist } })
+    .update({ hard_filters_json: { ...(profile?.hard_filters_json || {}), wishlist, wishlistCvSignature: cvSignature } })
     .eq('user_id', user.id)
 
   return NextResponse.json({ ok: true })
