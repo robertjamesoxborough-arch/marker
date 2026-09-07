@@ -918,7 +918,7 @@ const INTERVIEW_STAGES = [
   { id: 'ceo',            label: 'CEO / exec',        sub: 'Strategic, vision-level' },
 ]
 
-function PrepTab({ jobs, profile, onSwitchToPipeline }) {
+function PrepTab({ jobs, profile, updateJob, onSwitchToPipeline }) {
   const activeJobs = jobs
     .filter(j => ['applied', 'interviewing', 'offer'].includes(j.status))
     .sort((a, b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0))
@@ -947,6 +947,12 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
     if (profile?.seniority) body.profileSeniority = profile.seniority
     fetch('/api/salary-estimate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(r => r.ok ? r.json() : null).then(d => { if (d?.salary) setSalary(d.salary) }).catch(() => {})
+  }, [selectedJobId])
+
+  // job.jd is the single source of truth — pulled from wherever it was
+  // pasted (scorer, CV, cover letter) so interview prep never asks again.
+  useEffect(() => {
+    setJdText(selectedJob?.jd || '')
   }, [selectedJobId])
 
   function handleCvFile(e) {
@@ -982,10 +988,12 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
         if (!res.ok) { setError(data.error || 'Generation failed'); return }
         setResult(data.prep || '')
       } else {
+        const trimmedJd = jdText.trim()
+        if (trimmedJd && trimmedJd !== (selectedJob.jd || '')) updateJob?.(selectedJob.id, { jd: trimmedJd })
         const res = await fetch('/api/interview-prep', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job: selectedJob, stage, interviewer: interviewer.trim(), jdText: jdText.trim(), cvBase64: cvBase64 || undefined }),
+          body: JSON.stringify({ job: selectedJob, stage, interviewer: interviewer.trim(), jdText: trimmedJd, cvBase64: cvBase64 || undefined }),
         })
         const data = await res.json()
         if (!res.ok) { setError(data.error || 'Generation failed'); return }
@@ -1078,7 +1086,7 @@ function PrepTab({ jobs, profile, onSwitchToPipeline }) {
         <input value={interviewer} onChange={e => setInterviewer(e.target.value)} placeholder="e.g. Sarah Chen, Head of Department" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }} />
       </div>
       <div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Job description <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(paste for best results)</span></label>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Job description <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>{selectedJob?.jd ? '(pulled from this role, edit if needed)' : '(paste for best results)'}</span></label>
         <textarea value={jdText} onChange={e => setJdText(e.target.value)} placeholder="Paste the JD here; Claude will research the company live via web search regardless…" rows={4} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.5 }} />
       </div>
       <div>
@@ -3473,7 +3481,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
   const [error,        setError]        = useState('')
   const [added,        setAdded]        = useState(false)
   const [autoAdded,    setAutoAdded]    = useState(false)
-  const [showJd,       setShowJd]       = useState(false)
+  const [showUrl,      setShowUrl]      = useState(false)
   const [salary,       setSalary]       = useState(null)
   const [salaryLoading,setSalaryLoading]= useState(false)
   const [copied,       setCopied]       = useState(null)
@@ -3504,8 +3512,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
         body: JSON.stringify({ jobLink: url.trim() || null, jdText: jd.trim() || null, roleTitle: roleInput.trim() || null, company: coInput.trim() || null }),
       })
       const data = await res.json()
-      // Bug 4: auto-switch to JD paste on failure
-      if (!res.ok || data.error) { setError(data.error || 'Analysis failed'); setShowJd(true); return }
+      if (!res.ok || data.error) { setError(data.error || 'Analysis failed'); return }
       setResult(data)
       track('role_scored', { signal: data.signal || 'none' })
       if (data.roleTitle && !roleInput) setRoleInput(data.roleTitle)
@@ -3541,7 +3548,6 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       }
     } catch {
       setError('Request failed. Check your connection and try again.')
-      setShowJd(true) // Bug 4: auto-switch on network failure too
     } finally {
       setAnalysing(false)
     }
@@ -3590,7 +3596,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       {!stripped && (
         <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--marker-border)' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>Score a job</div>
-          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Paste any job URL and Claude reads the JD, researches the company, and scores the role against your profile in about 30 seconds.</div>
+          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Paste the job description and Requite scores it, tailors your CV, and preps your interview against it in about 30 seconds. Got a link? Add that too, but the description is what we actually need.</div>
         </div>
       )}
 
@@ -3646,24 +3652,27 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
         {stripped && (
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 4, letterSpacing: '-0.02em' }}>Score a role</div>
         )}
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: stripped ? 14 : 17, fontWeight: 500, color: stripped ? 'var(--marker-mid)' : 'var(--marker-black)', marginBottom: 3, display: stripped ? 'none' : 'block' }}>Analyse a role</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginBottom: 14 }}>Paste a job URL · Claude reads it and scores it against your profile</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: stripped ? 14 : 17, fontWeight: 500, color: stripped ? 'var(--marker-mid)' : 'var(--marker-black)', marginBottom: 3, display: stripped ? 'none' : 'block' }}>Paste the job description</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginBottom: 14, lineHeight: 1.6 }}>Drop the full job ad in here and we&apos;ll score it, tailor your CV, and prep your interview against it.</div>
         <div style={{ marginBottom: 10 }}>
-          <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && !analysing && analyse()}
-            placeholder="Job URL, e.g. https://monzo.com/careers/jobs/…"
-            style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', boxSizing: 'border-box' }} />
+          <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description…" rows={7}
+            style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
           <input value={roleInput} onChange={e => setRoleInput(e.target.value)} placeholder="Role title (optional)" style={{ padding: '8px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }} />
           <input value={coInput} onChange={e => setCoInput(e.target.value)} placeholder="Company (optional)" style={{ padding: '8px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }} />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <button onClick={() => setShowJd(v => !v)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--marker-mid)', cursor: 'pointer', letterSpacing: '0.04em' }}>
-            {showJd ? '▾ HIDE JD PASTE' : '▸ PASTE JD TEXT (better results for paywalled pages)'}
+          <button onClick={() => setShowUrl(v => !v)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--marker-mid)', cursor: 'pointer', letterSpacing: '0.04em' }}>
+            {showUrl ? '▾ HIDE LINK' : '▸ GOT A LINK? PASTE IT TOO (best-effort auto-pull)'}
           </button>
-          {showJd && (
-            <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description…" rows={5}
-              style={{ display: 'block', width: '100%', marginTop: 8, padding: '9px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
+          {showUrl && (
+            <>
+              <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && !analysing && analyse()}
+                placeholder="Job URL, e.g. https://monzo.com/careers/jobs/…"
+                style={{ display: 'block', width: '100%', marginTop: 8, padding: '9px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', boxSizing: 'border-box' }} />
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 6, lineHeight: 1.6 }}>We&apos;ll try to pull the details in automatically, but it doesn&apos;t always work (a lot of job sites block it). The description above is what we actually need.</div>
+            </>
           )}
         </div>
         <button onClick={analyse} disabled={analysing || (!url.trim() && !jd.trim())}
@@ -5620,7 +5629,7 @@ export default function AppPage() {
                     Full prep pack for any role at <strong>Applied</strong> stage or beyond: company briefing, likely questions, and STAR frameworks tailored to the JD. Add your interviewer's name for targeted prep.
                   </TourBanner>
                 )}
-                <PrepTab jobs={jobs} profile={profile} onSwitchToPipeline={() => setTab('Pipeline')} />
+                <PrepTab jobs={jobs} profile={profile} updateJob={updateJob} onSwitchToPipeline={() => setTab('Pipeline')} />
               </>
         )}
 
