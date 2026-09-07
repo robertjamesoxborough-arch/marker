@@ -3481,7 +3481,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
   const [error,        setError]        = useState('')
   const [added,        setAdded]        = useState(false)
   const [autoAdded,    setAutoAdded]    = useState(false)
-  const [showUrl,      setShowUrl]      = useState(false)
+  const [pullStatus,   setPullStatus]   = useState('idle') // 'idle' | 'success' | 'failed'
   const [salary,       setSalary]       = useState(null)
   const [salaryLoading,setSalaryLoading]= useState(false)
   const [copied,       setCopied]       = useState(null)
@@ -3504,7 +3504,10 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
 
   async function analyse() {
     if (!url.trim() && !jd.trim()) return
-    setAnalysing(true); setResult(null); setError(''); setAdded(false); setAutoAdded(false); setSalary(null); setSalaryLoading(false)
+    // A "pull attempt" is a link submitted with no JD text already in hand —
+    // that's the only case where success/failure of the auto-fetch matters.
+    const wasPullAttempt = !!url.trim() && !jd.trim()
+    setAnalysing(true); setResult(null); setError(''); setAdded(false); setAutoAdded(false); setSalary(null); setSalaryLoading(false); setPullStatus('idle')
     try {
       const res = await fetch('/api/analyse', {
         method: 'POST',
@@ -3512,7 +3515,19 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
         body: JSON.stringify({ jobLink: url.trim() || null, jdText: jd.trim() || null, roleTitle: roleInput.trim() || null, company: coInput.trim() || null }),
       })
       const data = await res.json()
-      if (!res.ok || data.error) { setError(data.error || 'Analysis failed'); return }
+      if (!res.ok || data.error) {
+        setError(data.error || 'Analysis failed')
+        // Only blame the link for a content-retrieval failure, not an
+        // unrelated gate like a monthly allowance limit.
+        if (wasPullAttempt && !data.limitReached) setPullStatus('failed')
+        return
+      }
+      const pulledJd = wasPullAttempt ? (data.extractedJd || '').trim() : ''
+      const finalJd = jd.trim() || pulledJd
+      if (wasPullAttempt) {
+        if (pulledJd) { setJd(pulledJd); setPullStatus('success') }
+        else setPullStatus('failed')
+      }
       setResult(data)
       track('role_scored', { signal: data.signal || 'none' })
       if (data.roleTitle && !roleInput) setRoleInput(data.roleTitle)
@@ -3533,7 +3548,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
           score: parseFloat(data.score) || 0,
           scoreBreakdown: JSON.stringify({ factors: data.factors, officeDays: data.officeDays }),
           factors: data.factors,
-          jd: jd.trim(),
+          jd: finalJd,
           source: 'analyse',
           addedAt: new Date().toISOString(),
         })
@@ -3548,6 +3563,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       }
     } catch {
       setError('Request failed. Check your connection and try again.')
+      if (wasPullAttempt) setPullStatus('failed')
     } finally {
       setAnalysing(false)
     }
@@ -3596,7 +3612,7 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
       {!stripped && (
         <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--marker-border)' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>Score a job</div>
-          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Paste the job description and Requite scores it, tailors your CV, and preps your interview against it in about 30 seconds. Got a link? Add that too, but the description is what we actually need.</div>
+          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Drop in a link and we&apos;ll try to pull the details in, or paste the job description straight in — either way Requite scores it, tailors your CV, and preps your interview against it in about 30 seconds.</div>
         </div>
       )}
 
@@ -3652,28 +3668,44 @@ function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = 
         {stripped && (
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 4, letterSpacing: '-0.02em' }}>Score a role</div>
         )}
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: stripped ? 14 : 17, fontWeight: 500, color: stripped ? 'var(--marker-mid)' : 'var(--marker-black)', marginBottom: 3, display: stripped ? 'none' : 'block' }}>Paste the job description</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginBottom: 14, lineHeight: 1.6 }}>Drop the full job ad in here and we&apos;ll score it, tailor your CV, and prep your interview against it.</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: stripped ? 14 : 17, fontWeight: 500, color: stripped ? 'var(--marker-mid)' : 'var(--marker-black)', marginBottom: 3, display: stripped ? 'none' : 'block' }}>Add a role</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginBottom: 14, lineHeight: 1.6 }}>Drop in a link and we&apos;ll try to pull the details in, or paste the job description straight in below.</div>
+
+        {/* Link — an accelerator, shown up front, never hidden */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Job link <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+          </div>
+          {pullStatus === 'failed' ? (
+            <>
+              <a href={url.trim()} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'block', textAlign: 'center', padding: '13px', borderRadius: 10, background: 'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #C77DFF)', color: '#fff', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 14, textDecoration: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.25)', marginBottom: 6 }}>
+                Open the job page ↗
+              </a>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Some job sites let us pull details in automatically; many block it, so pasting is the sure way.</div>
+              <button onClick={() => setPullStatus('idle')} style={{ background: 'none', border: 'none', padding: '4px 0 0', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--marker-mid)', textDecoration: 'underline', cursor: 'pointer' }}>Try a different link</button>
+            </>
+          ) : (
+            <input value={url} onChange={e => { setUrl(e.target.value); if (pullStatus !== 'idle') setPullStatus('idle') }} onKeyDown={e => e.key === 'Enter' && !analysing && analyse()}
+              placeholder="Job URL, e.g. https://monzo.com/careers/jobs/…"
+              style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', boxSizing: 'border-box' }} />
+          )}
+        </div>
+
+        {pullStatus === 'success' && (
+          <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--marker-lime)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--marker-black)' }}>
+            ✓ Pulled the details in for you
+          </div>
+        )}
+
         <div style={{ marginBottom: 10 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Job description</div>
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description…" rows={7}
             style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           <input value={roleInput} onChange={e => setRoleInput(e.target.value)} placeholder="Role title (optional)" style={{ padding: '8px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }} />
           <input value={coInput} onChange={e => setCoInput(e.target.value)} placeholder="Company (optional)" style={{ padding: '8px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)' }} />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <button onClick={() => setShowUrl(v => !v)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--marker-mid)', cursor: 'pointer', letterSpacing: '0.04em' }}>
-            {showUrl ? '▾ HIDE LINK' : '▸ GOT A LINK? PASTE IT TOO (best-effort auto-pull)'}
-          </button>
-          {showUrl && (
-            <>
-              <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && !analysing && analyse()}
-                placeholder="Job URL, e.g. https://monzo.com/careers/jobs/…"
-                style={{ display: 'block', width: '100%', marginTop: 8, padding: '9px 12px', fontSize: 12, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', boxSizing: 'border-box' }} />
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', marginTop: 6, lineHeight: 1.6 }}>We&apos;ll try to pull the details in automatically, but it doesn&apos;t always work (a lot of job sites block it). The description above is what we actually need.</div>
-            </>
-          )}
         </div>
         <button onClick={analyse} disabled={analysing || (!url.trim() && !jd.trim())}
           style={{ display: 'block', width: '100%', padding: '11px', background: analysing || (!url.trim() && !jd.trim()) ? 'var(--marker-border)' : 'var(--marker-black)', color: analysing || (!url.trim() && !jd.trim()) ? 'var(--marker-mid)' : 'var(--marker-cream)', border: 'none', borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: analysing || (!url.trim() && !jd.trim()) ? 'default' : 'pointer' }}>

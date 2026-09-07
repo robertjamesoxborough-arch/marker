@@ -253,11 +253,13 @@ ${STYLE_RULES}`
       ].filter(l => l !== undefined).join('\n')
 
       const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
-      if (publishedDate) {
-        try { const body = await result.json(); return Response.json({ ...body, created: publishedDate }) }
-        catch { return result }
-      }
-      return result
+      // extractedJd lets the client auto-fill its paste box with what we actually
+      // pulled, so a successful link-only submission still ends with a real job.jd
+      // stored on the role, not just a score.
+      try {
+        const body = await result.json()
+        return Response.json({ ...body, ...(publishedDate ? { created: publishedDate } : {}), extractedJd: pageContent })
+      } catch { return result }
     }
 
     // Strategy 3: Web search fallback — conservative, never guesses availability
