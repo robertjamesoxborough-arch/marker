@@ -5,6 +5,7 @@ import { after } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
 import { trackAiUsage } from '../../../../lib/ai-usage'
+import { checkAllowance } from '../../../../lib/allowance'
 
 
 export async function POST() {
@@ -30,6 +31,17 @@ export async function POST() {
         ? 'Recruiter search is a Pro or Max feature. Upgrade to get UK agencies matched to your profile.'
         : `Recruiter search limit reached (${used}/${cap} this month on your ${tier} plan). It resets on the 1st.`,
       limitReached: true, used, cap, tier,
+    }, { status: 429 })
+  }
+
+  // Shared web_search pool (Stage 64) — checked in addition to the
+  // feature-specific cap above, since this is one of several features that
+  // all draw on the same expensive call type. See lib/allowance.js.
+  const searchPool = await checkAllowance(user.id, 'web_search')
+  if (!searchPool.allowed) {
+    return Response.json({
+      error: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st.`,
+      limitReached: true, used: searchPool.used, cap: searchPool.cap, tier: searchPool.tier, action: 'web_search',
     }, { status: 429 })
   }
 
@@ -105,6 +117,7 @@ Identify 10 UK recruitment agencies that actively place senior ${field} contract
   // must still be logged so it can never spend invisibly (cost guardrail 6).
   if (user?.id && data.usage) {
     after(() => trackAiUsage({ userId: user.id, model: MODELS.sonnet, action: 'recruiter_search', usage: data.usage }))
+    after(() => trackAiUsage({ userId: user.id, model: MODELS.sonnet, action: 'web_search', usage: data.usage }))
   }
   const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('') || '[]'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()

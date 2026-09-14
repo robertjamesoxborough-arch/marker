@@ -9,6 +9,8 @@ import { buildAiContext } from '../../../../lib/ai-context'
 import { checkVerifiedStats } from '../../../../lib/verified-stats'
 import { checkAllowance } from '../../../../lib/allowance'
 import { logIfError } from '../../../../lib/log-errors'
+import { extractCvSections } from '../../../../lib/cv-extract'
+import { lintCvStructure, buildAtsSummary } from '../../../../lib/cv-lint'
 
 
 // Gap analysis — cheap Haiku scan (~0.4p), run after a full CV tailor
@@ -150,6 +152,78 @@ Identify genuine gaps now, following the rules above exactly.`
   return { gaps: Array.isArray(parsed.gaps) ? parsed.gaps : [], usage: msg.usage }
 }
 
+// Two-phase "ask first" — cheap Haiku call, gated by its own cv_questions
+// allowance (see lib/allowance.js). Asks only what genuinely can't be
+// inferred from the JD/CV already on file; never a forced interrogation,
+// this is the optional "richer" branch of a simple binary toggle, not a
+// return of the old graduated L1/L2/L3 effort picker (deliberately retired).
+async function runClarifyingQuestions(client, roleTitle, jd, cvRaw) {
+  const prompt = `A candidate is about to have their CV tailored for this role. Before writing, suggest 2-4 short clarifying questions that would genuinely improve the tailoring: things not already obvious from the CV or job description (e.g. which of two similar achievements to lead with, how to frame a career gap, what to emphasise given the seniority of this specific role). Do not ask anything already answerable from the material below.
+
+ROLE: ${roleTitle}
+JOB DESCRIPTION:
+${jd.slice(0, 4000)}
+
+CANDIDATE'S CV:
+${cvRaw.slice(0, 6000)}
+
+Return ONLY valid JSON: {"questions": ["question 1", "question 2"]}
+2 to 4 questions. No markdown, no commentary.`
+
+  const msg = await client.messages.create({
+    model: MODELS.haiku,
+    max_tokens: 400,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const text = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim()
+  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  const match = cleaned.match(/\{[\s\S]*\}/)
+  const parsed = match ? JSON.parse(match[0]) : { questions: [] }
+  return { questions: Array.isArray(parsed.questions) ? parsed.questions.slice(0, 4) : [], usage: msg.usage }
+}
+
+// CV lint, keyword half — the deterministic lint's structural checks
+// (lib/cv-lint.js) are free and always run; this Haiku call is the one part
+// that needs a model (matching JD phrasing against the CV's actual wording)
+// and is gated by its own cv_lint allowance so it can't be spammed for free.
+// Compares the FINAL tailored CV against the JD, not the original base CV —
+// the point is verifying what the generator actually produced, not what the
+// candidate started with.
+async function runKeywordLint(client, cvText, jd) {
+  const prompt = `Compare this CV against the job description and return ONLY valid JSON.
+
+CV:
+${cvText.slice(0, 6000)}
+
+Job Description:
+${jd.slice(0, 3000)}
+
+Return this exact JSON format:
+{"matched":["keyword1","keyword2"],"missing":["keyword3","keyword4"],"matchScore":72}
+
+Rules:
+- matched: important keywords/phrases from the JD that genuinely appear (or are clearly evidenced) in the CV, max 12
+- missing: important JD keywords genuinely absent from the CV, max 6
+- matchScore: estimated percentage of the JD's key requirements the CV evidences, 0-100
+- No markdown, no explanation, just the JSON object`
+
+  const msg = await client.messages.create({
+    model: MODELS.haiku,
+    max_tokens: 500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const text = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim()
+  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  const match = cleaned.match(/\{[\s\S]*\}/)
+  const parsed = match ? JSON.parse(match[0]) : { matched: [], missing: [], matchScore: null }
+  return {
+    matched: Array.isArray(parsed.matched) ? parsed.matched : [],
+    missing: Array.isArray(parsed.missing) ? parsed.missing : [],
+    matchScore: typeof parsed.matchScore === 'number' ? parsed.matchScore : null,
+    usage: msg.usage,
+  }
+}
+
 export async function POST(request) {
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -188,9 +262,15 @@ export async function POST(request) {
   const wishlists     = wishlistRes.data || []
 
   const cvRaw = profile?.hard_filters_json?.cvRaw || ''
-  if (!cvRaw) return NextResponse.json({ error: 'No CV stored. Complete onboarding to upload your CV.' }, { status: 400 })
 
-  const { roleTitle, company, jd, effort = 'standard', answers = [] } = await request.json()
+  const { roleTitle, company, jd, effort = 'standard', answers = [], mode, roleType = 'permanent', askQuestions } = await request.json()
+  const isContractor = mode === 'contractor'
+
+  // The JD-tailored path needs a stored CV to tailor. Contractor mode
+  // never has, and never needed, a stored CV — it's a skills-led CV built
+  // from profile fields (target roles, field, years, IR35 preference),
+  // same as its original copy-paste-only version always allowed.
+  if (!isContractor && !cvRaw) return NextResponse.json({ error: 'No CV stored. Complete onboarding to upload your CV.' }, { status: 400 })
   const answersSection = answers.length > 0
     ? '\n\nAdditional context from the candidate:\n' + answers.map(a => `Q: ${a.question}\nA: ${a.answer}`).join('\n\n')
     : ''
@@ -203,9 +283,43 @@ export async function POST(request) {
     standard:       '',
   }
   const trackNote = TRACK_TONE[profile?.track] || ''
-  if (!roleTitle || !jd) return NextResponse.json({ error: 'Role title and job description are required.' }, { status: 400 })
+  if (!isContractor && (!roleTitle || !jd)) return NextResponse.json({ error: 'Role title and job description are required.' }, { status: 400 })
+
+  // Role-type framing (Stage 65) — Contract routes to the separate
+  // contractor path client-side before this route is ever called; this only
+  // ever sees 'permanent' or 'fte'.
+  const ROLE_TYPE_TONE = {
+    fte: 'This is a fixed-term contract (FTC) role, not permanent employment. Where relevant, frame achievements to show adaptability and fast, self-sufficient delivery within a defined contract period, without implying the candidate only does temporary work.',
+    permanent: '',
+  }
+  const roleTypeNote = ROLE_TYPE_TONE[roleType] || ''
 
   const client = new Anthropic()
+
+  // Two-phase "ask first" (Stage 65) — a simple binary toggle, not the old
+  // graduated L1/L2/L3 effort picker. Short-circuits here, before any of the
+  // real generation prompts are built, and returns questions only; the
+  // client re-calls this same route with `answers` populated (existing
+  // plumbing) to actually generate. Not offered for contractor mode — there
+  // is no single JD to ask clarifying questions against.
+  if (askQuestions && !isContractor) {
+    const qAllowance = await checkAllowance(user.id, 'cv_questions')
+    if (!qAllowance.allowed) {
+      return NextResponse.json({
+        error: qAllowance.cap === 0
+          ? 'Ask-first mode is not available on your current plan.'
+          : `You've used your quick-questions allowance for this month (${qAllowance.used}/${qAllowance.cap}). Write now instead, or it resets on the 1st.`,
+        limitReached: true, used: qAllowance.used, cap: qAllowance.cap, tier: qAllowance.tier,
+      }, { status: 429 })
+    }
+    try {
+      const { questions, usage } = await runClarifyingQuestions(client, roleTitle, jd, cvRaw)
+      if (usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cv_questions', usage }))
+      return NextResponse.json({ type: 'questions', questions })
+    } catch (e) {
+      return NextResponse.json({ error: 'Could not generate questions; try writing now instead.' }, { status: 500 })
+    }
+  }
 
   let prompt
   let maxTokens
@@ -225,7 +339,55 @@ October 2024 - Present
 - Bullet point one
 - Bullet point two`
 
-  if (effort === 'quick') {
+  if (isContractor) {
+    // Contractor CV — skills-led, not tied to any single job description,
+    // sent to agencies rather than tailored to one role. Same premium
+    // pipeline (extraction, verified-stats, buildCvDocx) as the JD-tailored
+    // path below; the framing/content here is unchanged from the original
+    // copy-paste-only version (Stage 62), just now wired through a real
+    // model call instead of asking the user to paste it into their own AI.
+    model = MODELS.sonnet
+    const hfj = profile?.hard_filters_json || {}
+    const targetRoles   = (hfj.targetRoles || []).join(', ') || 'senior contractor'
+    const field         = (Array.isArray(hfj.field) ? hfj.field.join(', ') : hfj.field) || 'your field'
+    const yearsExp      = hfj.yearsExperience || ''
+    const careerSummary = hfj.careerSummary || ''
+    const ir35          = hfj.ir35Willing === true ? 'outside IR35' : hfj.ir35Willing === false ? 'inside IR35 only' : 'inside or outside IR35'
+    const contractTypes = (hfj.contractTypes || []).join(', ') || 'contract and interim'
+
+    prompt = `Write a clean, skills-led contractor CV for the following person. This CV will be sent directly to recruitment agencies; it must be concise, outcomes-focused, and easy to skim in 10 seconds. It is not tailored to any single job description.
+${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
+${STAT_GUARDRAIL}
+${WORKDAY_FORMAT_RULE}
+
+Professional background:
+${careerSummary || cvRaw.slice(0, 15000) || `Experienced ${field} professional with ${yearsExp ? yearsExp + ' years experience' : 'significant experience'} in ${targetRoles}.`}
+
+Target roles: ${targetRoles}
+Field: ${field}
+IR35 preference: ${ir35}
+Contract type preference: ${contractTypes}
+
+CV structure to produce:
+1. Name + contact line placeholder (e.g. "[Name] | [Email] | [LinkedIn] | Day rate: £[X]/day")
+2. Professional summary (3-4 lines, contractor positioning, sector breadth, key skills)
+3. Core skills (bullet list, 12-16 items; use keywords recruiters search for)
+4. Career history (most recent first, each role formatted per the rule above, 3-4 achievement bullets per role using £/% outcomes where possible)
+5. Education + certifications (brief)
+
+Rules:
+- UK English throughout
+- No "responsible for". Use strong verbs (led, delivered, grew, built, reduced)
+- Include day rate placeholder
+- Keep to 2 pages equivalent
+- Do not add any metric, number, or percentage not already in the source material above
+
+Return your output as:
+
+---TAILORED CV---
+[the full CV text]`
+    maxTokens = 3900
+  } else if (effort === 'quick') {
     // Keyword analysis only — Haiku is appropriate here (no CV artifact produced)
     model = MODELS.haiku
     prompt = `Compare the CV against the job description and return ONLY valid JSON.
@@ -264,6 +426,7 @@ If no direct evidence exists: [Requirement] → No direct evidence in CV: [hones
 ---TAILORED CV---
 Now rewrite the CV to better match the target role.
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
+${roleTypeNote ? '\nRole-type note: ' + roleTypeNote + '\n' : ''}
 ${STAT_GUARDRAIL}
 ${WORKDAY_FORMAT_RULE}
 
@@ -297,6 +460,7 @@ If no direct evidence exists: [Requirement] → No direct evidence in CV: [hones
 
 Then perform a full tailoring:
 ${trackNote ? '\nFraming note: ' + trackNote + '\n' : ''}
+${roleTypeNote ? '\nRole-type note: ' + roleTypeNote + '\n' : ''}
 ${STAT_GUARDRAIL}
 ${WORKDAY_FORMAT_RULE}
 
@@ -361,20 +525,67 @@ ${candidateContext}`
       }
     }
 
-    // Post-generation verified-stats check (standard + deep only)
+    // Strip the model's own working-out (---JD REQUIREMENTS---,
+    // ---EVIDENCE MAP---, and on Deep effort ---ATS ANALYSIS--- /
+    // ---SIFT ASSESSMENT---) out of the deliverable. Previously `raw` went
+    // straight to the client and the .docx download, scaffolding and all —
+    // see PROGRESS.md Stage 59. `cv` is the ONLY thing that may ever reach
+    // the preview or the download; `reasoning`/`sift` are kept only for an
+    // optional "why we scored it this way" UI, never mixed back into the CV.
+    const { cv, reasoning, sift, usedFallback } = extractCvSections(raw)
+    if (usedFallback) {
+      console.error('[cv/generate] extractCvSections fell back to full raw text — expected section markers not found. effort:', effort)
+    }
+
+    // Post-generation verified-stats check — against the extracted CV only.
+    // Checking the full `raw` blob would flag numbers that only ever
+    // appeared in the ATS-analysis/sift-assessment scaffolding (e.g. a
+    // match score or an estimated interview probability) as if they were
+    // hallucinated CV stats, when they were never part of the CV at all.
     const achievements = careerHistory.map(h => h.achievements).filter(Boolean)
-    const { flagged: flaggedMetrics } = checkVerifiedStats(raw, cvRaw, achievements)
+    const { flagged: flaggedMetrics } = checkVerifiedStats(cv, cvRaw, achievements)
 
     // Gap analysis — flag, never block. A failure here must never fail the
     // CV response itself; the tailored CV is the primary deliverable.
+    // Skipped for contractor mode: there's no single JD to gap-check against.
     let gapAnalysis = null
-    try {
-      const { gaps, usage } = await runGapAnalysis(client, roleTitle, jd, cvRaw, careerHistory)
-      gapAnalysis = gaps
-      if (usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cv_gap_analysis', usage }))
-    } catch { /* gapAnalysis stays null; CV text is unaffected */ }
+    if (!isContractor) {
+      try {
+        const { gaps, usage } = await runGapAnalysis(client, roleTitle, jd, cvRaw, careerHistory)
+        gapAnalysis = gaps
+        if (usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cv_gap_analysis', usage }))
+      } catch { /* gapAnalysis stays null; CV text is unaffected */ }
+    }
 
-    return NextResponse.json({ type: 'cv', text: raw, flaggedMetrics, gapAnalysis })
+    // Deterministic CV lint (Stage 65) — verification, not self-report. The
+    // structural half (lintCvStructure) is free and always runs. The
+    // keyword-match half needs a model call, so it's gated by its own
+    // cv_lint allowance and skipped gracefully (never fails the CV response)
+    // when denied or when it errors — same flag-never-block discipline as
+    // gap analysis and verified-stats above. Skipped entirely for contractor
+    // mode: no single JD to match keywords against.
+    const structureLint = lintCvStructure(cv)
+    let keywordLint = null
+    if (!isContractor) {
+      try {
+        const lintAllowance = await checkAllowance(user.id, 'cv_lint')
+        if (lintAllowance.allowed) {
+          const kw = await runKeywordLint(client, cv, jd)
+          keywordLint = { matched: kw.matched, missing: kw.missing, matchScore: kw.matchScore }
+          if (kw.usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cv_lint', usage: kw.usage }))
+        }
+      } catch { /* keywordLint stays null; structural checks still returned */ }
+    }
+    const atsCheck = {
+      structureOk: structureLint.ok,
+      structureIssues: structureLint.issues,
+      matched: keywordLint?.matched ?? null,
+      missing: keywordLint?.missing ?? null,
+      matchScore: keywordLint?.matchScore ?? null,
+      summary: buildAtsSummary(structureLint, keywordLint),
+    }
+
+    return NextResponse.json({ type: 'cv', text: cv, reasoning, sift, flaggedMetrics, gapAnalysis, atsCheck })
   } catch (e) {
     return NextResponse.json({ error: e?.message || 'Generation failed' }, { status: 500 })
   }

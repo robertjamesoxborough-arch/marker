@@ -4,45 +4,20 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getProfile, saveProfile } from '../../lib/db'
 import { createClient } from '../../lib/supabase/client'
-
-const ROLE_FAMILIES = [
-  'Partnerships', 'Product Marketing', 'Programme Lead', 'Digital Strategy',
-  'Growth', 'BD', 'Engineering', 'Design', 'Data', 'Product Management',
-  'Ops', 'Finance', 'HR', 'Sales', 'Customer Success', 'Marketing Generalist',
-]
-
-const SENIORITIES = [
-  { id: 'ic',             label: 'Individual Contributor' },
-  { id: 'manager',        label: 'Manager' },
-  { id: 'senior_manager', label: 'Senior Manager' },
-  { id: 'head',           label: 'Head of' },
-  { id: 'director',       label: 'Director' },
-  { id: 'vp_plus',        label: 'VP+' },
-]
-
-const INDUSTRIES = [
-  'Fintech', 'SaaS', 'Gaming', 'Martech', 'Retail Tech', 'Media',
-  'EdTech', 'HealthTech', 'Public Sector', 'Charity / Non-profit',
-  'Consumer Goods', 'Professional Services', 'Other',
-]
+import { PROFESSIONAL_FIELDS, SALARY_FLOOR_OPTIONS, visibleRoleFamilies, SENIORITIES, INDUSTRIES, CAREER_SUMMARY_EXAMPLES, dailyPick } from '../../lib/onboarding-options'
 
 const TRACK_LABELS = {
   balanced: 'Balanced', standard: 'Standard', parent: 'Parent',
   returner: 'Returner', career_changer: 'Career changer',
 }
 
-const PROFESSIONAL_FIELDS = [
-  'Software/IT', 'Data/Analytics', 'Product', 'Design/UX', 'Marketing',
-  'Sales/BD', 'Partnerships', 'Operations', 'Finance/Accounting', 'HR/People',
-  'Legal', 'Customer Success/Support', 'Engineering (non-software)',
-  'Healthcare/Clinical', 'Education/Academia', 'Public sector/Policy',
-  'Project/Programme Management', 'Consulting', 'Other',
-]
-
-// Fixed dropdown, not free text — a free-text £-value field caused a real
-// data bug (85 typed where "85" meant 85k, stored as £85,000,000; see
-// PROGRESS.md Stage 44 #9).
-const SALARY_FLOOR_OPTIONS = [50, 60, 70, 80, 90, 100, 120, 150]
+// PROFESSIONAL_FIELDS, ROLE_FAMILIES/visibleRoleFamilies, SALARY_FLOOR_OPTIONS,
+// SENIORITIES and INDUSTRIES all live in ../../lib/onboarding-options —
+// shared with app/onboard/page.js so the two pages can't drift (this file
+// used to keep its own shorter, differently-labelled role list, e.g. "BD"
+// instead of "Business Development", and its own SENIORITIES whose vp_plus
+// label ("VP+") had already drifted from onboard's ("VP / C-Suite"), which
+// meant a value picked in onboarding could show a different label here).
 
 function Chip({ label, selected, onClick }) {
   return (
@@ -333,6 +308,8 @@ export default function SettingsPage() {
     setArr(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
+  const shownRoleFamilies = visibleRoleFamilies(fields)
+
   async function save() {
     setSaving(true)
     setSaved(false)
@@ -471,8 +448,22 @@ export default function SettingsPage() {
         {/* Target roles */}
         <Section title="Target roles">
           <Label sub="Which role families are you looking for?">Role families</Label>
+          {/* Roles already on the profile that aren't in the field-filtered
+              list below (CV-derived, free text, or from a field not
+              currently picked) — shown so they stay visible/removable
+              instead of silently disappearing from the picker. */}
+          {targetRoles.filter(r => !shownRoleFamilies.includes(r)).length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {targetRoles.filter(r => !shownRoleFamilies.includes(r)).map(r => (
+                <span key={r} className="chip chip-lime" style={{ fontSize: 11 }}>
+                  {r}
+                  <button onClick={() => setTargetRoles(prev => prev.filter(x => x !== r))} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 4, fontSize: 11, color: 'var(--marker-black)', padding: 0 }}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {ROLE_FAMILIES.map(r => (
+            {shownRoleFamilies.map(r => (
               <Chip key={r} label={r} selected={targetRoles.includes(r)} onClick={() => toggle(targetRoles, setTargetRoles, r)} />
             ))}
           </div>
@@ -567,7 +558,7 @@ export default function SettingsPage() {
           </div>
 
           <Label sub="Used when no CV is stored. A few sentences about your background.">Career summary</Label>
-          <textarea value={careerSummary} onChange={e => setCareerSummary(e.target.value)} placeholder="e.g. 10 years in digital marketing, most recently Head of Growth at a Series B startup. Looking for a Director-level role." rows={4} style={{ display: 'block', width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-body)' }} />
+          <textarea value={careerSummary} onChange={e => setCareerSummary(e.target.value)} placeholder={`e.g. ${dailyPick(CAREER_SUMMARY_EXAMPLES)}`} rows={4} style={{ display: 'block', width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-body)' }} />
 
           <div style={{ marginTop: 16 }}>
             <Label>Work-life balance priority</Label>

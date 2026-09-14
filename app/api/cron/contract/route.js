@@ -4,6 +4,7 @@ import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
+import { buildContractRoleQueries } from '../../../../lib/aggregate-role-queries'
 
 // Nightly, shared ingest for contract/interim roles — no existing cron
 // covered this source before Stage 22. Same pattern as cron/adzuna: generic,
@@ -16,22 +17,14 @@ import { reserveAdzuna } from '../../../../lib/adzuna-budget'
 // 'contract' for the contractor/roles reader to filter on; cron/adzuna's own
 // upsert never references track_tags, so it can never clobber this tag on a
 // later pass over the same row.
-const ROLE_QUERIES = [
-  { what: 'interim finance director',     family: 'Finance' },
-  { what: 'interim CFO',                  family: 'Finance' },
-  { what: 'interim programme manager',    family: 'Programme Lead' },
-  { what: 'contract project manager',     family: 'Project Management' },
-  { what: 'interim HR director',          family: 'HR' },
-  { what: 'interim marketing director',   family: 'Marketing' },
-  { what: 'interim operations director',  family: 'Ops' },
-  { what: 'interim change manager',       family: 'Change & Transformation' },
-  { what: 'contract business analyst',    family: 'Business Analysis' },
-  { what: 'contract software engineer',   family: 'Engineering' },
-  { what: 'day rate product manager',     family: 'Product Management' },
-  { what: 'interim head of digital',      family: 'Digital' },
-  { what: 'freelance creative director',  family: 'Creative' },
-  { what: 'fixed term marketing manager', family: 'Marketing' },
-]
+//
+// Stage 68 fix: this used to be a FIXED 14-item list (all white-collar
+// interim/contract titles) with zero widening — unlike the main cron/adzuna
+// feed, it never read a single real contractor's own target_roles, so a
+// contractor in any other field got zero coverage here regardless of what
+// they'd actually typed. Now built the same way cron/adzuna already is: a
+// bounded static floor plus real distinct target_roles pulled from
+// contractor-mode profiles — see lib/aggregate-role-queries.js.
 
 const BASE = 'https://api.adzuna.com/v1/api/jobs/gb/search/1'
 
@@ -80,6 +73,8 @@ export async function GET(request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+
+  const ROLE_QUERIES = await buildContractRoleQueries(supabase)
 
   const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length, kind: 'cron', service: supabase })
   if (!budget.allowed) {

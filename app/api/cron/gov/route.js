@@ -36,6 +36,42 @@ const GOV_QUERIES = [
   'social work manager',
 ]
 
+// Stage 68 fix: same class of gap as cron/contract had — this list was
+// fixed with zero widening, so a public-sector jobseeker in a real field
+// not named above got no benefit from their own target_roles here, unlike
+// the main cron/adzuna feed which already pulls real user-typed roles.
+// Widens with real target_roles from profiles that have actually opted
+// into public-sector roles (wantsGov), capped and deduped against the
+// floor above — same bounded-nightly-batch pattern as the other crons.
+async function widenGovQueries(supabase, base, { extraCap = 15, rowLimit = 500 } = {}) {
+  const queries = [...base]
+  try {
+    const { data: rows } = await supabase
+      .from('profiles')
+      .select('target_roles, hard_filters_json')
+      .not('target_roles', 'is', null)
+      .limit(rowLimit)
+
+    const seen = new Set(queries.map(q => q.toLowerCase()))
+    const extra = []
+    for (const row of (rows || [])) {
+      if (row.hard_filters_json?.wantsGov !== true) continue
+      for (const role of (row.target_roles || [])) {
+        const clean = String(role || '').trim().toLowerCase()
+        if (!clean || clean.length < 3 || seen.has(clean)) continue
+        seen.add(clean)
+        extra.push(clean)
+        if (extra.length >= extraCap) break
+      }
+      if (extra.length >= extraCap) break
+    }
+    queries.push(...extra)
+  } catch {
+    // Widening is a pure enhancement — the static floor above still runs.
+  }
+  return queries
+}
+
 // Seniority signal only — profession-neutral by design. This used to also
 // carry a profession-name REJECT list (finance/legal/engineer/nurse/doctor/
 // clinical/etc) that blanket-excluded entire professions from the public-
@@ -77,7 +113,9 @@ export async function GET(request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
-  const budget = await reserveAdzuna({ calls: GOV_QUERIES.length, kind: 'cron', service: supabase })
+  const queries = await widenGovQueries(supabase, GOV_QUERIES)
+
+  const budget = await reserveAdzuna({ calls: queries.length, kind: 'cron', service: supabase })
   if (!budget.allowed) {
     return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
   }
@@ -87,7 +125,7 @@ export async function GET(request) {
   const errors = []
   const seen = new Set()
 
-  for (const what of GOV_QUERIES) {
+  for (const what of queries) {
     try {
       const url = new URL('https://api.adzuna.com/v1/api/jobs/gb/search/1')
       url.searchParams.set('app_id', appId)
@@ -160,7 +198,7 @@ export async function GET(request) {
   return NextResponse.json({
     ok: true,
     inserted: deduped.length,
-    queries: GOV_QUERIES.length,
+    queries: queries.length,
     errors,
   })
 }

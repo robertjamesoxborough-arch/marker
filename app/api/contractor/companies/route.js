@@ -100,7 +100,10 @@ ${STYLE_RULES}`
   })
 
   const data = await res.json()
-  if (data.usage) after(() => trackAiUsage({ userId, model: MODELS.sonnet, action: 'analyse_search', usage: data.usage }))
+  if (data.usage) {
+    after(() => trackAiUsage({ userId, model: MODELS.sonnet, action: 'analyse_search', usage: data.usage }))
+    after(() => trackAiUsage({ userId, model: MODELS.sonnet, action: 'web_search', usage: data.usage }))
+  }
 
   const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('') || '[]'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -150,6 +153,17 @@ export async function POST(request) {
       error: cap === 0
         ? 'Live company research is a Pro feature. Upgrade to refresh your list; free plans can still browse the cached one.'
         : `Refresh limit reached (${used}/${cap} this month on your ${tier} plan). Showing your last cached list.`,
+    }, { status: 429 })
+  }
+
+  // Shared web_search pool (Stage 64) — checked in addition to the
+  // feature-specific cap above. See lib/allowance.js.
+  const searchPool = await checkAllowance(user.id, 'web_search')
+  if (!searchPool.allowed) {
+    const { companies, cachedAt } = await readCache(service, user.id)
+    return Response.json({
+      companies, cachedAt, limitReached: true, used: searchPool.used, cap: searchPool.cap, tier: searchPool.tier,
+      error: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st. Showing your last cached list.`,
     }, { status: 429 })
   }
 

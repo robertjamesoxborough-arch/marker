@@ -11,6 +11,7 @@ import { STYLE_RULES } from '../../../lib/brand'
 import { checkAllowance } from '../../../lib/allowance'
 import { RUBRIC, computeOverall } from '../../../lib/scoring'
 import { logIfError } from '../../../lib/log-errors'
+import { fetchJobPage, extractJobPostingJsonLd, extractPlainText, extractPublishedDate } from '../../../lib/job-page-scrape'
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -168,76 +169,26 @@ ${STYLE_RULES}`
     return runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
   }
 
-  // Strategy 2: Direct page fetch with JSON-LD extraction
+  // Strategy 2: Direct page fetch with JSON-LD extraction (lib/job-page-scrape.js —
+  // shared with the zero-AI duplicate-detection peek endpoint, one implementation).
   if (jobLink) {
     let pageContent = ''
     let publishedDate = null
 
-    try {
-      const controller = new AbortController()
-      setTimeout(() => controller.abort(), 8000)
-      const res = await fetch(jobLink, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-GB,en;q=0.9',
-        }
-      })
-      if (res.ok) {
-        const html = await res.text()
+    const html = await fetchJobPage(jobLink)
+    if (html) {
+      publishedDate = extractPublishedDate(html)
 
-        // Extract published date
-        const datePatterns = [
-          /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
-          /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']article:published_time["']/i,
-          /<time[^>]+datetime=["']([^"']+)["']/i,
-          /"datePosted"\s*:\s*"([^"]+)"/i,
-          /"datePublished"\s*:\s*"([^"]+)"/i,
-        ]
-        for (const p of datePatterns) {
-          const m = html.match(p)
-          if (m?.[1]) { const d = new Date(m[1]); if (!isNaN(d.getTime()) && d.getFullYear() >= 2020) { publishedDate = d.toISOString(); break } }
-        }
-
-        // Strategy 2a: Extract JSON-LD job schema (works even on JS-rendered pages)
-        const jsonLdMatches = html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
-        for (const match of jsonLdMatches) {
-          try {
-            const data = JSON.parse(match[1])
-            const items = Array.isArray(data) ? data : [data]
-            for (const item of items) {
-              if (item['@type'] === 'JobPosting') {
-                const parts = [
-                  item.title, item.description, item.hiringOrganization?.name,
-                  item.jobLocation?.address?.addressLocality,
-                  item.employmentType, item.baseSalary?.value?.value
-                ].filter(Boolean)
-                if (parts.length > 2) {
-                  pageContent = parts.join(' ').slice(0, 6000)
-                  if (item.datePosted && !publishedDate) {
-                    const d = new Date(item.datePosted)
-                    if (!isNaN(d.getTime())) publishedDate = d.toISOString()
-                  }
-                  break
-                }
-              }
-            }
-          } catch {}
-        }
-
-        // Strategy 2b: Plain text extraction if JSON-LD didn't work
-        if (!pageContent) {
-          const extracted = html
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-          if (extracted.length > 300) pageContent = extracted.slice(0, 6000)
-        }
+      // Strategy 2a: Extract JSON-LD job schema (works even on JS-rendered pages)
+      const jsonLd = extractJobPostingJsonLd(html)
+      if (jsonLd) {
+        pageContent = jsonLd.pageContent
+        publishedDate = jsonLd.publishedDate || publishedDate
       }
-    } catch {}
+
+      // Strategy 2b: Plain text extraction if JSON-LD didn't work
+      if (!pageContent) pageContent = extractPlainText(html)
+    }
 
     // Strategy 2 succeeded — analyse the fetched content
     if (pageContent) {
@@ -293,6 +244,19 @@ ${JSON_SCHEMA}`
           score: deterministicScore?.score || 5,
           signalReason: 'Web search limit reached. Paste the job description directly for a full AI score.',
           limitReached: true, action: 'analyse_search',
+        })
+      }
+      // Shared web_search pool (Stage 64) — checked in addition to the
+      // analyse_search cap above, since this is one of several features
+      // that all draw on the same expensive call type. See lib/allowance.js.
+      const searchPool = await checkAllowance(user.id, 'web_search')
+      if (!searchPool.allowed) {
+        return Response.json({
+          deterministicScore,
+          signal: 'maybe',
+          score: deterministicScore?.score || 5,
+          signalReason: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Paste the job description directly for a full AI score, or upgrade for more.`,
+          limitReached: true, action: 'web_search',
         })
       }
     }
@@ -394,6 +358,7 @@ async function runClaudeWithSearch(apiKey, prompt, deterministicScore, userId) {
     const aiData = await aiRes.json()
     if (userId && aiData.usage) {
       after(() => trackAiUsage({ userId, model: MODELS.sonnet, action: 'analyse_search', usage: aiData.usage }))
+      after(() => trackAiUsage({ userId, model: MODELS.sonnet, action: 'web_search', usage: aiData.usage }))
     }
     const text = aiData.content?.filter(c => c.type === 'text').map(c => c.text).join('') || ''
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()

@@ -4,16 +4,17 @@ import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
-import { buildAdzunaRoleQueries } from '../../../../lib/aggregate-role-queries'
+import { buildAdzunaRoleQueries, ADZUNA_CATEGORIES } from '../../../../lib/aggregate-role-queries'
 
 const BASE = 'https://api.adzuna.com/v1/api/jobs/gb/search/1'
 
-async function fetchAdzuna(appId, apiKey, what) {
+async function fetchAdzuna(appId, apiKey, { what, category, resultsPerPage = 50 }) {
   const url = new URL(BASE)
   url.searchParams.set('app_id', appId)
   url.searchParams.set('app_key', apiKey)
-  url.searchParams.set('results_per_page', '50')
-  url.searchParams.set('what', what)
+  url.searchParams.set('results_per_page', String(resultsPerPage))
+  if (what) url.searchParams.set('what', what)
+  if (category) url.searchParams.set('category', category)
   url.searchParams.set('content-type', 'application/json')
   url.searchParams.set('sort_by', 'date')
 
@@ -62,10 +63,19 @@ export async function GET(request) {
   // outside the founder's own profession.
   const ROLE_QUERIES = await buildAdzunaRoleQueries(supabase)
 
-  // Global Adzuna budget: reserve this run's calls up front (kind:'cron', so
-  // it may use up to the full daily limit — crons run early after the UTC
-  // reset and always claim their share before daytime on-demand traffic).
-  const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length, kind: 'cron', service: supabase })
+  // Stage 70 — category sweep. Even the widened ROLE_QUERIES above is still
+  // a hand-picked (if broadened) list of profession TEXT — it can only ever
+  // cover professions someone thought to type. Adzuna's own category
+  // taxonomy (ADZUNA_CATEGORIES, confirmed live against the real API) is
+  // exhaustive and Adzuna-maintained, not curated by Requite: querying by
+  // category with no "what" filter pulls a genuine cross-section of every
+  // sector Adzuna tracks, so a profession never has to be named by a real
+  // user or guessed by us for its sector to get nightly coverage. Confirmed
+  // live (Stage 70) that Adzuna carries huge real volume — 27k+ management
+  // accountant listings, 24k+ primary teacher, 8k+ plumber, 27k+ care
+  // worker — that was invisible to jobs_cache before this, purely because
+  // nothing ever asked for it.
+  const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length + ADZUNA_CATEGORIES.length, kind: 'cron', service: supabase })
   if (!budget.allowed) {
     return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
   }
@@ -77,7 +87,7 @@ export async function GET(request) {
   // Run queries sequentially to avoid hammering the API
   for (const { what, family } of ROLE_QUERIES) {
     try {
-      const data = await fetchAdzuna(appId, apiKey, what)
+      const data = await fetchAdzuna(appId, apiKey, { what, resultsPerPage: 50 })
       const results = Array.isArray(data.results) ? data.results : []
       results.forEach(job => {
         if (!isUkEligible(job.location?.display_name)) return
@@ -106,6 +116,40 @@ export async function GET(request) {
     }
   }
 
+  // Category sweep — same row shape, same shared external_id scheme (a
+  // listing already caught by a ROLE_QUERIES text match just de-dupes on
+  // upsert, exactly like cron/contract's shared-ID reasoning), smaller page
+  // size since the goal here is universal breadth, not depth per sector.
+  for (const category of ADZUNA_CATEGORIES) {
+    try {
+      const data = await fetchAdzuna(appId, apiKey, { category, resultsPerPage: 30 })
+      const results = Array.isArray(data.results) ? data.results : []
+      results.forEach(job => {
+        if (!isUkEligible(job.location?.display_name)) return
+        rows.push({
+          external_id: `adzuna-${job.id}`,
+          company: job.company?.display_name || 'Unknown',
+          role_title: job.title,
+          link: job.redirect_url,
+          salary: formatSalary(job),
+          location: job.location?.display_name || '',
+          source: 'adzuna',
+          source_type: 'public_listing',
+          cached_at: now,
+          last_verified_at: now,
+          adzuna_attribution_required: true,
+          raw_json: {
+            family: 'category-sweep',
+            category: job.category?.label || category,
+            description: (job.description || '').slice(0, 300),
+          },
+        })
+      })
+    } catch (e) {
+      errors.push(`category:${category}: ${e.message}`)
+    }
+  }
+
   // Dedupe by external_id — a single batch can otherwise contain the same
   // listing from two overlapping ROLE_QUERIES, and Postgres rejects an
   // upsert that would touch the same ON CONFLICT target row twice.
@@ -128,7 +172,8 @@ export async function GET(request) {
   return NextResponse.json({
     ok: true,
     inserted: deduped.length,
-    queries: ROLE_QUERIES.length,
+    roleQueries: ROLE_QUERIES.length,
+    categoryQueries: ADZUNA_CATEGORIES.length,
     errors,
   })
 }

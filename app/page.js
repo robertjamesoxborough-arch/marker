@@ -8,6 +8,7 @@ import PricingSection from './PricingSection'
 import TaglineTracker from '../components/TaglineTracker'
 import TrackCTA from '../components/TrackCTA'
 import RotatingLifestyle from '../components/RotatingLifestyle'
+import RotatingScoreCard from '../components/RotatingScoreCard'
 import NavHamburger from '../components/NavHamburger'
 
 function Logo({ size = 20 }) {
@@ -44,15 +45,6 @@ const PROMISES = [
     title: 'It remembers you.',
     body: "Your profile, preferences and pipeline live in your account, not in a chatbot's memory. Close the tab, come back next month; it's all exactly where you left it. You can see everything it knows on your Memory Card, and edit any of it.",
   },
-]
-
-const scoreRows = [
-  ['Role fit', '9.4'],
-  ['Office days', '1 / wk'],
-  ['Salary v market', '+8%'],
-  ['Parental leave', 'found · 6mo'],
-  ['WLB score', '4.1'],
-  ['Culture', '8.6'],
 ]
 
 const balancedRows = [
@@ -127,23 +119,11 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Floating score card */}
+        {/* Floating score card — rotates daily across genuinely different
+            sectors (see components/RotatingScoreCard.js) so this is never
+            just "the tech PM example" to every visitor. */}
         <div className={styles.heroCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 13, color: 'var(--marker-mid)' }}>Monzo</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)' }}>Staff Product Manager</div>
-            </div>
-            <div className="holo-foil" style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, padding: '6px 12px', borderRadius: 6, color: 'var(--marker-black)' }}>9.2</div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-            {scoreRows.map(([l, v]) => (
-              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--marker-border)' }}>
-                <span style={{ color: 'var(--marker-mid)' }}>{l}</span>
-                <span style={{ color: 'var(--marker-black)' }}>{v}</span>
-              </div>
-            ))}
-          </div>
+          <RotatingScoreCard />
           <div style={{ display: 'flex', gap: 6, marginTop: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 6 }}>
               <span className="chip chip-lime" style={{ fontSize: 9 }}>APPLY</span>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { track } from '@vercel/analytics'
 import { getProfile, saveProfile } from '../../lib/db'
 import { createClient } from '../../lib/supabase/client'
+import { PROFESSIONAL_FIELDS, SALARY_FLOOR_OPTIONS, visibleRoleFamilies, SENIORITIES, INDUSTRIES, JOB_TITLE_EXAMPLE_SETS, CAREER_SUMMARY_EXAMPLES, dailyPick } from '../../lib/onboarding-options'
 
 function Logo() {
   return (
@@ -74,14 +75,10 @@ function Toggle({ on, onClick, label, sub }) {
 }
 
 // ── Data ──────────────────────────────────────────────────────────
-
-const PROFESSIONAL_FIELDS = [
-  'Software/IT', 'Data/Analytics', 'Product', 'Design/UX', 'Marketing',
-  'Sales/BD', 'Partnerships', 'Operations', 'Finance/Accounting', 'HR/People',
-  'Legal', 'Customer Success/Support', 'Engineering (non-software)',
-  'Healthcare/Clinical', 'Education/Academia', 'Public sector/Policy',
-  'Project/Programme Management', 'Consulting', 'Other',
-]
+// PROFESSIONAL_FIELDS, ROLE_FAMILIES and SALARY_FLOOR_OPTIONS live in
+// ../../lib/onboarding-options — shared with app/settings/page.js and
+// validated server-side in app/api/profile/save/route.js so all three
+// can't drift out of sync with each other again.
 
 const YEARS_EXPERIENCE = [
   { id: 'under2', label: 'Under 2 years' },
@@ -107,37 +104,6 @@ const STATUSES = [
   { id: 'returning',          title: 'Returning from a career break' },
 ]
 
-const ROLE_FAMILIES = [
-  // Marketing
-  'Marketing Generalist', 'Product Marketing', 'Content Marketing', 'Brand & Comms',
-  'Paid Media / Demand Gen', 'SEO / Organic', 'CRM / Lifecycle', 'Social Media',
-  // Sales, BD & Partnerships
-  'Partnerships', 'Business Development', 'Sales Generalist', 'Account Management',
-  'Revenue / Sales Ops',
-  // Product & Digital
-  'Product Management', 'Digital Strategy', 'Programme Lead', 'Project Management',
-  'Business Analysis', 'Strategy & Consulting',
-  // Tech
-  'Engineering', 'Data / Analytics', 'Design / UX', 'Product Design',
-  // Operations & Finance
-  'Operations Generalist', 'Finance Generalist', 'FP&A', 'Procurement',
-  // People
-  'HR Generalist', 'Talent Acquisition', 'People Ops', 'L&D',
-  // Growth & CS
-  'Growth', 'Customer Success', 'Community & Events',
-  // Other
-  'Legal', 'Comms / PR', 'Policy & Public Affairs',
-]
-
-const SENIORITIES = [
-  { id: 'ic',             label: 'Individual Contributor', desc: 'No direct reports. Specialist, analyst, or coordinator level.' },
-  { id: 'manager',        label: 'Manager',                desc: 'Leads a small team of 2–8 people, often still hands-on.' },
-  { id: 'senior_manager', label: 'Senior Manager',         desc: 'Leads a larger team or owns a sub-function. Usually 8+ years.' },
-  { id: 'head',           label: 'Head of',                desc: 'Owns an entire function and its budget. Reports into Director or C-suite.' },
-  { id: 'director',       label: 'Director',               desc: 'Department lead with strategic and commercial accountability.' },
-  { id: 'vp_plus',        label: 'VP / C-Suite',           desc: 'Executive or near-executive. Usually 15+ years.' },
-]
-
 function suggestSenioritiesFromTitle(title) {
   if (!title.trim()) return []
   const t = title.toLowerCase()
@@ -149,12 +115,6 @@ function suggestSenioritiesFromTitle(title) {
   if (t.includes('analyst') || t.includes('executive') || t.includes('coordinator') || t.includes('associate')) return ['ic', 'manager']
   return []
 }
-
-const INDUSTRIES = [
-  'Fintech', 'SaaS', 'Gaming', 'Martech', 'Retail Tech', 'Media',
-  'EdTech', 'HealthTech', 'Public Sector', 'Charity / Non-profit',
-  'Consumer Goods', 'Professional Services', 'Other',
-]
 
 const BENEFITS = [
   { id: 'enhanced_parental_leave', label: 'Enhanced parental leave' },
@@ -173,12 +133,6 @@ const RADIUS_OPTIONS = [
   { value: 100,  label: '100 mi' },
   { value: null, label: 'Anywhere' },
 ]
-
-// Fixed dropdown, not free text — a free-text £-value field caused a real
-// data bug (85 typed where "85" meant 85k, stored as £85,000,000; see
-// PROGRESS.md Stage 44 #9). Values are in whole £k, matching how the rest
-// of the app displays and reasons about salary_floor.
-const SALARY_FLOOR_OPTIONS = [50, 60, 70, 80, 90, 100, 120, 150]
 
 // ── Main page ─────────────────────────────────────────────────────
 
@@ -218,7 +172,11 @@ export default function OnboardPage() {
 
   // Requirements
   const [postcode, setPostcode]                     = useState('')
-  const [radiusMiles, setRadiusMiles]               = useState(null)
+  // Defaults to 50mi (not null) so a profile that never touches this step
+  // still writes a real, usable radius — "Anywhere" stays an explicit,
+  // deliberate choice (sets this back to null) rather than the same value
+  // as "never answered". See RADIUS_OPTIONS below.
+  const [radiusMiles, setRadiusMiles]               = useState(50)
   const [maxOfficeDays, setMaxOfficeDays]           = useState(2)
   const [salaryFloor, setSalaryFloor]               = useState('')
   const [wlbPriority, setWlbPriority]               = useState('medium')
@@ -243,6 +201,7 @@ export default function OnboardPage() {
   const openToContract = searchMode !== 'perm'
   const TOTAL = openToContract ? 6 : 5
   const isUK = !postcode.trim() || /^[A-Za-z]/.test(postcode.trim())
+  const shownRoleFamilies = visibleRoleFamilies(fields)
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email || ''))
@@ -567,7 +526,7 @@ export default function OnboardPage() {
                   <input
                     value={currentJobTitle}
                     onChange={e => setCurrentJobTitle(e.target.value)}
-                    placeholder="e.g. Ward Sister, Secondary School Teacher, Qualified Electrician"
+                    placeholder={`e.g. ${dailyPick(JOB_TITLE_EXAMPLE_SETS).join(', ')}`}
                     style={{ display: 'block', width: '100%', padding: '11px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -593,7 +552,7 @@ export default function OnboardPage() {
                   <textarea
                     value={careerSummary}
                     onChange={e => setCareerSummary(e.target.value)}
-                    placeholder="e.g. 12 years in acute nursing, most recently a Senior Sister role in an NHS trust. Looking for an advanced practice or clinical leadership role."
+                    placeholder={`e.g. ${dailyPick(CAREER_SUMMARY_EXAMPLES)}`}
                     rows={5}
                     style={{
                       display: 'block', width: '100%', padding: '12px 14px', fontSize: 13, lineHeight: 1.7,
@@ -646,10 +605,14 @@ export default function OnboardPage() {
               )}
 
               {/* CV-derived roles first and prominent — these are the real,
-                  open-vocabulary suggestion, not a pick from a fixed list. */}
-              {targetRoles.filter(r => !ROLE_FAMILIES.includes(r)).length > 0 && (
+                  open-vocabulary suggestion, not a pick from a fixed list.
+                  Checked against the FIELD-FILTERED list below (not the
+                  master ROLE_FAMILIES) so a role that belongs to a field the
+                  user hasn't picked still shows here as removable, instead
+                  of silently vanishing from both lists. */}
+              {targetRoles.filter(r => !shownRoleFamilies.includes(r)).length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                  {targetRoles.filter(r => !ROLE_FAMILIES.includes(r)).map(r => (
+                  {targetRoles.filter(r => !shownRoleFamilies.includes(r)).map(r => (
                     <span key={r} className="chip chip-lime" style={{ fontSize: 11 }}>
                       {r}
                       <button onClick={() => setTargetRoles(prev => prev.filter(x => x !== r))} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 4, fontSize: 11, color: 'var(--marker-black)', padding: 0 }}>×</button>
@@ -668,9 +631,11 @@ export default function OnboardPage() {
                 <button onClick={addCustomRole} className="btn btn-primary" style={{ flexShrink: 0, padding: '9px 14px', fontSize: 13 }}>Add</button>
               </div>
 
-              <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginBottom: 8 }}>Or pick from common role families:</div>
+              <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginBottom: 8 }}>
+                {fields.length > 0 ? 'Common role families for your field:' : 'Or pick from common role families:'}
+              </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {ROLE_FAMILIES.map(r => (
+                {shownRoleFamilies.map(r => (
                   <Chip key={r} label={r} selected={targetRoles.includes(r)} onClick={() => toggleMulti(targetRoles, setTargetRoles, r)} />
                 ))}
               </div>

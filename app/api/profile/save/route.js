@@ -4,6 +4,25 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { sendWelcome } from '../../../../lib/email'
+import { SALARY_FLOOR_OPTIONS } from '../../../../lib/onboarding-options'
+
+// salary_floor is a closed-set dropdown client-side (see
+// lib/onboarding-options.js) — anything outside SALARY_FLOOR_OPTIONS can
+// only be bad data (e.g. a full £ value like "80000" sent where "80"/£80k
+// was expected — the exact corruption found live on 2 production rows:
+// PROGRESS.md Stage 44 #9 / Stage 46 repair). Snap to the nearest real
+// option instead of trusting the raw client number, so this bug class
+// can't recur regardless of caller.
+function normalizeSalaryFloor(raw) {
+  if (!raw) return null
+  const k = parseInt(raw, 10)
+  if (!Number.isFinite(k) || k <= 0) return null
+  const nearest = SALARY_FLOOR_OPTIONS.reduce(
+    (best, opt) => (Math.abs(opt - k) < Math.abs(best - k) ? opt : best),
+    SALARY_FLOOR_OPTIONS[0]
+  )
+  return nearest * 1000
+}
 
 export async function POST(request) {
   const cookieStore = await cookies()
@@ -39,6 +58,9 @@ export async function POST(request) {
     ...(p.benefits           !== undefined  ? { benefits: p.benefits }                     : {}),
     ...(p.surfaces           !== undefined  ? { surfaces: p.surfaces }                     : {}),
     ...(p.seniorities        !== undefined  ? { seniorities: p.seniorities }               : {}),
+    // null here means the user explicitly picked "Anywhere" (onboarding now
+    // defaults this control to 50mi, not null, so null only ever reaches
+    // here as a deliberate choice going forward — see app/onboard/page.js).
     ...(p.radiusMiles        !== undefined  ? { radiusMiles: p.radiusMiles }               : {}),
     ...(p.tracks             !== undefined  ? { tracks: p.tracks }                         : {}),
     ...(p.cvRaw              !== undefined  ? { cvRaw: p.cvRaw }                           : {}),
@@ -71,7 +93,7 @@ export async function POST(request) {
     industries: p.industries || [],
     postcode: p.postcode || null,
     max_office_days: p.maxOfficeDays != null ? parseFloat(p.maxOfficeDays) : null,
-    salary_floor: p.salaryFloor ? parseInt(p.salaryFloor) * 1000 : null,
+    salary_floor: normalizeSalaryFloor(p.salaryFloor),
     hard_filters_json: merged,
     region: 'uk',
   }, { onConflict: 'user_id' })
