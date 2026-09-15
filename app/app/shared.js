@@ -259,7 +259,7 @@ export function FreshScanButton({ endpoints, onScanComplete, maxDaysOld }) {
       <button
         onClick={locked || exhausted || scanning ? undefined : runScan}
         disabled={scanning}
-        title={locked ? 'Upgrade to Pro for live Fresh Scans — free plans read the shared daily-refreshed feed' : exhausted ? 'Fresh scan limit reached today' : undefined}
+        title={locked ? 'Upgrade to Pro for live Fresh Scans: free plans read the shared daily-refreshed feed' : exhausted ? 'Fresh scan limit reached today' : undefined}
         style={{
           background: locked ? 'var(--marker-cream-2)' : exhausted ? 'var(--marker-border)' : 'var(--marker-lime)',
           border: locked ? '1px solid var(--marker-border)' : 'none',
@@ -351,7 +351,7 @@ export function PipelineCard({ job, onEditDetails, onDelete, onScore, onTailorCv
 
       {job.possibleDuplicateOf && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11, color: '#92400E', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: 6, padding: '6px 8px', marginBottom: 8, lineHeight: 1.4 }}>
-          <span style={{ flex: 1 }}>This might be the same as {job.possibleDuplicateOf.company} — {job.possibleDuplicateOf.roleTitle}, worth a check.</span>
+          <span style={{ flex: 1 }}>This might be the same as {job.possibleDuplicateOf.company} · {job.possibleDuplicateOf.roleTitle}, worth a check.</span>
           {onDismissDuplicateFlag && (
             <button onClick={() => onDismissDuplicateFlag(job.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400E', fontSize: 11, padding: 0, flexShrink: 0 }}>✕</button>
           )}
@@ -1322,12 +1322,10 @@ export function buildWhyBullets(job, profile) {
 
 // ── Today Dashboard ──────────────────────────────────────────────────
 export const DAILY_INSIGHTS = [
-  'Roles with 3+ dimensions scoring 7+ have a much higher interview rate than average. Prioritise those first.',
-  'Following up on applications older than 7 days doubles response rates. Most candidates never do it.',
-  'Senior roles close faster than they post. Apply to your 7+ scored roles within 48 hours of finding them.',
-  'Tailoring your CV opening paragraph to the JD keywords typically raises ATS match scores significantly.',
-  'The best hiring managers do read cover letters. Three focused paragraphs beat a generic one every time.',
-  'Roles posted Monday or Tuesday fill fastest; the hiring team is fresh off the weekly planning meeting.',
+  'Following up on an application after a week rarely hurts, and most candidates never bother.',
+  'A role can close quickly once a strong candidate applies. If something scores 7 or higher, it is worth applying sooner rather than letting it sit.',
+  'Echoing a few of the JD\'s own keywords in your CV opening paragraph is a simple way to signal genuine fit at a glance, to a human reader as much as any system.',
+  'Good hiring managers do read cover letters. Three focused paragraphs usually beat a generic one.',
   'Practising your answer to "walk me through your background" out loud cuts interview nerves by more than you expect.',
 ]
 
@@ -1337,11 +1335,11 @@ export const TAB_TOOLTIPS = {
   Discover:   'Your personalised job feed and target company shortlist',
   Aggregator: 'Pre-filled search links for LinkedIn, Indeed and Adzuna, built from your profile, plus a cadence tracker for your daily sweep',
   WLB:        'Curated employer reference: Glassdoor WLB scores, parental leave, and office days before you commit to applying',
-  CV:         'Generate a tailored CV prompt or cover letter for any pipeline role',
+  CV:         'Generate a tailored CV or cover letter for any pipeline role, with a copy-paste option if you would rather use your own AI tool',
   Interview:  'Full interview prep pack: company research, questions, STAR stories',
   Referrals:  'The people you know: draft warm referral asks, reconnects, and speculative outreach',
   Contractor: 'Curated employer list, recruiter directory, and live contract role scan',
-  Profile:    'Everything Requite knows about you — your CV, target roles, and preferences. Edit anything.',
+  Profile:    'Everything Requite knows about you: your CV, target roles, and preferences. Most fields are editable here; career history is edited in Settings.',
 }
 
 // plan: 'free' | 'trial' | 'perm' | 'contractor' | 'both'

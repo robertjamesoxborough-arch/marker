@@ -141,7 +141,7 @@ export default function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJ
       {!stripped && (
         <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--marker-border)' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 3 }}>Score a job</div>
-          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Drop in a link and we&apos;ll try to pull the details in, or paste the job description straight in — either way Requite scores it, tailors your CV, and preps your interview against it in about 30 seconds.</div>
+          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Drop in a link and we&apos;ll try to pull the details in, or paste the job description straight in: either way Requite scores it, tailors your CV, and preps your interview against it in about 30 seconds.</div>
         </div>
       )}
 
@@ -228,7 +228,7 @@ export default function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJ
         )}
 
         <div style={{ marginBottom: 10 }}>
-          <PasteJdCallout subtext="This is what actually gets scored — a link alone doesn't always pull cleanly." />
+          <PasteJdCallout subtext="This is what actually gets scored: a link alone doesn't always pull cleanly." />
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description…" rows={7}
             style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
         </div>

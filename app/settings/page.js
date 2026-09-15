@@ -159,7 +159,7 @@ function CareerHistorySection() {
           <div key={r.id || i} style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, padding: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               {r.confidence && r.confidence !== 'high' && (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 7px', borderRadius: 4, background: r.confidence === 'low' ? '#FCA5A5' : '#F5E4A0', color: 'var(--marker-black)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{r.confidence} confidence — check this</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 7px', borderRadius: 4, background: r.confidence === 'low' ? '#FCA5A5' : '#F5E4A0', color: 'var(--marker-black)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{r.confidence} confidence: check this</span>
               )}
               <button onClick={() => remove(i)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#B91C1C', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Remove</button>
             </div>
@@ -542,7 +542,7 @@ export default function SettingsPage() {
 
         {/* Background */}
         <Section title="Professional background">
-          <Label sub="Used to tune job searches, scoring, and CV generation — pick all that apply">Field</Label>
+          <Label sub="Used to tune job searches, scoring, and CV generation: pick all that apply">Field</Label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             {PROFESSIONAL_FIELDS.map(f => (
               <Chip key={f} label={f} selected={fields.includes(f)}

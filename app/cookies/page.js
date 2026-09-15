@@ -2,11 +2,11 @@ export default function CookiesPage() {
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', lineHeight: 1.7 }}>
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Cookie Policy</div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', marginBottom: 40 }}>Last updated: July 2026 · Requite</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', marginBottom: 40 }}>Last updated: September 2026 · Requite</div>
 
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>What cookies we use</div>
-        <div style={{ fontSize: 14, marginBottom: 16 }}>Requite uses only essential cookies. We do not use advertising, tracking, or analytics cookies.</div>
+        <div style={{ fontSize: 14, marginBottom: 16 }}>Requite sets cookies only for authentication, listed below. We do not use advertising or third-party tracking cookies. We do use Vercel Analytics and Vercel Speed Insights to understand how Requite is used; these do not set cookies in your browser, but they do process anonymised, aggregated usage data. See "Analytics" below.</div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
@@ -37,8 +37,13 @@ export default function CookiesPage() {
       </div>
 
       <div style={{ marginBottom: 28 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Analytics</div>
+        <div style={{ fontSize: 14 }}>Vercel Analytics and Vercel Speed Insights collect anonymised, aggregated data about page views and site performance. Neither sets a cookie or any other identifier in your browser, and neither is used for advertising or cross-site tracking.</div>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Third parties</div>
-        <div style={{ fontSize: 14 }}>We use <strong>Supabase</strong> for authentication (cookies above) and <strong>Vercel</strong> for hosting (no tracking cookies set by Vercel on your behalf). Anthropic processes API requests server-side and does not set cookies in your browser.</div>
+        <div style={{ fontSize: 14 }}>We use <strong>Supabase</strong> for authentication (cookies above) and <strong>Vercel</strong> for hosting, analytics, and performance monitoring (see above; no tracking cookies set by Vercel on your behalf). Anthropic processes API requests server-side and does not set cookies in your browser.</div>
       </div>
 
       <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--marker-border)' }}>

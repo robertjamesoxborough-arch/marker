@@ -85,7 +85,7 @@ export default function ContractorCvPanel({ profile }) {
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
-        Generate a skills-led CV to send directly to recruitment agencies, not tied to any single role — the same premium output as your AI Generate CV (verified-stats check, ATS-safe layout), just framed for contractor mailshots.
+        Generate a skills-led CV to send directly to recruitment agencies, not tied to any single role: the same premium output as your AI Generate CV (verified-stats check, format-safe layout), just framed for contractor mailshots.
       </div>
 
       <button onClick={generate} disabled={loading}
@@ -130,7 +130,7 @@ export default function ContractorCvPanel({ profile }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {result.atsCheck && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: result.atsCheck.structureOk ? '#f0fdf4' : '#fffbeb', border: `1px solid ${result.atsCheck.structureOk ? '#86efac' : '#fcd34d'}`, fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-black)', lineHeight: 1.6 }}>
-              <strong>ATS check:</strong> {result.atsCheck.summary}
+              <strong>Format &amp; keyword check:</strong> {result.atsCheck.summary}
             </div>
           )}
           {result.flaggedMetrics && result.flaggedMetrics.length > 0 && (

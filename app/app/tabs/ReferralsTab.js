@@ -269,14 +269,14 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
           <div style={{ padding: 14, borderRadius: 10, border: '1px solid var(--marker-black)', background: 'var(--marker-cream-2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)' }}>
-                {draftFor.job ? `${draftFor.contact.name} — ${draftFor.job.roleTitle || draftFor.job.company}` : `${draftFor.contact.name} — speculative`}
+                {draftFor.job ? `${draftFor.contact.name} · ${draftFor.job.roleTitle || draftFor.job.company}` : `${draftFor.contact.name} · speculative`}
               </div>
               <button onClick={() => setDraftFor(null)} style={{ background: 'none', border: 'none', color: 'var(--marker-mid)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
             </div>
 
             {draftFor.job && (
               <div style={{ fontSize: 11, color: 'var(--marker-mid)' }}>
-                Role status: <strong>{draftFor.job.status}</strong>{POST_APPLY_STATUSES.includes(draftFor.job.status) ? ' — already applied, so a referral ask is off the table; nudge or intel only.' : ''}
+                Role status: <strong>{draftFor.job.status}</strong>{POST_APPLY_STATUSES.includes(draftFor.job.status) ? ': already applied, so a referral ask is off the table; nudge or intel only.' : ''}
               </div>
             )}
 
@@ -338,7 +338,7 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
                   <div key={r.id} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--marker-border)', background: '#fff' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--marker-black)' }}>{contact?.name || 'Unknown contact'}{job ? ` — ${job.roleTitle || job.company}` : ' — speculative'}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--marker-black)' }}>{contact?.name || 'Unknown contact'}{job ? ` · ${job.roleTitle || job.company}` : ' · speculative'}</div>
                         <div style={{ fontSize: 10, color: 'var(--marker-mid)', fontFamily: 'var(--font-mono)' }}>{MESSAGE_TYPE_META[r.message_type]?.label || r.message_type}</div>
                       </div>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 8px', borderRadius: 4, background: STATUS_COLORS[r.status] || 'var(--marker-border)', color: 'var(--marker-black)', textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>

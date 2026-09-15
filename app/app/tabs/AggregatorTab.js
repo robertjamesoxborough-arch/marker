@@ -173,10 +173,10 @@ export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJo
         Job Aggregator
       </div>
       <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6, maxWidth: 620, marginBottom: 10 }}>
-        We build the search links, you check the results. Requite never pulls or stores anything from LinkedIn, Indeed, or Adzuna&apos;s own site — every button below opens that channel&apos;s own results in a new tab, built from your profile.
+        We build the search links, you check the results. Requite never pulls or stores anything from LinkedIn, Indeed, or Adzuna&apos;s own site: every button below opens that channel&apos;s own results in a new tab, built from your profile.
       </div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginBottom: 24 }}>
-        Honest limitation: LinkedIn ignores the location we send it, so LinkedIn links below are UK-wide, not &quot;near you&quot; — Indeed and Adzuna do respect your location and radius.
+        Honest limitation: LinkedIn ignores the location we send it, so LinkedIn links below are UK-wide, not &quot;near you&quot;. Indeed and Adzuna do respect your location and radius.
       </div>
 
       {targetRoles.length === 0 ? (
@@ -244,7 +244,7 @@ export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJo
       <div style={{ border: '1px dashed var(--marker-border)', borderRadius: 10, padding: '14px 16px', marginBottom: 28, background: 'var(--marker-cream-2)' }}>
         <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 4 }}>Coming soon: your specialist board</div>
         <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
-          Healthcare, education, and trades each have their own primary hiring channel (NHS Jobs, teaching-vacancy portals, trade-body boards) that isn&apos;t wired up here yet — not faked with a generic search link. Roadmap item, not built.
+          Healthcare, education, and trades each have their own primary hiring channel (NHS Jobs, teaching-vacancy portals, trade-body boards) that isn&apos;t wired up here yet, and we haven&apos;t faked it with a generic search link. Roadmap item, not built.
         </div>
       </div>
 
@@ -273,7 +273,7 @@ export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJo
               style={{ display: 'block', width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-mono)', marginBottom: 8 }}
             />
             {overBatchLimit && (
-              <div style={{ fontSize: 11, color: '#B45309', marginBottom: 8 }}>Only the first {MAX_BRING_IN_BATCH} lines will be scored this run — paste the rest in a second batch.</div>
+              <div style={{ fontSize: 11, color: '#B45309', marginBottom: 8 }}>Only the first {MAX_BRING_IN_BATCH} lines will be scored this run: paste the rest in a second batch.</div>
             )}
             {allowance && (
               <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 12 }}>
@@ -303,7 +303,7 @@ export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJo
                         {r.status === 'done' ? `Score ${parseFloat(r.data?.score) || 0}` : r.status === 'scoring' ? 'Scoring…' : r.status === 'checking' ? 'Checking…' : r.status === 'error' ? 'Failed' : r.status === 'skipped' ? 'Skipped' : r.status === 'duplicate' ? 'Already have' : 'Waiting'}
                       </span>
                       <span style={{ flex: 1, color: 'var(--marker-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {r.status === 'done' ? `${r.data?.company || 'Unknown'} — ${r.data?.roleTitle || 'Unknown'}` : r.status === 'duplicate' ? `${r.peek?.company || 'Unknown'} — ${r.peek?.roleTitle || 'Unknown'}` : r.input}
+                        {r.status === 'done' ? `${r.data?.company || 'Unknown'} · ${r.data?.roleTitle || 'Unknown'}` : r.status === 'duplicate' ? `${r.peek?.company || 'Unknown'} · ${r.peek?.roleTitle || 'Unknown'}` : r.input}
                       </span>
                       {r.status === 'done' && (
                         <button onClick={() => addResultToPipeline(r, i)} disabled={!!addedIds[i]} style={{ flexShrink: 0, fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 6, border: 'none', cursor: addedIds[i] ? 'default' : 'pointer', background: addedIds[i] ? 'var(--marker-border)' : 'var(--marker-black)', color: addedIds[i] ? 'var(--marker-mid)' : 'var(--marker-cream)' }}>
@@ -323,7 +323,7 @@ export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJo
                     )}
                     {r.status === 'done' && r.dupeMatch?.tier === 'soft' && (
                       <div style={{ fontSize: 11, color: '#92400E', marginTop: 4 }}>
-                        Might be the same as {r.dupeMatch.record.company} — {r.dupeMatch.record.roleTitle}, worth a check.
+                        Might be the same as {r.dupeMatch.record.company} · {r.dupeMatch.record.roleTitle}, worth a check.
                       </div>
                     )}
                     {/* Verdict — plain-English read + desirability/

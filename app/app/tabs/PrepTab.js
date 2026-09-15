@@ -315,7 +315,7 @@ export default function PrepTab({ jobs, profile, updateJob, onSwitchToPipeline, 
           exactly what final-round prep needs to see. */}
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>
-          Notes from this process <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(what actually happened — feeds every later prep pack)</span>
+          Notes from this process <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(what actually happened, feeds every later prep pack)</span>
         </label>
         {notes.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
@@ -498,7 +498,7 @@ export default function PrepTab({ jobs, profile, updateJob, onSwitchToPipeline, 
               <div ref={resultsRef} style={{ padding: 14, fontSize: 12, maxHeight: 560, overflowY: 'auto', fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                 <section id="sec-essentials">
-                  <div style={KICKER}>JD essentials — what this role actually wants</div>
+                  <div style={KICKER}>JD essentials: what this role actually wants</div>
                   {renderPrepMarkdown(pack.jdEssentials)}
                 </section>
 
@@ -513,7 +513,7 @@ export default function PrepTab({ jobs, profile, updateJob, onSwitchToPipeline, 
                 </section>
 
                 <section id="sec-questions">
-                  <div style={KICKER}>Likely questions — scripted answers</div>
+                  <div style={KICKER}>Likely questions: scripted answers</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {(pack.likelyQuestions || []).map((q, i) => (
                       <div key={i} style={{ padding: '10px 12px', borderRadius: 8, background: '#fff', border: '1px solid var(--marker-border)' }}>
@@ -523,7 +523,7 @@ export default function PrepTab({ jobs, profile, updateJob, onSwitchToPipeline, 
                           <div style={{ fontSize: 12.5, color: 'var(--marker-text)', lineHeight: 1.65, fontStyle: 'italic' }}>&ldquo;{q.say}&rdquo;</div>
                         </div>
                         <button onClick={() => toggleVary(i)} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', textDecoration: 'underline', cursor: 'pointer', letterSpacing: '0.03em' }}>
-                          {variedIdx.has(i) ? 'Hide framework' : 'Vary it — show the framework instead'}
+                          {variedIdx.has(i) ? 'Hide framework' : 'Vary it: show the framework instead'}
                         </button>
                         {variedIdx.has(i) && (
                           <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--marker-border)', fontSize: 11.5, color: 'var(--marker-mid)', lineHeight: 1.6 }}>{q.framework}</div>

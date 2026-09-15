@@ -434,7 +434,7 @@ export default function OnboardPage() {
             <div className="kicker holo-text" style={{ marginBottom: 12 }}>Step 2 · Optional</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Drop your CV in. We'll do the reading.</h2>
             <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 24, lineHeight: 1.6 }}>
-              Paste your CV and we'll pre-fill your roles, seniority, and industries on the next step — whatever field you're in.
+              Paste your CV and we'll pre-fill your roles, seniority, and industries on the next step, whatever field you're in.
             </p>
             <textarea
               value={cvText}

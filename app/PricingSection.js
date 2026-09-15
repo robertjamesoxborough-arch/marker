@@ -16,13 +16,13 @@ const tiers = [
     name: 'Pro',
     sub: 'Going all in',
     monthly: 19,
-    detail: 'Unlimited AI · CV tailoring · cover letters · interview prep · negotiation',
+    detail: 'AI scoring (1,000/mo) · CV tailoring · cover letters · interview prep · negotiation',
     cta: 'Choose Pro',
     flag: true,
   },
   {
     name: 'Max',
-    sub: 'Everything, uncapped.',
+    sub: 'Higher limits, more headroom.',
     monthly: 39,
     detail: '3× higher limits · 60 CV tailors · 60 cover letters · 30 interview packs',
     cta: 'Choose Max',
@@ -75,7 +75,7 @@ export default function PricingSection() {
         ))}
       </div>
       <div style={{ marginTop: 24, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', textAlign: 'center' }}>
-        No employer subscriptions, no ad slots, no data sold. Your fee is the only thing that keeps this running.
+        No employer subscriptions, no ad slots, no data sold. Your subscription is the only thing we intend to ever charge for.
       </div>
     </section>
   )

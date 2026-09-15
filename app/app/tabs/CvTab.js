@@ -41,7 +41,7 @@ export default function CvTab({ profile, jobs: allJobs, updateJob, prefill, onCl
         <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
           {isContractorOnly
             ? 'Generate a skills-based CV to send directly to recruiters, no specific JD needed. Designed for contractor market.'
-            : 'Pick a role from your pipeline and generate a tailored CV or cover letter in seconds, matched to the JD — with a copy-paste option if you’d rather use your own Claude or ChatGPT.'}
+            : 'Pick a role from your pipeline and generate a tailored CV or cover letter in seconds, matched to the JD, with a copy-paste option if you’d rather use your own Claude or ChatGPT.'}
         </div>
       </div>
 

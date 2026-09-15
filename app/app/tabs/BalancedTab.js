@@ -87,7 +87,7 @@ export default function BalancedTab({ jobs: pipelineJobs, addJob }) {
       <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--marker-border)' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Best titles for senior + balanced</div>
-          <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 4, lineHeight: 1.5 }}>Title semantics below are specific to office/corporate roles — in clinical, trades, and education, WLB signals come from shift patterns, staffing ratios and term structure rather than the title itself, so the same idea applies but the giveaways differ.</div>
+          <div style={{ fontSize: 11, color: 'var(--marker-mid)', marginTop: 4, lineHeight: 1.5 }}>Title semantics below are specific to office/corporate roles. In clinical, trades, and education, WLB signals come from shift patterns, staffing ratios and term structure rather than the title itself, so the same idea applies but the giveaways differ.</div>
         </div>
         {[
           { title: 'Programme Manager',        why: 'Structured delivery, clear scope, rarely on-call' },

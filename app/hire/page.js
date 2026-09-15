@@ -139,7 +139,7 @@ export default function HirePage() {
           <span className="chrome-text">We&apos;re building this. Register your interest.</span>
         </h1>
         <p style={{ fontSize: 18, color: 'var(--marker-mid)', maxWidth: 600, lineHeight: 1.65, marginBottom: 28 }}>
-          {BRAND_NAME}&apos;s candidate marketplace, matched shortlists, anonymised intros, isn&apos;t live yet: we have no employers and no completed hires to point to. What we do have is a growing pool of real candidates on the platform. Registering interest now costs nothing and helps us tell you honestly when there&apos;s a genuine match for your role.
+          {BRAND_NAME}&apos;s candidate marketplace, matched shortlists, anonymised intros, isn&apos;t live yet: we have no employers and no completed hires to point to. What we do have is real candidates already using the product to search and score roles. Registering interest now costs nothing and helps us tell you honestly when there&apos;s a genuine match for your role.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
           {['Early access, not a live marketplace yet', 'No fee to register', 'We only reach out with a genuine match'].map(f => (

@@ -385,7 +385,7 @@ export default function AppPage() {
               <div className="chip" style={{ fontSize: 9, padding: '3px 7px' }}>
                 {jobs.filter(j => j.score > 0).length}/{jobs.length} SCORED
               </div>
-              <button onClick={() => router.push('/settings')} title="Settings — edit your profile, CV and criteria"
+              <button onClick={() => router.push('/settings')} title="Settings: edit your profile, CV and criteria"
                 style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', borderRadius: 7, padding: '6px 12px', fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500, cursor: 'pointer', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 <span style={{ fontSize: 14 }}>⚙</span>
                 Settings
@@ -542,7 +542,7 @@ export default function AppPage() {
             {expiredJobs.length > 0 && !expiredBannerDismissed && (
               <div style={{ margin: '10px 16px 0', padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ fontSize: 12, color: 'var(--marker-black)' }}>
-                  <strong>{expiredJobs.length}</strong> role{expiredJobs.length !== 1 ? 's' : ''} in your pipeline {expiredJobs.length !== 1 ? 'have' : 'has'} a dead link. Archive them to keep your board current — the row stays, just hidden from active columns.
+                  <strong>{expiredJobs.length}</strong> role{expiredJobs.length !== 1 ? 's' : ''} in your pipeline {expiredJobs.length !== 1 ? 'have' : 'has'} a dead link. Archive them to keep your board current: the row stays, just hidden from active columns.
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   <button onClick={archiveAllExpired} style={{ background: 'var(--marker-black)', color: 'var(--marker-cream)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer' }}>Archive all</button>
@@ -735,7 +735,7 @@ export default function AppPage() {
               <div className="kicker holo-text" style={{ marginBottom: 6 }}>Know before you apply</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 8 }}>Employers actually worth working for.</div>
               <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Real Glassdoor WLB scores, parental leave policies, and office expectations, so you can research culture before you commit to an application.</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 8 }}>Culture data from public Glassdoor scores, company disclosures, and employer surveys. Always verify directly with the employer before applying.</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 8 }}>Culture data from public Glassdoor scores and published company disclosures. Always verify directly with the employer before applying.</div>
             </div>
             <BalancedTab jobs={jobs} addJob={addJob} />
           </div>
@@ -812,7 +812,7 @@ export default function AppPage() {
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Looks like you&apos;ve already handled this</div>
             <div style={{ fontSize: 13, color: 'var(--marker-black)', fontWeight: 500, marginBottom: 4 }}>{describeDuplicateMatch(dupeConfirm.match)}</div>
             <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 16 }}>
-              {dupeConfirm.match.record.company} — {dupeConfirm.match.record.roleTitle}
+              {dupeConfirm.match.record.company} · {dupeConfirm.match.record.roleTitle}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => { commitJob(dupeConfirm.job); setDupeConfirm(null) }} style={{ background: 'none', border: '1px solid var(--marker-border)', borderRadius: 8, padding: '9px 16px', fontSize: 13, cursor: 'pointer', color: 'var(--marker-text)' }}>Add anyway</button>

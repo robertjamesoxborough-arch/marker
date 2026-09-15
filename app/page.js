@@ -100,7 +100,7 @@ export default async function Home() {
             letterSpacing: '-0.015em', lineHeight: 1.4, marginBottom: 20,
             display: 'inline-block',
           }}>
-            For senior professionals who&apos;d quite like their evenings back.
+            For people who&apos;d quite like their evenings back.
           </div>
           <h1 className="display-xl" style={{ fontSize: 'clamp(40px, 8vw, 120px)', marginBottom: 24, textWrap: 'balance' }}>
             <span className="chrome-text">Score every job before you waste time on it.</span>
@@ -143,8 +143,8 @@ export default async function Home() {
       {/* ── FRESHNESS STRIP ── */}
       <section style={{ padding: '32px 64px', background: 'var(--marker-black)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 20px)', color: 'var(--marker-cream)', textAlign: 'center', maxWidth: 820, lineHeight: 1.55, margin: 0 }}>
-          Every job shows when it was last checked. Stale ones get flagged, closed ones get removed, so you&apos;re only ever spending effort on roles that are actually open.{' '}
-          <span style={{ color: 'var(--marker-lime)', fontWeight: 500 }}>(No more polishing a cover letter for something that died last week.)</span>
+          Every job shows when it was last checked, and stale ones get flagged. A nightly check works through the cache in batches, catching closed roles and removing them over time.{' '}
+          <span style={{ color: 'var(--marker-lime)', fontWeight: 500 }}>(Less chance of polishing a cover letter for something that died last week.)</span>
         </p>
       </section>
 
@@ -208,7 +208,7 @@ export default async function Home() {
         <div className={styles.personaHeader}>
           <div className="kicker holo-text" style={{ marginBottom: 16 }}>Who it&apos;s for</div>
           <h2 className="display-lg" style={{ fontSize: 'clamp(32px, 4vw, 52px)', color: 'var(--marker-black)', marginBottom: 0, textWrap: 'balance' }}>
-            People who&apos;ve earned<br />the right to be specific.
+            For anyone done applying<br />to everything and hoping.
           </h2>
         </div>
         <div className={styles.personaGrid}>
@@ -292,7 +292,7 @@ export default async function Home() {
         <div style={{ maxWidth: 600, textAlign: 'center' }}>
           <div className="kicker" style={{ marginBottom: 16 }}>Know someone who should be using this?</div>
           <p style={{ fontSize: 17, color: 'var(--marker-text)', lineHeight: 1.65, marginBottom: 28 }}>
-            Share your link. If they land a role through {BRAND_NAME}, there&apos;s a thank-you in it for both of you.
+            Share your link. It helps us reach people who&apos;d get real value here. No referral reward exists yet, but if that changes, we&apos;ll tell you plainly.
           </p>
           <TrackCTA href="/app" event="referral_cta_clicked" props={{ location: 'landing' }} className="btn btn-ghost" style={{ fontSize: 14 }}>
             Get your link →
@@ -329,12 +329,9 @@ export default async function Home() {
               { l: 'Privacy', href: '/privacy' },
               { l: 'Terms', href: '/terms' },
               { l: 'Cookies', href: '/cookies' },
-              { l: 'DPA', href: null },
-              { l: 'Status', href: null },
-            ].map(({ l, href }) => href
-              ? <a key={l} href={href} style={{ color: 'inherit', textDecoration: 'none' }}>{l}</a>
-              : <span key={l} style={{ opacity: 0.4 }}>{l}</span>
-            )}
+            ].map(({ l, href }) => (
+              <a key={l} href={href} style={{ color: 'inherit', textDecoration: 'none' }}>{l}</a>
+            ))}
           </div>
         </div>
         <div className={styles.footerBottom}>

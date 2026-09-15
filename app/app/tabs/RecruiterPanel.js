@@ -104,7 +104,7 @@ Make sure the CV is tailored to ${r.agency}'s typical clients: ${(r.companies ||
         <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
           {isContractor
             ? 'Agencies that regularly place senior contractors. Sorted by how relevant they are to your field. Set up alerts and add yourself to each database.'
-            : 'Agencies and search firms for senior permanent roles. Register with Priority 1 first. Each card includes ATS tips and a ready-to-use CV prompt optimised for their system.'}
+            : 'Agencies and search firms for permanent roles. Register with Priority 1 first. Each card includes ATS tips and a ready-to-use CV prompt optimised for their system.'}
         </div>
         {recruiters && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>

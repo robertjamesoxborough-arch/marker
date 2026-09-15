@@ -18,7 +18,8 @@ const PLAN_DEFS = [
       'AI job scoring: 30 scores per month',
       'Memory Card: everything Requite knows about you',
       'Basic AI intake and profile setup',
-      'Honest limits shown upfront — no hidden paywalls',
+      'Cover letters, interview prep, negotiation rehearsal, and recruiter search are Pro and Max only',
+      'Honest limits shown upfront: no hidden paywalls',
     ],
     cta: 'Start free',
     highlight: false,
@@ -31,13 +32,13 @@ const PLAN_DEFS = [
     tagline: 'For an active, serious search',
     features: [
       'Everything in Free',
-      'Unlimited AI job scoring',
+      'AI job scoring: 1,000 per month',
       'CV tailoring with verified-stats guardrail (20/mo)',
       'Cover letters, tailored to each role (20/mo)',
       'Interview prep pack for any role (8/mo)',
       'Salary benchmark and negotiation rehearsal (8/mo)',
-      'Priority freshness: daily feed refresh',
-      'Advanced filters and profile controls',
+      'Recruiter search: 5 per month',
+      '3 on-demand fresh feed scans per day',
     ],
     cta: 'Choose Pro',
     highlight: true,
@@ -55,7 +56,8 @@ const PLAN_DEFS = [
       'Interview prep: 30 per month',
       'Negotiation rehearsal: 30 per month',
       'Cover letters: 60 per month',
-      'First access to new features',
+      'Recruiter search: 20 per month',
+      '10 on-demand fresh feed scans per day',
     ],
     cta: 'Choose Max',
     highlight: false,
@@ -131,7 +133,7 @@ function PricingContent() {
           You pay us.<br />So we work for you.
         </h1>
         <p style={{ fontSize: 15, color: 'var(--marker-mid)', lineHeight: 1.7, margin: 0 }}>
-          Start free and stay free for as long as it works for you. Upgrade only if you want the unlimited AI tools. No employer pays us, so nothing pulls us away from your side.
+          Start free and stay free for as long as it works for you. Upgrade for higher limits and more AI tools. No employer pays us, so nothing pulls us away from your side.
         </p>
       </div>
 
@@ -190,6 +192,13 @@ function PricingContent() {
         ))}
       </div>
 
+      {/* Shared web-search pool note */}
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 32px', textAlign: 'center' }}>
+        <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.7 }}>
+          Recruiter search, live company research, and the AI search fallback all use web search, our most expensive call type, so on top of their own limits above they also draw from one shared monthly pool: 3 searches on Free, 30 on Pro, 60 on Max. In practice this rarely binds before the limits shown, but it is a real ceiling worth knowing about.
+        </div>
+      </div>
+
       {/* Employer note */}
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 48px', textAlign: 'center' }}>
         <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12, padding: '20px 24px' }}>
@@ -203,9 +212,9 @@ function PricingContent() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 80px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 28, textAlign: 'center' }}>Common questions</div>
         {[
-          { q: 'Is the free tier really free?', a: 'Yes. The pipeline board, nightly job feed, Memory Card, and 30 AI scores per month are free with no trial period and no credit card required. Limits are shown upfront.' },
-          { q: 'What does Pro include?', a: 'Unlimited AI scoring, CV tailoring (20/mo), cover letters (20/mo), interview prep packs (8/mo), salary benchmarks, and negotiation rehearsal tied to your tracked roles.' },
-          { q: 'What does Max include?', a: 'Everything in Pro at 3x the volume: 3,000 AI scores, 60 CV tailors, 30 interview packs, 30 negotiation packs, and 60 cover letters per month. Built for high-intensity or multi-track searches.' },
+          { q: 'Is the free tier really free?', a: 'Yes. The pipeline board, nightly job feed, Memory Card, and 30 AI scores per month are free forever, no credit card required. Every new account also gets a 7-day trial with Pro-level limits, so you can try the full toolkit before deciding. Limits are shown upfront.' },
+          { q: 'What does Pro include?', a: '1,000 AI scores per month, CV tailoring (20/mo), cover letters (20/mo), interview prep packs (8/mo), salary benchmarks and negotiation rehearsal (8/mo), 5 recruiter searches per month, and 3 on-demand fresh feed scans per day.' },
+          { q: 'What does Max include?', a: 'Everything in Pro at 3x the volume: 3,000 AI scores, 60 CV tailors, 30 interview packs, 30 negotiation packs, and 60 cover letters per month, plus 20 recruiter searches per month and 10 on-demand fresh feed scans per day. Built for high-intensity or multi-track searches.' },
           { q: 'Can I cancel Pro or Max?', a: 'Yes, at any time from Settings. Your account stays active until the end of the billing period. No cancellation fees. Refunds are available within 7 days of any charge.' },
           { q: 'Are the job scores guaranteed?', a: 'No. Scores are AI estimates based on your profile; they are a starting point for your own judgement, not a hiring prediction or professional recommendation. See the full disclaimer in our Terms.' },
           { q: 'Where does job data come from?', a: 'Live roles come from Adzuna, who aggregate listings from thousands of job boards nightly. WLB employer data is sourced from public Glassdoor scores and employer disclosures; always verify directly with the employer.' },

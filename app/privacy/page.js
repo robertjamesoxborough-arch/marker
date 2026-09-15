@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', lineHeight: 1.7 }}>
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8 }}>Privacy Policy</div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', marginBottom: 40 }}>Last updated: May 2026 · Requite</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', marginBottom: 40 }}>Last updated: September 2026 · Requite</div>
 
       {[
         { title: 'Who we are', body: 'Requite is a trading name of Robert Oxborough. We are based in the United Kingdom. Contact: support@upstreaminsights.co.uk.' },

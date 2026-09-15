@@ -288,7 +288,7 @@ export default function DirectCvPanel({ allJobs, profile, updateJob, docType = '
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--marker-lime)', borderRadius: 8, padding: '10px 12px' }}>
                 <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--marker-black)', color: 'var(--marker-cream)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-                <div style={{ fontSize: 13, color: 'var(--marker-black)', fontWeight: 500, paddingTop: 3 }}>Come back to this tab when it's done — nothing here needs saving in the meantime.</div>
+                <div style={{ fontSize: 13, color: 'var(--marker-black)', fontWeight: 500, paddingTop: 3 }}>Come back to this tab when it's done: nothing here needs saving in the meantime.</div>
               </div>
             </div>
           </div>
@@ -301,7 +301,7 @@ export default function DirectCvPanel({ allJobs, profile, updateJob, docType = '
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {result.atsCheck && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: result.atsCheck.structureOk ? '#f0fdf4' : '#fffbeb', border: `1px solid ${result.atsCheck.structureOk ? '#86efac' : '#fcd34d'}`, fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--marker-black)', lineHeight: 1.6 }}>
-              <strong>ATS check:</strong> {result.atsCheck.summary}
+              <strong>Format &amp; keyword check:</strong> {result.atsCheck.summary}
             </div>
           )}
           {result.flaggedMetrics && result.flaggedMetrics.length > 0 && (

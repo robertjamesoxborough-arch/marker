@@ -17,10 +17,10 @@ const GUARANTEES = [
     headline: 'Real roles, labelled honestly.',
     kills: 'Kills "Jill doesn\'t exist."',
     body: [
-      'Every employer role on Requite carries a mandatory source label: requite_managed (an employer on the platform; you can request a real introduction) or public_listing (aggregated from Adzuna or Gov.uk). This is enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after posting.',
-      'The "Request intro" button appears only on requite_managed roles; structurally disabled on public listings. The Live Network Meter shows you the exact live network-wide count of managed roles, hiring partners, and candidates in the pool right now (not filtered to your specific field). When it\'s low, we tell you. Every successful introduction is permanently logged in intro_receipts: an immutable, timestamped record.',
+      'Every employer role on Requite carries a mandatory source label: requite_managed (an employer on the platform, matched and introduced through Requite) or public_listing (aggregated from Adzuna, four ATS providers, and wishlisted companies\' own career pages). This is enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after posting.',
+      'The employer-side marketplace, matched shortlists and warm introductions, is built but not live yet: there are no requite_managed roles on the platform today, so the "Request intro" button (structurally disabled on every public listing) has nothing to act on yet. The Live Network Meter shows the real live count, honestly, including when that count is zero. When a genuine introduction does happen, both sides confirm before either identity is revealed, and the event is logged in intro_receipts, a timestamped record kept for as long as your account exists.',
     ],
-    built: 'source_type CHECK constraint · Live Network Meter · intro_receipts timestamped log',
+    built: 'source_type CHECK constraint · Live Network Meter (honest at zero) · intro_receipts timestamped log',
   },
   {
     id: 'G2',
@@ -29,7 +29,7 @@ const GUARANTEES = [
     kills: 'Kills "that role closed months ago."',
     body: [
       'Every cached role has a last_verified_at timestamp. Freshness is computed at read time (not from a stored value) every time you open the feed. Fresh: under 48 hours. Aging: 2–7 days. Stale: 7–14 days, demoted and badged. Expired: removed from your default view.',
-      'A daily cron at 06:00 UTC sends a real HTTP request to a batch of roles most likely to have gone stale, honouring each site\'s robots.txt and identifying itself honestly, and genuinely updates last_verified_at from what it finds; a larger cache cycles through in full over a few nights rather than all at once. The Freshness Pulse dot on each card shows exactly when it was last confirmed active, and "Still open?" lets you trigger that same live check yourself in seconds.',
+      'A daily cron at 06:00 UTC sends a real HTTP request to a batch of roles most likely to have gone stale, honouring each site\'s robots.txt and identifying itself honestly, and genuinely updates last_verified_at from what it finds. The cache is worked through in these bounded nightly batches rather than all at once, so any individual role may take a number of nights to be re-verified this way. The Freshness Pulse dot on each card shows exactly when it was last confirmed active, and "Still open?" lets you trigger that same live check yourself in seconds.',
     ],
     built: 'lib/freshness.js (read-time enforcement) · lib/robots.js (robots.txt + polite crawling) · Freshness Pulse badge · daily cron 06:00 UTC (real HTTP verification) · "Still open?" one-tap recheck',
   },
@@ -50,16 +50,16 @@ const GUARANTEES = [
     headline: 'Tracking isn\'t a feature. It\'s the spine.',
     kills: 'Kills "no way to keep track."',
     body: [
-      'Your pipeline is the default landing screen, not a bonus tab you have to find. Analyse a role by pasting its URL and it auto-adds to your Watchlist the moment it\'s scored: no manual step there. Scoring a role from the job feed itself still takes one "Add to pipeline" click, since a feed score is a quick check, not yet a signal you want it tracked. Your pipeline is stored in Supabase, not browser memory; it survives logout, cache clears, and device changes.',
+      'Today, your daily hub, is the default landing screen: score roles, see your week, and get straight back to what matters. Your pipeline itself is one tab over, always visible, never buried behind a menu. Analyse a role by pasting its URL and it auto-adds to your Watchlist the moment it\'s scored: no manual step there. Scoring a role from the job feed itself still takes one "Add to pipeline" click, since a feed score is a quick check, not yet a signal you want it tracked. Your pipeline is stored in Supabase, not browser memory; it survives logout, cache clears, and device changes.',
       'The momentum strip at the top of your pipeline shows live counts: roles applied to, interviews active, offers in. Losing your place is structurally impossible; your place is the data.',
     ],
-    built: 'pipeline_items table (Supabase-backed) · auto-capture from Analyse tab · Pipeline as default landing · momentum strip',
+    built: 'pipeline_items table (Supabase-backed) · auto-capture from Today\'s scorer · pipeline always one tap away · momentum strip',
   },
 ]
 
 const AI_ROWS = [
   {
-    what: 'Job scores (Analyse tab)',
+    what: 'Job scores (Today tab)',
     how: 'Claude Haiku AI, reading the JD against your profile across 8 factors',
     human: 'You choose which role to analyse',
   },
@@ -75,7 +75,7 @@ const AI_ROWS = [
   },
   {
     what: 'CV & cover letter generation',
-    how: 'Claude Haiku: drafted from your profile. Every number is checked against your CV before delivery; flagged if not found',
+    how: 'Claude Sonnet for full CV tailoring, Claude Haiku for cover letters and the quick CV mode. Every number is checked against your CV before delivery; flagged if not found',
     human: 'You review and edit before using',
   },
   {
@@ -85,7 +85,7 @@ const AI_ROWS = [
   },
   {
     what: 'Role sourcing',
-    how: 'Automated from Adzuna (which also supplies Gov.uk-listed roles, not a separate source), four ATS providers (Greenhouse, Lever, Ashby, SmartRecruiters), nightly checks of wishlisted companies\' own career pages, and employer-posted managed roles',
+    how: 'Automated from Adzuna (which also supplies Gov.uk-listed roles, not a separate source), four ATS providers (Greenhouse, Lever, Ashby, SmartRecruiters), nightly checks of any companies you\'ve added to your own wishlist, and employer-posted managed roles',
     human: 'n/a',
   },
 ]
@@ -183,7 +183,7 @@ export default function TrustPanel() {
                 'AI role scoring: 30 analyses/month on free tier',
                 'Unlimited pipeline tracking',
                 'Memory Card: everything we know about you, most of it editable',
-                'Pro (£19/mo) or Max (£39/mo): unlimited AI, CV tailoring, cover letters, interview prep',
+                'Pro (£19/mo, 1,000 AI scores/mo) or Max (£39/mo, 3,000 AI scores/mo): CV tailoring, cover letters, interview prep, negotiation rehearsal, and recruiter search',
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ color: i === 0 ? '#F59E0B' : i === 3 ? 'var(--marker-mid)' : 'var(--marker-lime)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>{i === 3 ? '→' : '✓'}</span>
@@ -201,7 +201,7 @@ export default function TrustPanel() {
               Employer-paid job platforms are paid by the company you&apos;re trying to get past, which is a structural conflict of interest. Requite is paid by you, so it has no reason to do anything except help you find the right role.
             </p>
             <p style={{ fontSize: 12, color: 'var(--marker-text-soft)', lineHeight: 1.6 }}>
-              An employer-side marketplace (post a role, pay only on hire) exists in the codebase but has no employers on it yet. When it&apos;s genuinely live, we&apos;ll say so here, honestly, with real numbers.
+              An employer-side marketplace exists in the codebase but has no employers on it yet. When it&apos;s genuinely live, we&apos;ll say so here, honestly, with real numbers and real terms.
             </p>
           </div>
         </div>
@@ -213,12 +213,12 @@ export default function TrustPanel() {
           <div className="kicker" style={{ marginBottom: 12, fontSize: 11, letterSpacing: '0.12em' }}>Support</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,3vw,32px)', fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 12 }}>We respond to every message.</h2>
           <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 24 }}>
-            This is a small team, not a ticket queue. We read everything and reply within 24 hours on weekdays.
+            This isn&apos;t a ticket queue behind a chatbot. It&apos;s one person who reads every message and replies personally, usually within a day or two on weekdays.
           </p>
           <a href="mailto:support@upstreaminsights.co.uk" style={{ display: 'inline-block', background: 'var(--marker-black)', color: 'var(--marker-cream)', padding: '12px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, textDecoration: 'none', letterSpacing: '-0.01em' }}>
             Email support@upstreaminsights.co.uk →
           </a>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 14, letterSpacing: '0.04em' }}>Reply within 24h on weekdays</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 14, letterSpacing: '0.04em' }}>Usually within a day or two, weekdays</div>
         </div>
       </section>
 
@@ -226,7 +226,7 @@ export default function TrustPanel() {
       <section className="aurora-bg" style={{ background: 'var(--marker-black)', padding: 'clamp(56px,8vw,80px) clamp(20px,5vw,48px)', textAlign: 'center' }}>
         <div className="kicker holo-text" style={{ marginBottom: 16, fontSize: 11, letterSpacing: '0.14em' }}>You pay us. So we work for you, not the employer.</div>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px,4vw,48px)', fontWeight: 500, color: 'var(--marker-cream)', letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 32 }}>
-          The only AI recruitment platform<br />honest enough to show you how it works.
+          Every claim above is backed<br />by code, not marketing.
         </h2>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/auth" className="btn-iris-sheen" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '13px 32px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 700, textDecoration: 'none', position: 'relative', overflow: 'hidden' }}>
