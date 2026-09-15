@@ -1,7 +1,30 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
+import { checkAllowance } from '../../../../lib/allowance'
+import { trackAiUsage } from '../../../../lib/ai-usage'
+
+// Security/cost fix: this route was reachable with no auth check at all —
+// missing from middleware.js's protectedPrefixes (which only matches
+// page routes like /onboard, not /api/onboard/*) and reading no user id,
+// so it was a live, uncapped, unattributed proxy to a billed Anthropic
+// call for anyone who found the URL. Fixed the same way every other
+// AI-calling route in this app is authenticated: an inline getUser()
+// check returning a real 401, not a middleware redirect (a redirect
+// would break the fetch()-based JSON caller in app/onboard/page.js).
+async function getUser() {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+}
 
 // Deliberately NOT a closed list this CV is filtered against. Role families
 // and industries must be open-vocabulary and derived from whatever the CV
@@ -28,6 +51,22 @@ export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return NextResponse.json({ suggested: [], keywords: [], seniority: [], industries: [], salaryHint: null, error: 'ANTHROPIC_API_KEY not set' })
+  }
+
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+
+  // Reuses the existing parse_career_history bucket (lib/allowance.js) —
+  // it already exists specifically for "Haiku CV-to-structured-history
+  // parse (onboarding + re-parse)", which is exactly what this route is.
+  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'parse_career_history')
+  if (!allowed) {
+    return NextResponse.json({
+      error: cap === 0
+        ? 'CV parsing is not available on your current plan.'
+        : `Parse limit reached (${used}/${cap} this month on your ${tier} plan). Try again next month.`,
+      limitReached: true, used, cap, tier,
+    }, { status: 429 })
   }
 
   const { cvText } = await request.json()
@@ -75,6 +114,8 @@ ${cvText.slice(0, 4000)}
 ${STYLE_RULES}`,
       }],
     })
+
+    if (msg.usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'parse_career_history', usage: msg.usage }))
 
     // content[0] is not always the text block — Sonnet/Haiku can prepend a
     // "thinking" block on complex prompts even without thinking explicitly
