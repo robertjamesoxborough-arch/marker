@@ -199,12 +199,11 @@ function PricingContent() {
         </div>
       </div>
 
-      {/* Employer note */}
+      {/* Candidates only */}
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 24px 48px', textAlign: 'center' }}>
         <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 12, padding: '20px 24px' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 6 }}>Hiring instead of searching?</div>
-          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 12 }}>We&apos;re building an employer side and it isn&apos;t live yet. You can register early interest and we&apos;ll be in touch honestly when there&apos;s a genuine match, with no fee to register.</div>
-          <a href="/hire" style={{ fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', textDecoration: 'underline' }}>Register interest →</a>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 6 }}>Candidates only</div>
+          <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.7 }}>Requite is paid for by the people using it to find work, and by nobody else. We do not sell listings to employers, do not hold a candidate database for employers to search, and do not offer a hiring product.</div>
         </div>
       </div>
 

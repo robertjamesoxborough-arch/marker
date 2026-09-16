@@ -17,10 +17,10 @@ const GUARANTEES = [
     headline: 'Real roles, labelled honestly.',
     kills: 'Kills "Jill doesn\'t exist."',
     body: [
-      'Every employer role on Requite carries a mandatory source label: requite_managed (an employer on the platform, matched and introduced through Requite) or public_listing (aggregated from Adzuna, four ATS providers, and wishlisted companies\' own career pages). This is enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after posting.',
-      'The employer-side marketplace, matched shortlists and warm introductions, is built but not live yet: there are no requite_managed roles on the platform today, so the "Request intro" button (structurally disabled on every public listing) has nothing to act on yet. The Live Network Meter shows the real live count, honestly, including when that count is zero. When a genuine introduction does happen, both sides confirm before either identity is revealed, and the event is logged in intro_receipts, a timestamped record kept for as long as your account exists.',
+      'Every role on Requite carries a mandatory source label saying where it came from, enforced in the database with a CHECK constraint: it cannot be null, forged, or changed after the role is cached. Every role you see is a public listing, aggregated from Adzuna, four ATS providers (Greenhouse, Lever, Ashby, SmartRecruiters), and the career pages of companies you have added to your own wishlist.',
+      'We do not write job adverts and we do not host any of our own. Nothing in your feed is a role we were paid to place there, because we take no money from employers at all. Requite is a candidate tool: we do not run an employer service, hold a candidate database for employers to search, or introduce anyone to a hiring team.',
     ],
-    built: 'source_type CHECK constraint · Live Network Meter (honest at zero) · intro_receipts timestamped log',
+    built: 'source_type CHECK constraint · no employer-paid placements, ever',
   },
   {
     id: 'G2',
@@ -94,13 +94,8 @@ const AI_ROWS = [
     human: 'You edit it and send it yourself. We never contact anyone on your behalf',
   },
   {
-    what: 'Introductions',
-    how: 'Built but not live: there are no employers on the platform, so no matching or introductions are happening. When that changes it will be described here honestly',
-    human: 'Nothing to opt into yet',
-  },
-  {
     what: 'Role sourcing',
-    how: 'Automated from Adzuna (which also supplies Gov.uk-listed roles, not a separate source), four ATS providers (Greenhouse, Lever, Ashby, SmartRecruiters), nightly checks of any companies you\'ve added to your own wishlist, and employer-posted managed roles',
+    how: 'Automated from Adzuna (which also supplies Gov.uk-listed roles, not a separate source), four ATS providers (Greenhouse, Lever, Ashby, SmartRecruiters), and nightly checks of any companies you\'ve added to your own wishlist',
     human: 'n/a',
   },
 ]
@@ -216,7 +211,7 @@ export default function TrustPanel() {
               Employer-paid job platforms are paid by the company you&apos;re trying to get past, which is a structural conflict of interest. Requite is paid by you, so it has no reason to do anything except help you find the right role.
             </p>
             <p style={{ fontSize: 12, color: 'var(--marker-text-soft)', lineHeight: 1.6 }}>
-              An employer-side marketplace exists in the codebase but has no employers on it yet. When it&apos;s genuinely live, we&apos;ll say so here, honestly, with real numbers and real terms.
+              We do not run an employer service of any kind: no listings sold, no candidate database, no introductions. Candidates are the only people who pay us, and there is a free tier that stays free.
             </p>
           </div>
         </div>
@@ -245,14 +240,11 @@ export default function TrustPanel() {
         </h2>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/auth" className="btn-iris-sheen" style={{ display: 'inline-block', background: 'var(--marker-lime)', color: 'var(--marker-black)', padding: '13px 32px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 700, textDecoration: 'none', position: 'relative', overflow: 'hidden' }}>
-            Start free (candidates)
-          </Link>
-          <Link href="/hire" style={{ display: 'inline-block', background: 'transparent', color: 'rgba(250,247,242,0.7)', border: '1px solid rgba(255,255,255,0.15)', padding: '13px 28px', borderRadius: 9, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
-            For employers →
+            Start free
           </Link>
         </div>
         <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 28, display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
-          {[['/', 'Home'], ['/privacy', 'Privacy'], ['/terms', 'Terms'], ['/cookies', 'Cookies'], ['/notes', 'Notes'], ['/hire', 'For employers']].map(([href, label]) => (
+          {[['/', 'Home'], ['/privacy', 'Privacy'], ['/terms', 'Terms'], ['/cookies', 'Cookies'], ['/notes', 'Notes']].map(([href, label]) => (
             <Link key={href} href={href} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textDecoration: 'none' }}>{label}</Link>
           ))}
         </div>

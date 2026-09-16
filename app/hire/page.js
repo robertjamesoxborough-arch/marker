@@ -5,7 +5,18 @@ import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { track } from '@vercel/analytics'
 import { BRAND_NAME } from '../../lib/brand'
+import { MARKETPLACE_LIVE } from '../../lib/flags'
 import LiveNetworkMeter from '../../components/LiveNetworkMeter'
+
+// STAGE 75: employer marketplace dormanted, not deleted. See lib/flags.js for
+// why. The registration form below is intact and simply unreferenced while
+// MARKETPLACE_LIVE is false; the API routes and tables it posts to are all
+// still in place and untouched.
+//
+// While dormant this page must COLLECT NOTHING. A data-collection form for a
+// service we have decided not to run is a fresh UK GDPR problem (no purpose,
+// no lawful basis, data we would have no plan to use), not merely a messaging
+// one, so the form is not rendered at all rather than rendered and disabled.
 
 const SIZES = ['1–10', '11–50', '51–200', '201–500', '501–2000', '2000+']
 
@@ -28,6 +39,42 @@ const HOW_STEPS = [
 ]
 
 export default function HirePage() {
+  if (!MARKETPLACE_LIVE) return <NotOffered />
+  return <EmployerInterestForm />
+}
+
+function NotOffered() {
+  return (
+    <div style={PAGE_STYLE}>
+      <Nav />
+      <section style={{ maxWidth: 620, margin: '0 auto', padding: '96px 24px 96px' }}>
+        <div className="kicker holo-text" style={{ marginBottom: 16 }}>For employers</div>
+        <h1 className="display-lg" style={H1}>
+          {BRAND_NAME} does not offer an employer service.
+        </h1>
+        <p style={{ fontSize: 16, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 20 }}>
+          {BRAND_NAME} is a tool for candidates. It helps people find, score and track roles that are already advertised. We do not take job listings from employers, we do not hold a candidate database for employers to search, and we do not introduce candidates to hiring teams.
+        </p>
+        <p style={{ fontSize: 16, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 20 }}>
+          There is nothing to register for and no waiting list. We are not asking for your details, and this page deliberately collects nothing. If that changes we will say so here in plain terms, rather than gathering information now for something that does not exist.
+        </p>
+        <p style={{ fontSize: 16, color: 'var(--marker-mid)', lineHeight: 1.7, marginBottom: 36 }}>
+          If you are looking for work yourself, the candidate product is free to use and stays free.
+        </p>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Link href="/" className="btn btn-primary" style={{ fontSize: 15, padding: '13px 24px' }}>
+            See what {BRAND_NAME} does
+          </Link>
+          <Link href="/trust" className="btn btn-ghost" style={{ fontSize: 15, padding: '13px 24px' }}>
+            Why trust us
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function EmployerInterestForm() {
   const router = useRouter()
   const [user, setUser] = useState(undefined) // undefined = loading
   const [step, setStep] = useState(1)         // 1 = company, 2 = role
@@ -298,7 +345,9 @@ function Nav() {
       </Link>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
         <Link href="/trust" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Why trust us</Link>
-        <Link href="/employer" style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--marker-mid)' }}>Dashboard</Link>
+        {MARKETPLACE_LIVE && (
+          <Link href="/employer" style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--marker-mid)' }}>Dashboard</Link>
+        )}
         <Link href="/auth" className="btn btn-ghost" style={{ fontSize: 13, padding: '8px 16px' }}>Sign in</Link>
       </div>
     </div>

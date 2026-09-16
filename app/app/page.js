@@ -457,16 +457,19 @@ export default function AppPage() {
         const expired = msLeft <= 0
         const expiringSoon = !expired && daysLeft <= 3
         if (!expired && !expiringSoon) return null
-        const bg = expired ? '#FEE2E2' : '#FEF3C7'
-        const border = expired ? '#FCA5A5' : '#FCD34D'
+        // Deliberately not alarm-coloured and deliberately not phrased as a
+        // cut-off. Nothing stops when the trial ends: the free plan is
+        // permanent and keeps the feed and scored matches, at lower limits.
+        const bg = '#FEF3C7'
+        const border = '#FCD34D'
         const text = expired
-          ? 'Your 7-day trial has ended. Upgrade to keep using all features.'
-          : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your trial.`
+          ? 'Your 7-day trial has ended, so you are now on the free plan. Your feed and scored matches carry on as normal, at the free monthly limits.'
+          : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your trial. After that you move to the free plan, which stays free.`
         return (
           <div style={{ background: bg, borderBottom: `1px solid ${border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 13, color: expired ? '#B91C1C' : '#92400E' }}>{text}</div>
+            <div style={{ fontSize: 13, color: '#92400E' }}>{text}</div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-              {expired && <a href="/pricing" style={{ fontSize: 12, fontWeight: 500, color: '#B91C1C', textDecoration: 'none' }}>View plans →</a>}
+              {expired && <a href="/pricing" style={{ fontSize: 12, fontWeight: 500, color: '#92400E', textDecoration: 'none' }}>Compare plans →</a>}
               <button onClick={() => setTrialDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400E', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
             </div>
           </div>

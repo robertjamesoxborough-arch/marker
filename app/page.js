@@ -94,7 +94,6 @@ export default async function Home() {
           <a href="#pricing">Pricing</a>
           <Link href="/notes">Notes</Link>
           <Link href="/trust" style={{ color: 'var(--marker-mid)' }}>Why trust us</Link>
-          <Link href="/hire" style={{ color: 'var(--marker-mid)' }}>For employers</Link>
         </nav>
         <div className={styles.navActions}>
           <Link href="/auth" style={{ fontSize: 14 }} className={styles.navSignIn}>Sign in</Link>

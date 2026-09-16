@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { buildWhyBullets, VerdictCard, DAILY_INSIGHTS, getJourneyStage, JOURNEY, GettingStartedPanel } from '../shared'
 import { CHANNELS, CHANNEL_LABELS, isChannelOverdue, buildChannelUrls } from '../../../lib/channel-urls'
+import { MARKETPLACE_LIVE } from '../../../lib/flags'
 import EngineTab from './EngineTab'
 
 export default function TodayDashboard({ profile, jobs, addJob, updateJob, onTabSwitch, onOpenPrep, onOpenReferral, plan, onProfileSaved }) {
@@ -11,7 +12,11 @@ export default function TodayDashboard({ profile, jobs, addJob, updateJob, onTab
   const [intros, setIntros] = useState([])
   const [channelChecks, setChannelChecks] = useState(null)
 
+  // Dormant while the employer marketplace is off: with no employers there are
+  // no introductions, so this fired on every dashboard load to be told nothing.
+  // Gated rather than deleted so the panel below comes back with the flag.
   useEffect(() => {
+    if (!MARKETPLACE_LIVE) return
     fetch('/api/candidate/intros')
       .then(r => r.json())
       .then(d => setIntros(d.intros || []))
@@ -176,8 +181,8 @@ export default function TodayDashboard({ profile, jobs, addJob, updateJob, onTab
         onTabSwitch={onTabSwitch}
       />
 
-      {/* ── Section 0: Intro requests from employers ── */}
-      {intros.filter(i => i.status !== 'declined').length > 0 && (
+      {/* ── Section 0: Intro requests from employers (dormant, see lib/flags.js) ── */}
+      {MARKETPLACE_LIVE && intros.filter(i => i.status !== 'declined').length > 0 && (
         <div style={SEC}>
           <div style={KICKER}>Introductions</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
