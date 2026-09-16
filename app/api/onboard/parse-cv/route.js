@@ -50,7 +50,7 @@ const INDUSTRY_EXAMPLES = [
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ suggested: [], keywords: [], seniority: [], industries: [], salaryHint: null, error: 'ANTHROPIC_API_KEY not set' })
+    return NextResponse.json({ suggested: [], seniority: [], industries: [], salaryHint: null, error: 'ANTHROPIC_API_KEY not set' })
   }
 
   const user = await getUser()
@@ -71,7 +71,7 @@ export async function POST(request) {
 
   const { cvText } = await request.json()
   if (!cvText || cvText.trim().length < 50) {
-    return NextResponse.json({ suggested: [], keywords: [], seniority: [], industries: [], salaryHint: null })
+    return NextResponse.json({ suggested: [], seniority: [], industries: [], salaryHint: null })
   }
 
   try {
@@ -90,7 +90,6 @@ Example industries, for shape/specificity only: ${INDUSTRY_EXAMPLES.join(', ')}
 Return ONLY valid JSON in this exact format (no markdown, no extra text):
 {
   "suggested": ["Clinical Nursing"],
-  "keywords": ["ADHD", "pain management"],
   "seniority": ["head", "director"],
   "industries": ["NHS / Healthcare"],
   "salaryHint": 90,
@@ -102,11 +101,12 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
 
 Rules:
 - "suggested": role families this person clearly matches, named in your own words to fit their actual background (max 5); Title Case, 1-4 words each
-- "keywords": 3-6 short keywords not already covered by "suggested" (skills, sectors, methodologies, specialisms)
 - "seniority": which levels this person is targeting/qualified for (typically 1-2)
 - "industries": which industries/sectors their experience is in, in your own words (max 4)
 - "salaryHint": estimated salary floor in £k based on seniority and UK market norms for THIS person's actual field; integer only, null if not enough info
 - All "Reason" fields: concise one-sentence explanation, referencing specific details from the CV where possible. Use "null" (string) if genuinely no data.
+
+HARD RULE, NON-NEGOTIABLE: never extract, quote, infer or refer to anything about this person's health, disability, medical history, ethnicity, race, religion, sexual orientation, sex life, political opinions, trade union membership, or genetic or biometric data, even where the CV states it outright. A CV may legitimately mention a health condition, an adjustment, a career break for illness, or a protected characteristic; none of it belongs in your output. Describe only the person's occupation, seniority, sector and skills. If a role or employer is itself health-related (a nurse at an NHS trust, a disability charity), naming the occupation and sector is correct and expected; disclosing anything about the person's own health or characteristics is not.
 
 CV text:
 ${cvText.slice(0, 4000)}
@@ -135,7 +135,6 @@ ${STYLE_RULES}`,
 
     return NextResponse.json({
       suggested:       cleanStrings(parsed.suggested, 5),
-      keywords:        cleanStrings(parsed.keywords, 6),
       seniority:       Array.isArray(parsed.seniority) ? parsed.seniority.filter(s => SENIORITY_IDS.includes(s)) : [],
       industries:      cleanStrings(parsed.industries, 4),
       salaryHint:      typeof parsed.salaryHint === 'number' ? parsed.salaryHint : null,
@@ -145,6 +144,6 @@ ${STYLE_RULES}`,
       salaryReason:    parsed.salaryReason || null,
     })
   } catch (e) {
-    return NextResponse.json({ suggested: [], keywords: [], seniority: [], industries: [], salaryHint: null, error: e?.message || 'Claude API error' })
+    return NextResponse.json({ suggested: [], seniority: [], industries: [], salaryHint: null, error: e?.message || 'Claude API error' })
   }
 }

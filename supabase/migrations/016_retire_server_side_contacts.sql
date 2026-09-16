@@ -1,0 +1,35 @@
+-- Stage 74: retire server-side storage of third-party contact data.
+--
+-- NOT YET APPLIED. This is a destructive schema change on production and is
+-- deliberately left for Rob to run, even though it is zero-data-loss (both
+-- tables were confirmed empty, 0 rows, at the time of writing).
+--
+-- WHY.
+-- public.contacts held personal data about third parties: real people with no
+-- account here, who never agreed to anything and in most cases will never know
+-- Requite exists. Holding that made Requite a controller of a stranger's
+-- personal data, engaging UK GDPR Art 14 (notify the data subject within a
+-- month) and Art 6 (have a lawful basis), with no realistic way to satisfy
+-- either: there is no route to notify someone whose only connection to the
+-- product is that a user typed their name into a form. public.referral_requests
+-- compounded it by storing an AI-drafted message about that person alongside a
+-- relationship status history.
+--
+-- The application no longer reads or writes either table. The Referrals
+-- address book now lives entirely in the user's own browser
+-- (lib/local-contacts.js); a single contact's details are sent transiently to
+-- /api/referral/draft when the user explicitly asks for a message, and are
+-- never persisted. The legal exposure is therefore already closed by the
+-- application change alone. Dropping these tables is belt-and-braces: it stops
+-- a future change from quietly wiring server-side storage back up.
+--
+-- Before running, confirm both are still empty:
+--   select count(*) from public.contacts;
+--   select count(*) from public.referral_requests;
+--
+-- Note: this does NOT touch public.referrals, which is a completely different
+-- thing (Requite's own refer-a-friend growth programme, app/api/referral/
+-- capture + link). Only the candidate's personal address book is retired here.
+
+drop table if exists public.referral_requests;
+drop table if exists public.contacts;

@@ -4,7 +4,7 @@ const GUIDES = [
   {
     slug: 'wlb-employer-guide',
     title: 'The Work-Life Balance Employer Guide 2026',
-    desc: '30+ UK employers ranked by real Glassdoor WLB scores, parental leave data, and office expectations. Know before you apply.',
+    desc: 'UK employers listed by their own published parental leave and office expectations. Know before you apply.',
     tag: 'Flagship guide',
     tagColor: 'var(--marker-lime)',
     time: '15 min read',

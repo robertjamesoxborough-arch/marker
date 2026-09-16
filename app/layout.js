@@ -1,10 +1,6 @@
 import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
-import { Suspense } from 'react'
 import { BRAND_NAME } from '../lib/brand'
-import { Analytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import RefCapture from '../components/RefCapture'
-import CookieBanner from '../components/CookieBanner'
+import ConsentGate from '../components/ConsentGate'
 import './globals.css'
 
 const inter = Inter({
@@ -49,11 +45,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <Suspense fallback={null}><RefCapture /></Suspense>
         {children}
-        <CookieBanner />
-        <Analytics />
-        <SpeedInsights />
+        {/* Everything non-essential (analytics, performance monitoring,
+            referral attribution) is mounted by this gate and only after an
+            explicit "accept". See components/ConsentGate.js. */}
+        <ConsentGate />
       </body>
     </html>
   )

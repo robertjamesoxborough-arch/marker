@@ -235,12 +235,10 @@ export default function WishlistTab({ profile, jobs: pipelineJobs, addJob }) {
             {(() => {
               const wlb = WLB_DATA[co.name.toLowerCase()]
               if (!wlb) return null
-              const n = parseFloat(wlb.wlb)
               const offDays = parseInt(wlb.office)
               const offText = offDays === 0 ? 'Fully remote' : `${offDays}d/wk office`
               return (
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, background: n >= 4.3 ? 'var(--marker-lime)' : '#F5E4A0', padding: '2px 7px', borderRadius: 4, color: 'var(--marker-black)', flexShrink: 0 }}>WLB {wlb.wlb}/5</span>
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 7px', borderRadius: 4, color: 'var(--marker-mid)', flexShrink: 0 }}>{wlb.leave} leave</span>
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 7px', borderRadius: 4, color: 'var(--marker-mid)', flexShrink: 0 }}>{offText}</span>
                 </div>

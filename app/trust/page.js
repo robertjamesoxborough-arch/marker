@@ -79,9 +79,24 @@ const AI_ROWS = [
     human: 'You review and edit before using',
   },
   {
+    what: 'Employer culture signal',
+    how: 'Scored only from what the advert itself says about hours, pace and expectations. We never grade a named employer on its reputation, on employee-review sentiment, or on anything the model recalls about the company. Where the advert says nothing, it returns "not stated" rather than a guess',
+    human: 'n/a',
+  },
+  {
+    what: 'Work-life balance reference',
+    how: 'A hand-kept list of what employers publish about themselves: their stated parental leave and office expectation, with a link to their own policy page. No third party\'s employee ratings are held or reproduced',
+    human: 'You choose whether to use it',
+  },
+  {
+    what: 'Referral messages',
+    how: 'Claude Haiku drafts the message. Your contacts live in your browser, never on our servers; the one contact you are writing to is sent transiently to produce the draft and not kept',
+    human: 'You edit it and send it yourself. We never contact anyone on your behalf',
+  },
+  {
     what: 'Introductions',
-    how: 'Algorithmic match surfaces candidates to employers anonymously; both sides manually confirm',
-    human: 'Employer clicks "Request intro"; you click "Accept". Both must say yes.',
+    how: 'Built but not live: there are no employers on the platform, so no matching or introductions are happening. When that changes it will be described here honestly',
+    human: 'Nothing to opt into yet',
   },
   {
     what: 'Role sourcing',
@@ -237,7 +252,7 @@ export default function TrustPanel() {
           </Link>
         </div>
         <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 28, display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
-          {[['/', 'Home'], ['/privacy', 'Privacy'], ['/terms', 'Terms'], ['/notes', 'Notes'], ['/hire', 'For employers']].map(([href, label]) => (
+          {[['/', 'Home'], ['/privacy', 'Privacy'], ['/terms', 'Terms'], ['/cookies', 'Cookies'], ['/notes', 'Notes'], ['/hire', 'For employers']].map(([href, label]) => (
             <Link key={href} href={href} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textDecoration: 'none' }}>{label}</Link>
           ))}
         </div>

@@ -80,7 +80,7 @@ export async function POST(req) {
 
   const TRACK_FILTERS = []
   if (tracks.includes('balanced')) {
-    TRACK_FILTERS.push('- BALANCED TRACK: Candidate prioritises WLB. Flag language like "fast-paced", "high-growth startup", "always-on" or any indication of excessive hours. Lower companyCulture score if Glassdoor warns of overwork. Note it in signalReason if relevant.')
+    TRACK_FILTERS.push('- BALANCED TRACK: Candidate prioritises WLB. Flag language like "fast-paced", "high-growth startup", "always-on" or any indication of excessive hours IN THE ADVERT ITSELF. Note it in signalReason if relevant.')
   }
   if (tracks.includes('parent')) {
     TRACK_FILTERS.push('- PARENT TRACK: Parental leave and flexibility are critical. Set paternityLeave found=false if policy is not mentioned; do not assume. Boost score for explicit enhanced leave (>16 weeks paid) or flexible hours. Lower score if role is described as inflexible or high-travel.')
@@ -125,7 +125,7 @@ export async function POST(req) {
     "seniorityFit": { "score": 0-10, "note": "one sentence on seniority level match" },
     "industryFit": { "score": 0-10, "note": "one sentence on industry/sector fit" },
     "officeFlexibility": { "score": 0-10, "note": "remote/hybrid/office days - 10 = fully remote, 0 = 5 days office" },
-    "companyCulture": { "score": 0-10, "note": "Glassdoor/reputation signal if known, else null", "found": true or false },
+    "companyCulture": { "score": 0-10, "note": "what THIS ADVERT says about hours, pace and expectations, else null", "found": true or false },
     "paternityLeave": { "score": 0-10, "note": "paternity/parental leave policy if known - 10 = 26+ weeks paid, else estimate or null", "found": true or false, "detail": "specific policy if found e.g. 26 weeks full pay" },
     "salaryMarket": { "score": 0-10, "note": "salary vs market rate for this seniority if advertised, else null", "found": true or false },
     "careerGrowth": { "score": 0-10, "note": "growth trajectory and progression signals from JD" }
@@ -230,6 +230,7 @@ RULES, follow exactly:
 4. If you genuinely cannot find the job content after searching, return: signal "maybe", score 5, signalReason "Could not retrieve job content; paste the JD below for an accurate score"
 5. Never invent or assume job content
 6. For paternityLeave factor: search specifically for this company's policy. If found, set found:true and include the detail. If not found, set found:false and score null.
+7. For companyCulture: score ONLY from what this advert itself says about hours, pace, intensity, on-call or travel. Never grade a named employer on its reputation, on employee-review sentiment, or on anything you recall about the company from training data. If the advert says nothing about how the place actually works, set found:false and score null. An honest "not stated" is correct and useful; a recalled impression of a real company is not, and must never be returned.
 
 ${SCORING}
 ${JSON_SCHEMA}`

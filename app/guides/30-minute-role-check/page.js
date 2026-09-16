@@ -15,7 +15,7 @@ const CHECKS = [
     time: '4 min',
     how: 'Go to Glassdoor. Find the Work-Life Balance score for this company. Then read the last 20 reviews, filtered to your department where possible. Note recurring complaints.',
     signal: 'A WLB score below 3.5 is a warning. A score above 4.0 with consistent recent reviews mentioning flex hours or parental leave is a good sign. Generic praise ("great people!") tells you nothing.',
-    tool: 'Requite has a built-in WLB reference tab with Glassdoor scores, parental leave data, and office expectations for 30+ UK employers. Pre-researched.',
+    tool: 'Requite has a built-in WLB reference tab listing UK employers by the parental leave and office expectations they publish themselves. Pre-researched, with a link to each employer\'s own policy page.',
   },
   {
     n: '03',

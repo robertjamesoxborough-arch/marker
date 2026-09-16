@@ -734,8 +734,8 @@ export default function AppPage() {
             <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--marker-border)' }}>
               <div className="kicker holo-text" style={{ marginBottom: 6 }}>Know before you apply</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 8 }}>Employers actually worth working for.</div>
-              <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Real Glassdoor WLB scores, parental leave policies, and office expectations, so you can research culture before you commit to an application.</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 8 }}>Culture data from public Glassdoor scores and published company disclosures. Always verify directly with the employer before applying.</div>
+              <div style={{ fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Published parental leave and office expectations for large UK employers, so you can research before you commit to an application.</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 8 }}>Every figure is what the employer publishes about itself, from its own policy and careers pages. Always verify directly with the employer before applying.</div>
             </div>
             <BalancedTab jobs={jobs} addJob={addJob} />
           </div>

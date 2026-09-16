@@ -258,7 +258,7 @@ Return ONLY a single valid JSON object, no markdown fencing, no commentary befor
     "whatsChanged": "one or two sentences on what has changed since the JD, using prior stage notes -- or exactly null if no prior notes were given"
   },
   "jdEssentials": "markdown text using - bullets: the 5-6 core things this role requires in plain language, the single most important thing the hiring manager cares about, specific tools/methodology/domain knowledge mentioned, what success looks like in year 1, and specific JD phrases worth mirroring back",
-  "companyIntel": "markdown text using - bullets, from real web search only: what the company does and its current strategic focus, recent news/launches/funding/challenges in the last 6 months, Glassdoor signals on interview process and culture, the interviewer's background if given, and one sharp specific insight worth referencing",
+  "companyIntel": "markdown text using - bullets, from real web search only: what the company does and its current strategic focus, recent news/launches/funding/challenges in the last 6 months, publicly reported detail on what their interview process involves, the interviewer's background if given, and one sharp specific insight worth referencing",
   "roleAlignment": "markdown text using - bullets: where the candidate's real background maps most strongly to this role, where the real gaps are and how to address each proactively, and the single most compelling angle to lead with",
   "likelyQuestions": [
     { "question": "the likely question, verbatim as it might be asked", "say": "the scripted spoken answer as described above", "framework": "the short structural skeleton for building an alternative answer" }

@@ -21,7 +21,17 @@ function Logo({ size = 20 }) {
 }
 
 function AdzunaBadge() {
-  return <div className="adzuna-badge">Jobs by Adzuna</div>
+  // Adzuna's API terms require the "Jobs by Adzuna" label to be at least
+  // 116x23px (see .adzuna-badge in globals.css) AND for the word "Jobs" to be
+  // hyperlinked to adzuna.co.uk. The size was already right; the link was
+  // missing until Stage 74, which made the attribution non-compliant on a
+  // technicality that costs nothing to fix.
+  return (
+    <div className="adzuna-badge">
+      <a href="https://www.adzuna.co.uk" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Jobs</a>
+      &nbsp;by Adzuna
+    </div>
+  )
 }
 
 function AIDisclaimer({ light }) {
@@ -47,12 +57,16 @@ const PROMISES = [
   },
 ]
 
+// Employer-published facts only. The Glassdoor rating and the derived
+// composite score that used to sit here were removed in Stage 74: they were
+// a third party's proprietary ratings reproduced in a commercial product
+// without a licence. What each employer publishes about itself is fine.
 const balancedRows = [
-  { co: 'BBC',           wlb: '4.3', leave: '6mo',  office: '2d', score: '8.7' },
-  { co: 'Nationwide',    wlb: '4.4', leave: '12mo', office: '1d', score: '9.1' },
-  { co: 'Ofcom',         wlb: '4.5', leave: '6mo',  office: '2d', score: '8.8' },
-  { co: 'Wellcome Trust',wlb: '4.6', leave: '6mo',  office: '1d', score: '9.0' },
-  { co: 'GitLab',        wlb: '4.2', leave: '4mo',  office: '0d', score: '8.6' },
+  { co: 'BBC',           leave: '26 weeks full pay', office: '2d' },
+  { co: 'Nationwide',    leave: '26 weeks full pay', office: '1d' },
+  { co: 'Ofcom',         leave: '26 weeks full pay', office: '2d' },
+  { co: 'Wellcome Trust',leave: '26 weeks full pay', office: '1d' },
+  { co: 'GitLab',        leave: '16 weeks full pay', office: '0d' },
 ]
 
 const FALLBACK_TAGLINE = "Requite scores each role against what actually matters to you (salary, seniority, location, office days, and more) and shows you why. Then it keeps your whole search in one place: discover roles, track them, tailor your CV, prep the interview. And it remembers everything, so you never start from scratch."
@@ -254,7 +268,7 @@ export default async function Home() {
               Companies where work-life balance is a fact, not a slide.
             </h2>
             <p style={{ fontSize: 16, color: 'var(--marker-cream)', opacity: 0.7, marginBottom: 32, lineHeight: 1.6, maxWidth: 480 }}>
-              A curated list of large, stable employers, built from publicly available data (Glassdoor, published parental leave policies, company reporting) as of June 2026, not a live feed.
+              A curated list of large, stable employers, built only from what each employer publishes about itself: its stated parental leave and office expectation, as at June 2026. Not a live feed, and not anyone else's ratings.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {['Public sector', 'Education / EdTech', 'Large stable corporates', 'Remote-first w/ culture'].map(t => (
@@ -266,10 +280,8 @@ export default async function Home() {
             {balancedRows.map(r => (
               <div key={r.co} className={styles.balancedRow}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--marker-cream)' }}>{r.co}</div>
-                <div className={styles.balancedMeta}>WLB {r.wlb}</div>
                 <div className={styles.balancedMeta}>Leave {r.leave}</div>
                 <div className={styles.balancedMeta}>Office {r.office}</div>
-                <div style={{ background: 'var(--marker-lime)', color: 'var(--marker-black)', fontFamily: 'var(--font-display)', fontWeight: 500, textAlign: 'center', padding: '4px 0', borderRadius: 4 }}>{r.score}</div>
               </div>
             ))}
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #2A2A2A' }}>

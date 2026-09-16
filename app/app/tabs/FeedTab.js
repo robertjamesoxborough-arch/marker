@@ -129,7 +129,6 @@ export default function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoad
     const csTop     = csScore >= 9
     const csBg      = csTop ? undefined : csScore >= 7 ? 'var(--marker-lime)' : csScore >= 5 ? '#F5E4A0' : csScore > 0 ? '#FCA5A5' : 'var(--marker-border)'
     const wlbData   = WLB_DATA[(job.company || '').toLowerCase()]
-    const wlbScore  = wlbData ? parseFloat(wlbData.wlb) : null
     return (
       <div key={job.id} style={{ background: 'var(--marker-cream-2)', border: `1px solid ${cs.signal === 'apply' ? '#86EFAC' : 'var(--marker-border)'}`, borderRadius: 10, padding: 12, transition: 'border-color 0.3s' }}>
         {/* Title row */}
@@ -180,9 +179,9 @@ export default function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoad
               {recheckingJobs[job.id] ? '…' : 'Still open?'}
             </button>
           )}
-          {wlbScore !== null && (
-            <span title="Glassdoor work-life balance score for this employer" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: wlbScore >= 4.3 ? 'var(--marker-lime)' : 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-black)', cursor: 'help' }}>
-              WLB {wlbData.wlb}/5
+          {wlbData?.leave && (
+            <span title="Parental leave this employer publishes for itself" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-black)', cursor: 'help' }}>
+              Leave {wlbData.leave}
             </span>
           )}
           {isAdzuna && <AdzunaBadge />}
@@ -413,7 +412,7 @@ export default function FeedTab({ jobs: pipelineJobs, addJob, feedJobs, feedLoad
                   </button>
                   <button onClick={() => { /* parent will handle tab switch */ document.querySelector('[data-tab="WLB"]')?.click() }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10, cursor: 'pointer' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)' }}>WLB guide →</div>
-                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2, lineHeight: 1.4 }}>Browse 30+ UK employers with strong WLB scores: Glassdoor ratings, parental leave, and office expectations.</div>
+                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginTop: 2, lineHeight: 1.4 }}>Browse UK employers by published parental leave and office expectations: Glassdoor ratings, parental leave, and office expectations.</div>
                   </button>
                 </>
               ) : (

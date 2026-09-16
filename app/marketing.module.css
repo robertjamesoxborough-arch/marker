@@ -256,7 +256,7 @@
   border-radius: 8px;
   padding: 14px 18px;
   display: grid;
-  grid-template-columns: 1.6fr repeat(3, 1fr) 52px;
+  grid-template-columns: 1.6fr repeat(2, 1fr);
   gap: 12px;
   align-items: center;
   font-size: 13px;

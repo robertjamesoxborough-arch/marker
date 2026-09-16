@@ -166,7 +166,6 @@ export default function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
                     const scoreN    = parseFloat(job.score) || 0
                     const scoreBg   = scoreN >= 8 ? 'var(--marker-lime)' : scoreN >= 6 ? '#F5E4A0' : 'var(--marker-border)'
                     const wlbEntry  = WLB_DATA[(job.company || '').toLowerCase()]
-                    const wlbScore  = wlbEntry ? parseFloat(wlbEntry.wlb) : null
                     return (
                       <div key={job.id} style={{ background: 'var(--marker-cream-2)', border: `1px solid ${job.signal === 'apply' ? '#86EFAC' : 'var(--marker-border)'}`, borderRadius: 10, padding: 12 }}>
                         {/* Title + dual scores */}
@@ -180,12 +179,6 @@ export default function ContractorTab({ profile, jobs: pipelineJobs, addJob }) {
                               <div style={{ background: scoreBg, fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, padding: '3px 9px', borderRadius: 6, color: 'var(--marker-black)' }}>{job.score || '–'}</div>
                               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginTop: 2 }}>JOB FIT</div>
                             </div>
-                            {wlbScore !== null && (
-                              <div style={{ textAlign: 'center' }}>
-                                <div title="Glassdoor WLB score" style={{ background: wlbScore >= 4.3 ? 'var(--marker-lime)' : 'var(--marker-cream)', border: '1px solid var(--marker-border)', fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, padding: '3px 9px', borderRadius: 6, color: 'var(--marker-black)' }}>{wlbEntry.wlb}</div>
-                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: 'var(--marker-mid)', letterSpacing: '0.04em', marginTop: 2 }}>WLB /5</div>
-                              </div>
-                            )}
                           </div>
                         </div>
                         {/* Tags */}

@@ -158,7 +158,6 @@ export default function OnboardPage() {
   const [cvParsing, setCvParsing]                   = useState(false)
   const [cvParseError, setCvParseError]             = useState('')
   const [cvSuggested, setCvSuggested]               = useState([])
-  const [cvKeywords, setCvKeywords]                 = useState([])
   const [cvSuggestions, setCvSuggestions]           = useState(null)
   const [cvSupplement, setCvSupplement]             = useState('')
   const [showNoCvForm, setShowNoCvForm]             = useState(false)
@@ -241,14 +240,12 @@ export default function OnboardPage() {
       })
       const data = await res.json()
       const suggested = data.suggested || []
-      const keywords  = data.keywords  || []
       const seniority = data.seniority || []
       const industrySuggestions = data.industries || []
-      if (suggested.length === 0 && keywords.length === 0) {
+      if (suggested.length === 0) {
         setCvParseError(data.error || 'No roles spotted. Continue and pick manually.')
       }
       setCvSuggested(suggested)
-      setCvKeywords(keywords)
       setCvSuggestions(data)
       if (suggested.length > 0) setTargetRoles(prev => [...new Set([...prev, ...suggested])])
       if (seniority.length > 0) setSeniorities(prev => prev.length === 0 ? seniority : [...new Set([...prev, ...seniority])])
@@ -307,7 +304,6 @@ export default function OnboardPage() {
           parental_friendly: false,
         },
         cvRaw: cvContext,
-        cvKeywords,
         refCode,
         isFirstSave: true,
         field: fields.map(f => f === 'Other' ? (customField.trim() || 'Other') : f),
@@ -433,9 +429,20 @@ export default function OnboardPage() {
           <div>
             <div className="kicker holo-text" style={{ marginBottom: 12 }}>Step 2 · Optional</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 8, lineHeight: 1.2 }}>Drop your CV in. We'll do the reading.</h2>
-            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 24, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--marker-mid)', marginBottom: 16, lineHeight: 1.6 }}>
               Paste your CV and we'll pre-fill your roles, seniority, and industries on the next step, whatever field you're in.
             </p>
+
+            {/* Shown before the CV is pasted or sent, not after. This is the
+                single richest data-collection moment in the product and it
+                previously carried no in-context disclosure at all. */}
+            <div style={{ marginBottom: 20, padding: '11px 13px', borderRadius: 10, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '3px solid var(--marker-lime)' }}>
+              <div style={{ fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.6 }}>
+                <strong>Before you paste:</strong> when you press &ldquo;Read my CV&rdquo;, the text is sent to our AI provider (Anthropic, in the US) to pick out your roles and seniority, and it is stored on your Requite profile so the app can tailor things to you. It is never shared with employers or sold. Please leave out anything about your health, disability or other sensitive personal details, as none of it is needed here. This step is optional: you can skip it and fill your profile in by hand. See our{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--marker-black)', textDecoration: 'underline' }}>Privacy Policy</a>.
+              </div>
+            </div>
+
             <textarea
               value={cvText}
               onChange={e => setCvText(e.target.value)}
@@ -494,7 +501,7 @@ export default function OnboardPage() {
               </div>
             )}
 
-            {(cvSuggested.length > 0 || cvKeywords.length > 0) && (
+            {cvSuggested.length > 0 && (
               <div style={{ marginTop: 20, padding: 16, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderRadius: 10 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.08em', marginBottom: 10 }}>SPOTTED IN YOUR CV</div>
                 {cvSuggested.length > 0 && (
@@ -502,14 +509,6 @@ export default function OnboardPage() {
                     <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 6 }}>Role families, pre-selected on the next step:</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {cvSuggested.map(r => <span key={r} className="chip chip-lime" style={{ fontSize: 11 }}>{r}</span>)}
-                    </div>
-                  </div>
-                )}
-                {cvKeywords.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--marker-mid)', marginBottom: 6 }}>Keywords we'll use to weight your results:</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {cvKeywords.map(k => <span key={k} className="chip" style={{ fontSize: 11 }}>{k}</span>)}
                     </div>
                   </div>
                 )}

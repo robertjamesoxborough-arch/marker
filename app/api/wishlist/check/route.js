@@ -204,8 +204,7 @@ export async function POST(request) {
     .eq('user_id', user.id)
     .single()
   const targetRoles = profile?.target_roles?.length ? profile.target_roles : (profile?.hard_filters_json?.targetRoles || [])
-  const cvKeywords   = profile?.hard_filters_json?.cvKeywords || []
-  const { words, phrases } = extractRoleKeywords([...targetRoles, ...cvKeywords])
+  const { words, phrases } = extractRoleKeywords(targetRoles)
   const matchKeywords = [...phrases, ...words].length ? [...phrases, ...words] : GENERIC_FALLBACK_KW
 
   const settled = await Promise.allSettled(

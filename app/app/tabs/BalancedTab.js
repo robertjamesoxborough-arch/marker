@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BALANCED_COMPANIES, BALANCED_SECTORS } from '../shared'
+import { BALANCED_COMPANIES, BALANCED_SECTORS, BALANCED_DATA_AS_AT } from '../shared'
 
 export default function BalancedTab({ jobs: pipelineJobs, addJob }) {
   const [sector, setSector] = useState('All')
@@ -28,7 +28,7 @@ export default function BalancedTab({ jobs: pipelineJobs, addJob }) {
       signalReason: '',
       score: 0,
       scoreBreakdown: '',
-      jd: `Glassdoor WLB: ${c.wlb}/5 from ${c.reviews} reviews · Leave: ${c.leave} · Office: ${c.office} · ${c.note}`,
+      jd: `Published parental leave: ${c.leave} · Office: ${c.office} · ${c.note}`,
       addedAt: new Date().toISOString(),
     })
   }
@@ -37,7 +37,7 @@ export default function BalancedTab({ jobs: pipelineJobs, addJob }) {
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '4px solid var(--marker-lime)', borderRadius: '0 10px 10px 0', padding: '12px 14px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 4 }}>What is Work-Life Balance (WLB)?</div>
-        <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6 }}>WLB is how well a job fits around the rest of your life: hours, flexibility, parental leave, culture, and whether you're actually expected to switch off. Job ads claim it. Glassdoor reviews measure it. This list uses ≥500 Glassdoor reviews plus Working Families benchmark data, so you can research before you apply.</div>
+        <div style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6 }}>WLB is how well a job fits around the rest of your life: hours, flexibility, parental leave, and whether you're actually expected to switch off. Job ads claim it, policies show it. This list carries only what each employer publishes about itself, its stated parental leave and office expectation, with a link to its own careers page so you can check the source and ask better questions before you apply.</div>
         <div style={{ marginTop: 10, fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--marker-black)' }}>Watch</strong> adds a company to your pipeline Watchlist, no role yet, just a signal to keep an eye on them. You'll see them in your Pipeline under <em>Watching</em>, and if they appear in your live job feed they'll be highlighted.
         </div>
@@ -61,17 +61,14 @@ export default function BalancedTab({ jobs: pipelineJobs, addJob }) {
                       ? <a href={c.careers} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--marker-black)', fontSize: 15, textDecoration: 'none' }}>{c.co} →</a>
                       : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--marker-black)', fontSize: 15 }}>{c.co}</span>
                     }
-                    {c.wf && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, background: 'var(--marker-lime)', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-black)', letterSpacing: '0.04em', flexShrink: 0 }}>WORKING FAMILIES</span>}
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{c.sector}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: parseFloat(c.wlb) >= 4.4 ? 'var(--marker-lime)' : '#F0E0A8', padding: '2px 6px', borderRadius: 4, color: 'var(--marker-black)' }}>WLB {c.wlb}/5 · {c.reviews} reviews</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4 }}>Leave {c.leave}</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', padding: '2px 6px', borderRadius: 4 }}>Office {c.office}</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                  <div style={{ background: 'var(--marker-lime)', fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, padding: '2px 8px', borderRadius: 5, color: 'var(--marker-black)' }}>{c.score}</div>
                   <button onClick={() => !isWatched && watch(c)} disabled={isWatched} style={{ background: isWatched ? 'var(--marker-border)' : 'var(--marker-black)', color: isWatched ? 'var(--marker-mid)' : 'var(--marker-cream)', border: 'none', padding: '6px 10px', borderRadius: 6, fontSize: 10, fontFamily: 'var(--font-body)', fontWeight: 500, cursor: isWatched ? 'default' : 'pointer' }}>
                     {isWatched ? 'Added ✓' : 'Watch'}
                   </button>
@@ -123,7 +120,7 @@ export default function BalancedTab({ jobs: pipelineJobs, addJob }) {
         ))}
       </div>
 
-      <div className="legal-line">Glassdoor WLB ratings from public reviews (≥500 reviews threshold). Parental leave from employer policy pages. Working Families citations from their published Top Employers list. Verify all data with the employer before relying on it. Last updated May 2025.</div>
+      <div className="legal-line">Every figure here is what the employer publishes about itself, taken from its own policy and careers pages as at {BALANCED_DATA_AS_AT}. We do not hold or reproduce any third party's employee ratings. Policies change and published policy is not the same as lived experience, so treat this as a starting point for your own research and confirm anything that matters with the employer directly.</div>
     </div>
   )
 }

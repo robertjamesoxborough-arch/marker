@@ -1,31 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-
-export default function CookieBanner() {
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    try {
-      const consent = localStorage.getItem('mkr_cookie_consent')
-      if (!consent) setVisible(true)
-    } catch {
-      setVisible(true)
-    }
-  }, [])
-
-  function accept() {
-    try { localStorage.setItem('mkr_cookie_consent', 'accepted') } catch {}
-    setVisible(false)
-  }
-
-  function necessary() {
-    try { localStorage.setItem('mkr_cookie_consent', 'necessary') } catch {}
-    setVisible(false)
-  }
-
-  if (!visible) return null
-
+// Presentation only. The decision this banner collects is owned and acted on
+// by components/ConsentGate.js, which is what actually withholds analytics,
+// performance monitoring and referral attribution until "Accept" is clicked.
+// This component deliberately holds no storage logic of its own any more:
+// previously it wrote a flag and hid itself while both buttons did exactly
+// the same thing, and nothing downstream ever read the result.
+export default function CookieBanner({ onChoose }) {
   return (
     <div style={{
       position: 'fixed',
@@ -43,11 +24,11 @@ export default function CookieBanner() {
       animation: 'fadeSlideIn 0.3s ease',
     }}>
       <div style={{ flex: '1 1 300px', fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
-        We use performance analytics (Vercel Analytics) to understand how Requite is used: no advertising, no third-party tracking, no cookies stored. See our{' '}
-        <a href="/privacy" style={{ color: 'var(--marker-lime)', textDecoration: 'none' }}>Privacy Policy</a>.
+        We&apos;d like to use Vercel Analytics and Speed Insights to understand how Requite is used, and to remember if you arrived from someone&apos;s referral link. No advertising and no third-party tracking. Choose &ldquo;Necessary only&rdquo; and none of it loads: only the cookies that keep you signed in. See our{' '}
+        <a href="/cookies" style={{ color: 'var(--marker-lime)', textDecoration: 'none' }}>Cookie Policy</a>.
       </div>
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-        <button onClick={necessary} style={{
+        <button onClick={() => onChoose('necessary')} style={{
           background: 'transparent',
           border: '1px solid rgba(255,255,255,0.2)',
           color: 'rgba(255,255,255,0.55)',
@@ -60,7 +41,7 @@ export default function CookieBanner() {
         }}>
           NECESSARY ONLY
         </button>
-        <button onClick={accept} style={{
+        <button onClick={() => onChoose('accepted')} style={{
           background: 'var(--marker-lime)',
           border: 'none',
           color: 'var(--marker-black)',

@@ -64,7 +64,6 @@ export async function POST(request) {
     ...(p.radiusMiles        !== undefined  ? { radiusMiles: p.radiusMiles }               : {}),
     ...(p.tracks             !== undefined  ? { tracks: p.tracks }                         : {}),
     ...(p.cvRaw              !== undefined  ? { cvRaw: p.cvRaw }                           : {}),
-    ...(p.cvKeywords         !== undefined  ? { cvKeywords: p.cvKeywords }                 : {}),
     ...(p.refCode                           ? { refCode: p.refCode }                       : {}),
     // Profile enrichment fields
     ...(p.field              !== undefined  ? { field: p.field }                           : {}),

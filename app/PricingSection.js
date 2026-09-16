@@ -10,6 +10,7 @@ const tiers = [
     monthly: 0,
     detail: 'Pipeline board · 30 AI scores/month · job feed · Memory Card',
     cta: 'Start free',
+    href: '/auth',
     flag: false,
   },
   {
@@ -18,6 +19,7 @@ const tiers = [
     monthly: 19,
     detail: 'AI scoring (1,000/mo) · CV tailoring · cover letters · interview prep · negotiation',
     cta: 'Choose Pro',
+    href: '/pricing?checkout=pro',
     flag: true,
   },
   {
@@ -26,6 +28,7 @@ const tiers = [
     monthly: 39,
     detail: '3× higher limits · 60 CV tailors · 60 cover letters · 30 interview packs',
     cta: 'Choose Max',
+    href: '/pricing?checkout=max',
     flag: false,
   },
 ]
@@ -65,7 +68,7 @@ export default function PricingSection() {
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.6, color: p.flag ? 'var(--marker-cream)' : 'var(--marker-text-soft)' }}>{p.detail}</div>
             <Link
-              href="/auth"
+              href={p.href}
               className={p.flag ? 'btn btn-lime' : 'btn btn-primary'}
               style={{ marginTop: 'auto', justifyContent: 'center' }}
             >

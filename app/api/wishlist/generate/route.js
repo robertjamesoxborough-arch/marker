@@ -8,7 +8,7 @@ import { STYLE_RULES } from '../../../../lib/brand'
 const TRACK_CONTEXT = {
   parent:         'Prioritise companies known for generous parental leave (20+ weeks full pay), flexible return policies, and family-friendly culture.',
   returner:       'Prioritise companies with formal returnship programmes or a track record of hiring people returning after a career break of 1+ years.',
-  balanced:       'Prioritise companies with strong work-life balance, hybrid or async-friendly culture, reasonable hours, and high Glassdoor scores.',
+  balanced:       'Prioritise companies with strong published work-life balance policies, hybrid or async-friendly working, and reasonable stated hours.',
   career_changer: 'Prioritise companies known for skills-first hiring, internal mobility, or structured programmes that welcome people switching industries.',
   standard:       'Prioritise companies with strong career growth, competitive compensation, and a clear progression ladder in the user\'s field.',
 }
@@ -32,7 +32,6 @@ export async function POST() {
 
   const hfj            = profile?.hard_filters_json || {}
   const cvRaw          = hfj.cvRaw || ''
-  const keywords       = (hfj.cvKeywords || []).join(', ')
   const tracks         = hfj.tracks?.length ? hfj.tracks : (profile?.track ? [profile.track] : ['standard'])
   const existing       = (hfj.wishlist || []).map(w => w.company).filter(Boolean)
   const searchMode     = hfj.searchMode || (hfj.openToContract === true ? 'both' : 'perm')
@@ -60,7 +59,7 @@ export async function POST() {
 ${hasCV ? 'CV' : 'Profile'}:
 ${profileContext}
 
-${keywords ? `Key skills/keywords: ${keywords}\n` : ''}
+
 Goal: ${tracks.join(', ')}
 ${trackNotes}${contractorNote}
 

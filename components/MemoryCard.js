@@ -173,16 +173,6 @@ export default function MemoryCard() {
         />
       </Section>
 
-      {/* Skills */}
-      <Section title="Skills &amp; keywords (used in AI scoring)">
-        <Field
-          label="Key skills / keywords"
-          value={(hfj.cvKeywords || []).join(', ') || null}
-          placeholder="e.g. partnerships, B2B, EMEA, strategic alliances"
-          onSave={v => save({ cvKeywords: v.split(',').map(s => s.trim()).filter(Boolean) })}
-        />
-      </Section>
-
       {/* Benefits wanted — read-only in v1, shown as chips */}
       {benefits.length > 0 && (
         <Section title="Benefits you care about">

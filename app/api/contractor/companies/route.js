@@ -59,7 +59,7 @@ For each company, provide evidence-based scores based on what you know about UK 
 Score each company on:
 1. contractorVolume (1-10): How actively does this company use senior contractors / interims in ${field}? (10 = very high; they are known to have a large contractor workforce or regularly post interim roles)
 2. conversionConfidence (1-10): How confident is a ${roles} contractor to actually land work here, considering the company's hiring behaviour, size, and typical use of contractors in this field?
-3. wlb (1-10): Work-life balance evidence from Glassdoor ratings, culture disclosures, and industry reputation
+3. wlb (1-10): Work-life balance evidence from the employer's own published policies and disclosures
 
 Tier is determined by: average of conversionConfidence and wlb.
 Tier 1 = avg >= 8 (prime targets: high confidence + good culture)

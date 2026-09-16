@@ -167,6 +167,18 @@ function AuthForm() {
               </p>
             )}
 
+            {/* Presented BEFORE the account is created, not after. Submitting
+                this form is what causes a real account and profile to be
+                provisioned, so the terms have to be in front of the user at
+                this point rather than somewhere they might find later. */}
+            <p style={{ fontSize: '12px', color: 'var(--color-text-mid)', lineHeight: 1.6, margin: '0 0 16px' }}>
+              By continuing, you agree to our{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-text-body)', textDecoration: 'underline' }}>Terms of Service</a>
+              {' '}and confirm you have read our{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-text-body)', textDecoration: 'underline' }}>Privacy Policy</a>,
+              which explains what we collect and who processes it.
+            </p>
+
             <button
               type="submit"
               disabled={loading || !email}

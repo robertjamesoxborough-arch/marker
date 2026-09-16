@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { createClient } from '../../../lib/supabase/client'
+import { useState, useEffect } from 'react'
 import { normaliseCompany } from '../../../lib/job-match'
+import {
+  listContacts, upsertContact, deleteContact as removeContact, touchContact,
+  listRequests, insertRequest, updateRequest, storageAvailable,
+} from '../../../lib/local-contacts'
 
 const MESSAGE_TYPE_META = {
   warm_referral:        { label: 'Warm referral ask',    forStatus: 'pre' },
@@ -22,12 +25,12 @@ const LABEL = { display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--m
 const INPUT = { display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }
 
 export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill }) {
-  const supabase = useMemo(() => createClient(), [])
   const activeJobs = (jobs || []).filter(j => !['watchlist', 'no_jobs', 'rejected'].includes(j.status))
 
   const [contacts, setContacts] = useState([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [requests, setRequests] = useState([])
+  const [canStore, setCanStore] = useState(true)
 
   const [showAddContact, setShowAddContact] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -41,18 +44,16 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
   const [draftError, setDraftError] = useState('')
   const [copied, setCopied] = useState(false)
 
-  async function loadAll() {
-    setContactsLoading(true)
-    const [{ data: c }, { data: r }] = await Promise.all([
-      supabase.from('contacts').select('*').order('name'),
-      supabase.from('referral_requests').select('*').order('created_at', { ascending: false }),
-    ])
-    setContacts(c || [])
-    setRequests(r || [])
+  // Reads straight from the browser. Nothing here touches the network:
+  // contacts are third parties' personal data and deliberately never leave
+  // the user's own device (see lib/local-contacts.js for the reasoning).
+  function loadAll() {
+    setContacts(listContacts())
+    setRequests(listRequests())
     setContactsLoading(false)
   }
 
-  useEffect(() => { loadAll() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setCanStore(storageAvailable()); loadAll() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // "Ask for a referral" from a Pipeline card / Today item — pre-selects
   // that job and opens the draft panel for the best-matching contact, if
@@ -74,7 +75,7 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
 
   function resetForm() { setForm({ name: '', company: '', pastCompanies: '', relationship: '', notes: '' }) }
 
-  async function saveContact() {
+  function saveContact() {
     if (!form.name.trim() || saving) return
     setSaving(true)
     const row = {
@@ -85,13 +86,9 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
       notes: form.notes.trim() || null,
     }
     try {
-      if (editingId) {
-        await supabase.from('contacts').update({ ...row, updated_at: new Date().toISOString() }).eq('id', editingId)
-      } else {
-        await supabase.from('contacts').insert(row)
-      }
+      upsertContact(row, editingId)
       resetForm(); setShowAddContact(false); setEditingId(null)
-      await loadAll()
+      loadAll()
     } finally { setSaving(false) }
   }
 
@@ -100,9 +97,9 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
     setEditingId(c.id); setShowAddContact(true)
   }
 
-  async function deleteContact(id) {
-    await supabase.from('contacts').delete().eq('id', id)
-    await loadAll()
+  function deleteContact(id) {
+    removeContact(id)
+    loadAll()
   }
 
   function startDraft(contact, job) {
@@ -137,29 +134,28 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
     }
   }
 
-  async function saveRequest(initialStatus) {
+  function saveRequest(initialStatus) {
     if (!draftFor || !draftResult) return
     const { contact, job } = draftFor
-    const row = {
+    insertRequest({
       contact_id: contact.id,
       job_id: job?.id || null,
       message_type: messageType,
       drafted_message: draftResult.message,
       status: initialStatus,
       ...(initialStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
-    }
-    await supabase.from('contacts').update({ last_contacted_at: new Date().toISOString() }).eq('id', contact.id)
-    await supabase.from('referral_requests').insert(row)
+    })
+    touchContact(contact.id)
     setDraftFor(null); setDraftResult(null)
-    await loadAll()
+    loadAll()
   }
 
-  async function advanceStatus(req, status) {
+  function advanceStatus(req, status) {
     const stamps = { sent: 'sent_at', responded: 'responded_at', agreed: 'agreed_at', referred: 'referred_at' }
-    const update = { status, updated_at: new Date().toISOString() }
+    const update = { status }
     if (stamps[status]) update[stamps[status]] = new Date().toISOString()
-    await supabase.from('referral_requests').update(update).eq('id', req.id)
-    await loadAll()
+    updateRequest(req.id, update)
+    loadAll()
   }
 
   function copy() {
@@ -181,6 +177,21 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
       </div>
 
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Notice sits BEFORE the contact form, not in a footer, because it
+            describes what happens to another person's data at the moment the
+            user is about to type it in. */}
+        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)', borderLeft: '3px solid var(--marker-lime)' }}>
+          <div style={{ fontSize: 12, color: 'var(--marker-text)', lineHeight: 1.6 }}>
+            <strong>These details stay on your device.</strong> You&apos;re about to enter information about other people. Requite never uploads or stores it: it lives in this browser only, like the contacts app on your phone. Only when you ask for a draft does that one contact&apos;s detail get sent to our AI provider to write the message, and it isn&apos;t kept afterwards. Please only add people you genuinely know, and leave out anything sensitive.
+          </div>
+        </div>
+
+        {!canStore && (
+          <div style={{ padding: '10px 12px', borderRadius: 8, background: '#FEF3C7', border: '1px solid #FCD34D', fontSize: 12, color: 'var(--marker-black)', lineHeight: 1.6 }}>
+            This browser is blocking local storage, so contacts you add here won&apos;t be saved. Drafting still works, but the address book will be empty next time.
+          </div>
+        )}
 
         {/* ── Contacts ── */}
         <div>
@@ -365,7 +376,7 @@ export default function ReferralsTab({ jobs, profile, prefill, onClearPrefill })
       </div>
 
       <div style={{ padding: '10px 16px 16px' }}>
-        <div className="legal-line">Referrals are drafted from your own contacts and career history. Requite never contacts anyone on your behalf, sees or stores your contacts&apos; own data beyond what you enter, or shares anything with employers.</div>
+        <div className="legal-line">Your contacts are stored in this browser only. They are never uploaded to Requite, never stored on our servers, and never shared with employers. When you ask for a draft, that one contact&apos;s details are sent to our AI provider to write the message and are not kept afterwards. Requite never contacts anyone on your behalf: you send every message yourself.</div>
       </div>
     </div>
   )

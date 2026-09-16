@@ -1,16 +1,16 @@
 'use client'
 
 const COMPANIES = [
-  { co: 'Spotify',        sector: 'Tech',        wlb: '4.5', leave: '26 weeks full pay', office: 'Fully flexible', note: 'Work From Anywhere policy: employees choose where and when. No mandatory office days.' },
-  { co: 'Wellcome Trust', sector: 'Charity',     wlb: '4.6', leave: '26 weeks full pay', office: '1 day/week',    note: 'Sector-leading WLB; mission-driven science philanthropy; flexible by default.' },
-  { co: 'Monzo',          sector: 'Fintech',     wlb: '4.0', leave: '26 weeks full pay', office: '2 days/week',   note: 'Async-friendly; strong WLB reputation; fast-growing challenger bank.' },
-  { co: 'Octopus Energy', sector: 'Energy',      wlb: '4.4', leave: '26 weeks full pay', office: '2 days/week',   note: 'B Corp certified; genuine flexible working; high Glassdoor WLB scores.' },
-  { co: 'Wise',           sector: 'Fintech',     wlb: '4.1', leave: '24 weeks full pay', office: '2 days/week',   note: 'Distributed-first; no-meeting Fridays; genuinely flat structure.' },
-  { co: 'Ofcom',          sector: 'Regulator',   wlb: '4.5', leave: '26 weeks full pay', office: '2 days/week',   note: 'Regulator stability; hybrid-first; consistently high WLB ratings.' },
-  { co: 'BBC',            sector: 'Media',       wlb: '3.9', leave: '26 weeks full pay', office: '2 days/week',   note: '35-hour week standard; hybrid working; strong work-life culture across most divisions.' },
-  { co: 'Canva',          sector: 'Tech',        wlb: '4.4', leave: '26 weeks full pay', office: '2 days/week',   note: 'Strong WLB culture; fast-growing but known for not burning people out.' },
-  { co: 'Starling Bank',  sector: 'Fintech',     wlb: '3.8', leave: '20 weeks full pay', office: '2 days/week',   note: 'Flexible hours; strong parental leave for a scale-up; improving WLB culture.' },
-  { co: 'Figma',          sector: 'Tech',        wlb: '4.3', leave: '20 weeks full pay', office: 'Flexible',      note: 'Remote-flexible; strong mental health support; collaborative low-stress culture.' },
+  { co: 'Spotify',        sector: 'Tech',        leave: '26 weeks full pay', office: 'Fully flexible', note: 'Work From Anywhere policy: employees choose where and when. No mandatory office days.' },
+  { co: 'Wellcome Trust', sector: 'Charity',     leave: '26 weeks full pay', office: '1 day/week',    note: 'Mission-driven science philanthropy; flexible working by default.' },
+  { co: 'Monzo',          sector: 'Fintech',     leave: '26 weeks full pay', office: '2 days/week',   note: 'Async-friendly working; challenger bank.' },
+  { co: 'Octopus Energy', sector: 'Energy',      leave: '26 weeks full pay', office: '2 days/week',   note: 'B Corp certified; published flexible working policy.' },
+  { co: 'Wise',           sector: 'Fintech',     leave: '24 weeks full pay', office: '2 days/week',   note: 'Distributed-first; no-meeting Fridays; genuinely flat structure.' },
+  { co: 'Ofcom',          sector: 'Regulator',   leave: '26 weeks full pay', office: '2 days/week',   note: 'Regulator stability; hybrid-first published working pattern.' },
+  { co: 'BBC',            sector: 'Media',       leave: '26 weeks full pay', office: '2 days/week',   note: '35-hour standard week; hybrid working.' },
+  { co: 'Canva',          sector: 'Tech',        leave: '26 weeks full pay', office: '2 days/week',   note: 'Published flexible working; two office days a week.' },
+  { co: 'Starling Bank',  sector: 'Fintech',     leave: '20 weeks full pay', office: '2 days/week',   note: 'Flexible hours; strong published parental leave for a scale-up.' },
+  { co: 'Figma',          sector: 'Tech',        leave: '20 weeks full pay', office: 'Flexible',      note: 'Remote-flexible; published mental health support.' },
 ]
 
 const QUESTIONS = [
@@ -25,7 +25,7 @@ const RED_FLAGS = [
   'The job ad uses "fast-paced" more than once',
   '"Work hard, play hard" culture mentions',
   'Role requires "wearing many hats" at Director level or above',
-  'Glassdoor rating below 3.5 with lots of recent 1-star reviews',
+  'Employee review sites show a low rating with lots of recent one-star reviews',
   'Interview is scheduled outside working hours without explanation',
   'They emphasise "passionate" people (often means unpaid overtime expected)',
   '"Family feel" in a company over 200 people',
@@ -61,7 +61,7 @@ export default function WLBGuidePage() {
           The Work-Life Balance<br />Employer Guide 2026
         </h1>
         <p style={{ fontSize: 15, color: 'var(--marker-mid)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
-          30+ UK employers scored on real Glassdoor WLB ratings, parental leave policies, and office expectations. The 5 questions that expose what job ads hide. And the red flags experienced hires miss until it's too late.
+          UK employers listed on the parental leave and office expectations they publish themselves. The 5 questions that expose what job ads hide. And the red flags experienced hires miss until it&apos;s too late.
         </p>
         <div style={{ display: 'flex', gap: 16, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           <span>15 min read</span>
@@ -79,34 +79,33 @@ export default function WLBGuidePage() {
           WLB is not about leaving at 5pm. It is about whether your employer treats your time outside work as yours. That means: predictable hours, a culture that doesn't punish disconnecting, parental leave that is taken without career consequences, and flexibility that goes both ways, not just when it suits the business.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8, marginBottom: 12 }}>
-          The problem is that every company claims it. "We're flexible" appears in 73% of senior job ads. It means almost nothing without data to back it up. Glassdoor reviews (when there are enough of them) are the closest proxy we have to honest employer feedback.
+          The problem is that every company claims it. "We're flexible" appears in job ad after job ad, and means almost nothing on its own. What an employer publishes as policy is at least a commitment it has written down and can be held to.
         </p>
         <p style={{ fontSize: 14, color: 'var(--marker-mid)', lineHeight: 1.8 }}>
-          The companies in this guide all have <strong>4.0 or above for WLB on Glassdoor, with at least 500 reviews</strong>. That threshold filters out small companies gaming the system and companies that had one good year. The data is not perfect (it is from public Glassdoor scores and company disclosures) but it is the best available without sitting in the interview chair yourself.
+          Every company in this guide is listed on <strong>what it publishes about itself</strong>: its stated parental leave and its stated office expectation. Published policy is not the same as lived experience, and a good policy badly applied is still a bad job. Use this as a starting point, then use the five questions below to find out what actually happens.
         </p>
       </div>
 
       {/* Employer table */}
       <div style={{ padding: '36px 0 32px', borderBottom: '1px solid var(--marker-border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: 'var(--marker-black)', letterSpacing: '-0.02em', marginBottom: 6 }}>UK employers worth your time</h2>
-        <p style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 20 }}>Glassdoor WLB score ≥4.0 · ≥500 reviews · UK office with real UK hiring · Data from public disclosures; verify with employer before applying.</p>
+        <p style={{ fontSize: 12, color: 'var(--marker-mid)', lineHeight: 1.6, marginBottom: 20 }}>Employer-published parental leave and office expectation · UK office with real UK hiring · Verify with the employer before applying.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 0.6fr 1fr 1.4fr', gap: 12, padding: '8px 12px', background: 'var(--marker-black)', borderRadius: '8px 8px 0 0' }}>
-            {['Company', 'Sector', 'WLB', 'Parental leave', 'Office days'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 1fr 1.4fr', gap: 12, padding: '8px 12px', background: 'var(--marker-black)', borderRadius: '8px 8px 0 0' }}>
+            {['Company', 'Sector', 'Parental leave', 'Office days'].map(h => (
               <div key={h} style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
             ))}
           </div>
           {COMPANIES.map((c, i) => (
-            <div key={c.co} style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 0.6fr 1fr 1.4fr', gap: 12, padding: '11px 12px', background: i % 2 === 0 ? 'var(--marker-cream-2)' : 'var(--marker-cream)', borderBottom: '1px solid var(--marker-border)' }}>
+            <div key={c.co} style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.8fr 1fr 1.4fr', gap: 12, padding: '11px 12px', background: i % 2 === 0 ? 'var(--marker-cream-2)' : 'var(--marker-cream)', borderBottom: '1px solid var(--marker-border)' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: 'var(--marker-black)' }}>{c.co}</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', textTransform: 'uppercase', letterSpacing: '0.04em', alignSelf: 'center' }}>{c.sector}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, color: parseFloat(c.wlb) >= 4.4 ? '#1a6b1a' : 'var(--marker-black)', alignSelf: 'center' }}>{c.wlb}<span style={{ fontSize: 9, fontWeight: 400, color: 'var(--marker-mid)' }}>/5</span></div>
               <div style={{ fontSize: 11, color: 'var(--marker-text)', lineHeight: 1.4, alignSelf: 'center' }}>{c.leave}</div>
               <div style={{ fontSize: 11, color: 'var(--marker-text)', lineHeight: 1.4, alignSelf: 'center' }}>{c.office}</div>
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 10, lineHeight: 1.6 }}>Data from public Glassdoor scores, company disclosures, and Working Families employer surveys. Always verify directly with the employer before accepting an offer.</p>
+        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-border)', letterSpacing: '0.04em', marginTop: 10, lineHeight: 1.6 }}>Every figure is what the employer publishes about itself, from its own policy and careers pages. We do not hold or reproduce any third party's employee ratings. Always verify directly with the employer before accepting an offer.</p>
       </div>
 
       {/* 5 questions */}

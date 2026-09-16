@@ -17,7 +17,17 @@ export function Logo({ size = 18 }) {
 }
 
 export function AdzunaBadge() {
-  return <div className="adzuna-badge">Jobs by Adzuna</div>
+  // Adzuna's API terms require the "Jobs by Adzuna" label to be at least
+  // 116x23px (see .adzuna-badge in globals.css) AND for the word "Jobs" to be
+  // hyperlinked to adzuna.co.uk. The size was already right; the link was
+  // missing until Stage 74, which made the attribution non-compliant on a
+  // technicality that costs nothing to fix.
+  return (
+    <div className="adzuna-badge">
+      <a href="https://www.adzuna.co.uk" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Jobs</a>
+      &nbsp;by Adzuna
+    </div>
+  )
 }
 
 // Shared paste-JD chrome (Stage 59) — the Stage 55 rainbow-gradient style
@@ -341,7 +351,7 @@ export function PipelineCard({ job, onEditDetails, onDelete, onScore, onTailorCv
         <SignalBadge signal={job.signal} />
         <OfficeBadge days={job.officeDays} />
         {salary && <span style={{ background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4 }}>{salary}</span>}
-        {bd.wlb && <span style={{ background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4 }}>Balance {bd.wlb}/5</span>}
+        {bd.leave && <span title="Parental leave this employer publishes for itself" style={{ background: 'var(--marker-cream)', border: '1px solid var(--marker-border)', fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4 }}>Leave {bd.leave}</span>}
         {job.deadLink && <span style={{ background: '#FEF3C7', border: '1px solid #F59E0B', fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4, color: '#92400E' }}>Dead link</span>}
         {job.status === 'applied' && job.appliedAt && (Date.now() - new Date(job.appliedAt).getTime()) > 7 * 86400000 && (
           <span style={{ background: 'var(--marker-lime)', border: '1px solid rgba(0,0,0,0.08)', fontFamily: 'var(--font-mono)', fontSize: 9, padding: '3px 6px', borderRadius: 4, color: 'var(--marker-black)', fontWeight: 600 }}>Follow up?</span>
@@ -606,7 +616,7 @@ export const STEPS_PREP = [
   'Digging into their interview style…',
   'Pulling likely first-round questions…',
   'Building your STAR story frameworks…',
-  'Checking culture and Glassdoor notes…',
+  'Checking published policies and office expectations…',
   'Writing your company intelligence brief…',
   'Adding the finishing touches…',
   'Almost done…',
@@ -793,7 +803,7 @@ export const WISHLIST_SEEDS = {
   balanced: [
     { company: 'Monzo',          sector: 'Fintech',    note: 'Async culture, strong WLB scores, hybrid-first' },
     { company: 'Wise',           sector: 'Fintech',    note: 'Distributed-first, no-meeting Fridays, flat structure' },
-    { company: 'Octopus Energy', sector: 'Energy',     note: 'B Corp, genuine flexible working, high Glassdoor scores' },
+    { company: 'Octopus Energy', sector: 'Energy',     note: 'B Corp, published flexible working policy' },
     { company: 'BBC',            sector: 'Media',      note: '35-hour week, hybrid, strong work-life culture' },
     { company: 'Spotify',        sector: 'Tech',       note: 'Work From Anywhere policy, async-friendly teams' },
     { company: 'Sky',            sector: 'Media/Tech', note: 'Hybrid-first, family-friendly, 26wk parental leave' },
@@ -854,30 +864,52 @@ export const WISHLIST_SEEDS = {
 
 // ── Balanced Roles tab ────────────────────────────────────────────
 
+// Employer-published facts only (Stage 74).
+//
+// This list previously carried a Glassdoor work-life-balance rating and
+// review count for each employer, plus a "Working Families Top Employer"
+// badge. All three were removed. Reproducing a third party's proprietary
+// ratings for named companies inside a paid product is their content and
+// their database right, not ours, and we hold no licence for it; asserting
+// another organisation's accreditation on a company's behalf is a claim we
+// cannot stand behind either. A derived composite "score" built partly on
+// those ratings went with them.
+//
+// What remains is only what each employer publishes about itself: its stated
+// parental leave, its stated office-day expectation, and a link to its own
+// careers page so the user can check the source directly. Those are the
+// employer's own claims, presented as such, with a visible "as at" date and
+// a prompt to verify. Nothing here is a third party's rating of anyone.
+export const BALANCED_DATA_AS_AT = 'June 2026'
+
 export const BALANCED_COMPANIES = [
-  { co: 'Nationwide',     sector: 'Finance',      wlb: '4.4', reviews: '4,820', leave: '26 weeks full pay',  office: '1d', wf: true,  careers: 'https://jobs.nationwide.co.uk',           score: '9.1', note: 'Best enhanced parental leave in UK finance; hybrid-first culture. Working Families Top Employer 2024.' },
-  { co: 'Wellcome Trust', sector: 'Charity',      wlb: '4.6', reviews: '640',   leave: '26 weeks full pay',  office: '1d', wf: false, careers: 'https://wellcome.org/jobs',               score: '9.0', note: 'Sector-leading WLB; mission-driven science philanthropy; flexible by default.' },
-  { co: 'Channel 4',      sector: 'Media',        wlb: '4.2', reviews: '1,080', leave: '9 months full pay',  office: '2d', wf: true,  careers: 'https://careers.channel4.com',            score: '8.9', note: '9 months full pay for all parents; best in UK broadcasting. Working Families Top Employer 2024.' },
-  { co: 'Ofcom',          sector: 'Regulator',    wlb: '4.5', reviews: '780',   leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://www.ofcom.org.uk/about-ofcom/careers', score: '8.8', note: 'Regulator stability; hybrid-first; consistently high WLB ratings on Glassdoor.' },
-  { co: 'Lloyds Banking', sector: 'Finance',      wlb: '4.1', reviews: '9,200', leave: '39 weeks full pay',  office: '2d', wf: true,  careers: 'https://www.lloydsbankinggroup.com/careers', score: '8.8', note: 'Up to 39 weeks full pay; strong flexible return options. Working Families Top Employer.' },
-  { co: 'BBC',            sector: 'Media',        wlb: '4.3', reviews: '6,400', leave: '26 weeks full pay',  office: '2d', wf: true,  careers: 'https://careers.bbc.co.uk',               score: '8.7', note: '35-hour week, hybrid, public service culture. Working Families Top Employer 2024.' },
-  { co: 'NatWest Group',  sector: 'Finance',      wlb: '4.2', reviews: '7,100', leave: '26 weeks full pay',  office: '2d', wf: true,  careers: 'https://jobs.natwestgroup.com',           score: '8.7', note: '52 weeks available, first 26 at full pay. Working Families Top Employer 2024.' },
-  { co: 'Octopus Energy', sector: 'Energy',       wlb: '4.4', reviews: '1,240', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://octopus.energy/careers',          score: '8.7', note: 'B Corp certified; genuine flexible working; high Glassdoor WLB scores.' },
-  { co: 'Sky',            sector: 'Media',        wlb: '4.0', reviews: '5,600', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://careers.sky.com',                 score: '8.6', note: '26 weeks full pay for all parents; large UK employer; hybrid-first.' },
-  { co: 'GitLab',         sector: 'Tech',         wlb: '4.2', reviews: '2,300', leave: '16 weeks full pay',  office: '0d', wf: false, careers: 'https://about.gitlab.com/jobs',           score: '8.6', note: 'Fully remote-first; async culture; transparent pay and operations.' },
-  { co: 'Aviva',          sector: 'Insurance',    wlb: '4.1', reviews: '3,800', leave: '26 weeks full pay',  office: '2d', wf: true,  careers: 'https://careers.aviva.co.uk',             score: '8.5', note: '26 weeks full pay for all parents; flexible return programme. Working Families Top Employer.' },
-  { co: 'Monzo',          sector: 'Fintech',      wlb: '4.0', reviews: '1,100', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://monzo.com/careers',               score: '8.5', note: 'Async-friendly; strong WLB reputation; fast-growing UK bank.' },
-  { co: 'Wise',           sector: 'Fintech',      wlb: '4.1', reviews: '1,560', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://wise.com/jobs',                   score: '8.5', note: 'Distributed teams; no-meeting Fridays; profitable and mission-driven.' },
-  { co: 'HMRC',           sector: 'Public Sector',wlb: '4.0', reviews: '3,200', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://www.civilservicejobs.service.gov.uk', score: '8.4', note: 'Civil service terms; flexible working by default; large stable employer.' },
-  { co: 'DWP Digital',    sector: 'Public Sector',wlb: '4.0', reviews: '2,100', leave: '26 weeks full pay',  office: '2d', wf: false, careers: 'https://www.civilservicejobs.service.gov.uk', score: '8.4', note: 'GDS-aligned digital team; flexible civil service terms; mission-driven tech roles.' },
-  // NHS: real Agenda for Change national terms + Glassdoor's general "NHS"
-  // listing (not one specific trust's PR claim, since Agenda for Change
-  // genuinely applies nationally) — added because this list previously had
-  // no healthcare employer despite the NHS being the UK's largest employer.
-  { co: 'NHS',            sector: 'Healthcare',   wlb: '3.3', reviews: '14,689',leave: '8 weeks full pay + 18 weeks half pay', office: 'Shift-based', wf: false, careers: 'https://www.jobs.nhs.uk', score: '7.8', note: 'Agenda for Change national terms apply across every trust: 8 weeks full pay + 18 weeks half pay maternity leave, and a day-one statutory right to request flexible working.' },
+  { co: 'Nationwide',     sector: 'Finance',      leave: '26 weeks full pay',  office: '1d', careers: 'https://jobs.nationwide.co.uk',           note: 'Enhanced parental leave well above statutory; hybrid-first working.' },
+  { co: 'Wellcome Trust', sector: 'Charity',      leave: '26 weeks full pay',  office: '1d', careers: 'https://wellcome.org/jobs',               note: 'Mission-driven science philanthropy; flexible working by default.' },
+  { co: 'Channel 4',      sector: 'Media',        leave: '9 months full pay',  office: '2d', careers: 'https://careers.channel4.com',            note: 'Nine months at full pay for all parents, among the most generous published in UK broadcasting.' },
+  { co: 'Ofcom',          sector: 'Regulator',    leave: '26 weeks full pay',  office: '2d', careers: 'https://www.ofcom.org.uk/about-ofcom/careers', note: 'Regulator stability; hybrid-first working pattern.' },
+  { co: 'Lloyds Banking', sector: 'Finance',      leave: '39 weeks full pay',  office: '2d', careers: 'https://www.lloydsbankinggroup.com/careers', note: 'Up to 39 weeks at full pay; published flexible return options.' },
+  { co: 'BBC',            sector: 'Media',        leave: '26 weeks full pay',  office: '2d', careers: 'https://careers.bbc.co.uk',               note: '35-hour standard week, hybrid working, public service terms.' },
+  { co: 'NatWest Group',  sector: 'Finance',      leave: '26 weeks full pay',  office: '2d', careers: 'https://jobs.natwestgroup.com',           note: '52 weeks available, the first 26 at full pay.' },
+  { co: 'Octopus Energy', sector: 'Energy',       leave: '26 weeks full pay',  office: '2d', careers: 'https://octopus.energy/careers',          note: 'B Corp certified; published flexible working policy.' },
+  { co: 'Sky',            sector: 'Media',        leave: '26 weeks full pay',  office: '2d', careers: 'https://careers.sky.com',                 note: '26 weeks full pay for all parents; large UK employer; hybrid-first.' },
+  { co: 'GitLab',         sector: 'Tech',         leave: '16 weeks full pay',  office: '0d', careers: 'https://about.gitlab.com/jobs',           note: 'Fully remote-first; async culture; publicly documented handbook and pay bands.' },
+  { co: 'Aviva',          sector: 'Insurance',    leave: '26 weeks full pay',  office: '2d', careers: 'https://careers.aviva.co.uk',             note: '26 weeks full pay for all parents; published flexible return programme.' },
+  { co: 'Monzo',          sector: 'Fintech',      leave: '26 weeks full pay',  office: '2d', careers: 'https://monzo.com/careers',               note: 'Async-friendly working; UK bank.' },
+  { co: 'Wise',           sector: 'Fintech',      leave: '26 weeks full pay',  office: '2d', careers: 'https://wise.com/jobs',                   note: 'Distributed teams; no-meeting Fridays.' },
+  { co: 'HMRC',           sector: 'Public Sector',leave: '26 weeks full pay',  office: '2d', careers: 'https://www.civilservicejobs.service.gov.uk', note: 'Civil service terms; flexible working by default; large stable employer.' },
+  { co: 'DWP Digital',    sector: 'Public Sector',leave: '26 weeks full pay',  office: '2d', careers: 'https://www.civilservicejobs.service.gov.uk', note: 'GDS-aligned digital team; civil service flexible terms.' },
+  // NHS: Agenda for Change national terms, which genuinely apply across every
+  // trust rather than being one employer's PR claim. Included because the list
+  // previously had no healthcare employer despite the NHS being the UK's
+  // largest employer.
+  { co: 'NHS',            sector: 'Healthcare',   leave: '8 weeks full pay + 18 weeks half pay', office: 'Shift-based', careers: 'https://www.jobs.nhs.uk', note: 'Agenda for Change national terms apply across every trust: 8 weeks full pay plus 18 weeks half pay maternity leave, and a day-one statutory right to request flexible working.' },
 ]
 
-// WLB lookup by company name (lowercase) — sourced from BALANCED_COMPANIES above
+// Lookup by lowercase company name. Used across the feed, contractor and
+// wishlist tabs to mark an employer that appears on the list above. It used
+// to carry a Glassdoor rating and the badges rendered it as "WLB 4.4/5";
+// those badges now surface the employer's own published parental leave
+// instead, which is a fact that employer states about itself.
 export const WLB_DATA = {}
 BALANCED_COMPANIES.forEach(c => { WLB_DATA[c.co.toLowerCase()] = c })
 
@@ -1301,8 +1333,8 @@ export function buildWhyBullets(job, profile) {
   }
 
   const wlbEntry = WLB_DATA[(job.company || '').toLowerCase()]
-  if (wlbEntry && parseFloat(wlbEntry.wlb) >= 4.3 && bullets.length < 5) {
-    bullets.push(`${job.company} scores ${wlbEntry.wlb}/5 for work-life balance on Glassdoor`)
+  if (wlbEntry && wlbEntry.leave && bullets.length < 5) {
+    bullets.push(`${job.company} publishes ${wlbEntry.leave} parental leave`)
   }
 
   const cultureScore = factors.companyCulture?.score || 0
@@ -1334,7 +1366,7 @@ export const TAB_TOOLTIPS = {
   Pipeline:   'Manage your active roles across stages. Stats at the bottom.',
   Discover:   'Your personalised job feed and target company shortlist',
   Aggregator: 'Pre-filled search links for LinkedIn, Indeed and Adzuna, built from your profile, plus a cadence tracker for your daily sweep',
-  WLB:        'Curated employer reference: Glassdoor WLB scores, parental leave, and office days before you commit to applying',
+  WLB:        'Curated employer reference: published parental leave and office days before you commit to applying',
   CV:         'Generate a tailored CV or cover letter for any pipeline role, with a copy-paste option if you would rather use your own AI tool',
   Interview:  'Full interview prep pack: company research, questions, STAR stories',
   Referrals:  'The people you know: draft warm referral asks, reconnects, and speculative outreach',
