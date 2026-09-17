@@ -1372,6 +1372,7 @@ export const TAB_TOOLTIPS = {
   Referrals:  'The people you know: draft warm referral asks, reconnects, and speculative outreach',
   Contractor: 'Curated employer list, recruiter directory, and live contract role scan',
   Profile:    'Everything Requite knows about you: your CV, target roles, and preferences. Most fields are editable here; career history is edited in Settings.',
+  Notes:      'A plain scratchpad for anything you don\'t want to lose. Not scored, not sent anywhere.',
 }
 
 // plan: 'free' | 'trial' | 'perm' | 'contractor' | 'both'
@@ -1401,6 +1402,7 @@ export function buildTabs(profile, plan = 'trial') {
   tabs.push('Referrals')
   if (searchMode !== 'perm') tabs.push('Contractor')
   tabs.push('Profile')
+  tabs.push('Notes')
   return tabs
 }
 

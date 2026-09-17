@@ -49,6 +49,7 @@ import ContractorTab from './tabs/ContractorTab'
 import CvTab from './tabs/CvTab'
 import FeedTab from './tabs/FeedTab'
 import TodayDashboard from './tabs/TodayDashboard'
+import NotesTab from './tabs/NotesTab'
 
 
 
@@ -784,6 +785,9 @@ export default function AppPage() {
 
         {/* ── Profile / Memory Card tab (G3) ── */}
         {tab === 'Profile' && <MemoryCard />}
+
+        {/* ── Notes: plain scratchpad, no AI, direct client CRUD (Stage 76) ── */}
+        {tab === 'Notes' && <NotesTab />}
 
       </div>
 
