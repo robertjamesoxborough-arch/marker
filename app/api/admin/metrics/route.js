@@ -29,15 +29,27 @@ export async function GET() {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const now = new Date().toISOString()
 
+  // Excludes the 5 pre-seeded dev test-tier accounts (Stage 78, TEMPORARY --
+  // see lib/test-routes.js and PROGRESS.md) from every count below, so they
+  // never inflate real user/signup/spend numbers. When that whole system is
+  // deleted, remove this exclusion along with it: fetch the real user set
+  // and the test-account ids separately, then filter the usage/profile rows
+  // (which have no is_test_account column of their own) by user_id.
   const [
     { data: users },
-    { data: allUsage },
-    { data: profiles },
+    { data: testAccounts },
+    { data: allUsageRaw },
+    { data: profilesRaw },
   ] = await Promise.all([
-    service.from('users').select('id, trial_ends_at, created_at'),
-    service.from('ai_usage').select('action, model, cost_estimate_gbp, input_tokens, output_tokens, created_at').gte('created_at', thirtyDaysAgo),
-    service.from('profiles').select('track, hard_filters_json'),
+    service.from('users').select('id, trial_ends_at, created_at').eq('is_test_account', false),
+    service.from('users').select('id').eq('is_test_account', true),
+    service.from('ai_usage').select('user_id, action, model, cost_estimate_gbp, input_tokens, output_tokens, created_at').gte('created_at', thirtyDaysAgo),
+    service.from('profiles').select('user_id, track, hard_filters_json'),
   ])
+
+  const testUserIds = new Set((testAccounts || []).map(u => u.id))
+  const allUsage = (allUsageRaw || []).filter(r => !testUserIds.has(r.user_id))
+  const profiles = (profilesRaw || []).filter(p => !testUserIds.has(p.user_id))
 
   // Totals
   const totalUsers = users?.length || 0

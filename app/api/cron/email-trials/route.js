@@ -22,10 +22,15 @@ export async function GET(request) {
   const authMap = {}
   ;(authData?.users || []).forEach(u => { authMap[u.id] = u.email })
 
+  // is_test_account: false -- excludes the 5 pre-seeded dev test-tier
+  // accounts (Stage 78, TEMPORARY, see lib/test-routes.js) so this never
+  // tries to email one of them. Remove this filter when that system is
+  // deleted.
   const { data: users } = await service
     .from('users')
     .select('id, trial_ends_at')
     .not('trial_ends_at', 'is', null)
+    .eq('is_test_account', false)
 
   const { data: profiles } = await service
     .from('profiles')

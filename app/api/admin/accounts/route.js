@@ -26,13 +26,16 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
+  // is_test_account: false excludes the 5 pre-seeded dev test-tier accounts
+  // (Stage 78, TEMPORARY -- see lib/test-routes.js) from the real account
+  // list. Remove this filter when that whole system is deleted.
   const [
     { data: usersData },
     { data: profiles },
     { data: allUsage },
     { data: authData, error: authError },
   ] = await Promise.all([
-    service.from('users').select('id, trial_ends_at, created_at, default_account_id'),
+    service.from('users').select('id, trial_ends_at, created_at, default_account_id').eq('is_test_account', false),
     service.from('profiles').select('user_id, track, target_roles, seniority, industries, postcode, hard_filters_json, name'),
     service.from('ai_usage').select('user_id, cost_estimate_gbp, created_at'),
     service.auth.admin.listUsers({ perPage: 1000 }),
