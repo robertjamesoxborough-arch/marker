@@ -6,7 +6,7 @@ import { NextResponse, after } from 'next/server'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 import { logIfError } from '../../../../lib/log-errors'
 
 
@@ -20,10 +20,10 @@ export async function POST(request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'cover_letter')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'cover_letter')
   if (!allowed) {
     return NextResponse.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Cover letters are not available on your current plan. Upgrade to Pro or Max to unlock.'
         : `Cover letter limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
       limitReached: true, used, cap, tier,

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { after } from 'next/server'
 import { scoreMatch } from '../../../lib/match-engine'
-import { checkAllowance } from '../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../lib/allowance'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { scoreJobsBatch } from '../../../lib/score-jobs-batch'
 import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../lib/freshness'
@@ -202,11 +202,11 @@ export async function POST(req) {
   try { body = await req.json() } catch {}
 
   if (body?.fresh === true) {
-    const { allowed, used, cap, tier } = await checkAllowance(user.id, 'feed_fresh_scan')
+    const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'feed_fresh_scan')
     if (!allowed) {
       return Response.json({
         jobs: [], limitReached: true, used, cap, tier,
-        error: cap === 0
+        error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
           ? 'Fresh scan is a Pro feature. Upgrade to run live scans; free plans read the shared daily-refreshed feed.'
           : `Fresh scan limit reached (${used}/${cap} today). Try again tomorrow, or browse the cached feed.`,
       }, { status: 429 })

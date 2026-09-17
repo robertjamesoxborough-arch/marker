@@ -6,7 +6,7 @@ import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { buildAiContext } from '../../../lib/ai-context'
-import { checkAllowance } from '../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../lib/allowance'
 import { logIfError } from '../../../lib/log-errors'
 
 // Interview prep overhaul (Stage 67). Same route, extended rather than
@@ -106,10 +106,10 @@ export async function POST(req) {
 // question typed live. Haiku, no web_search, hard-capped output, its own
 // allowance so it never competes with the 8/month pack-build cap.
 async function handleLive(service, user, body) {
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'interview_prep_live')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'interview_prep_live')
   if (!allowed) {
     return Response.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Live mode is not available on your current plan. Upgrade to Pro or Max to unlock.'
         : `Live mode limit reached (${used}/${cap} this month on your ${tier} plan). Your pre-built cue cards still work.`,
       limitReached: true, used, cap, tier,
@@ -155,10 +155,10 @@ Give ONE short, ready-to-say answer. First person, spoken rhythm, plain English,
 
 // ── Pack build ───────────────────────────────────────────────────────
 async function handlePackBuild(service, user, body) {
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'interview_prep')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'interview_prep')
   if (!allowed) {
     return Response.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Interview prep is not available on your current plan. Upgrade to Pro or Max to unlock.'
         : `Interview prep limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
       limitReached: true, used, cap, tier,
@@ -171,7 +171,7 @@ async function handlePackBuild(service, user, body) {
   const searchPool = await checkAllowance(user.id, 'web_search')
   if (!searchPool.allowed) {
     return Response.json({
-      error: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st.`,
+      error: searchPool.spendExceeded ? SPEND_CEILING_MESSAGE : `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st.`,
       limitReached: true, used: searchPool.used, cap: searchPool.cap, tier: searchPool.tier, action: 'web_search',
     }, { status: 429 })
   }
@@ -299,7 +299,7 @@ Generate 8 to 10 items in likelyQuestions, exactly 4 in stories, 8 in questionsT
         // one real run, truncating the JSON before it could close.
         thinking: { type: 'disabled' },
         system: [{ type: 'text', text: SYSTEM_STABLE, cache_control: { type: 'ephemeral' } }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
         messages: [{ role: 'user', content }],
       }),
     })

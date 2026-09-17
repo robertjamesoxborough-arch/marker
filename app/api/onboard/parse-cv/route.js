@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 
 // Security/cost fix: this route was reachable with no auth check at all —
@@ -59,10 +59,10 @@ export async function POST(request) {
   // Reuses the existing parse_career_history bucket (lib/allowance.js) —
   // it already exists specifically for "Haiku CV-to-structured-history
   // parse (onboarding + re-parse)", which is exactly what this route is.
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'parse_career_history')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'parse_career_history')
   if (!allowed) {
     return NextResponse.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'CV parsing is not available on your current plan.'
         : `Parse limit reached (${used}/${cap} this month on your ${tier} plan). Try again next month.`,
       limitReached: true, used, cap, tier,

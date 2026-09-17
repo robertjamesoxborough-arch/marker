@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { after } from 'next/server'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
 
@@ -15,25 +15,43 @@ import { MODELS } from '../../../../lib/anthropic'
 //     over the ~4096-token real cache threshold measured in Stage 19g for
 //     claude-haiku-4-5-20251001 (the commonly-documented 2048 figure does not
 //     hold for this model; verified live, see PROGRESS.md Stage 27).
-//   - Hard cap: 8 Haiku turns per session, enforced server-side by counting
-//     assistant messages already in the conversation -- not left to the model
-//     to self-regulate.
 //   - Tier gate: Pro/Max (and trial, which is Pro-equivalent everywhere else
 //     in this app) only. Free is locked out before any model call happens.
-//   - Allowance: checked once, before the FIRST call of a session (derived
-//     from an empty messages array, not a client-supplied flag, so it can't
-//     be spoofed by lying about turn number). That first call's usage is
-//     logged under action:'analyse', consuming exactly one monthly credit
-//     regardless of how many turns follow or whether the user bails midway --
-//     closing the gap where repeated bailed attempts would spend real money
-//     without ever touching the capped allowance. Every later call in the
-//     same session (turns 2-8, and the final Sonnet resort) is still logged
-//     for cost visibility, tagged action:'tidy_up' (uncapped, tracking-only).
 //   - The re-sort itself is a plain pipeline_items write, done client-side
 //     after this route returns a plan -- no model call for that step.
+//
+// AUDIT STAGE 2 (L2), FIXED IN STAGE 77 -- do not reintroduce this bug.
+// Both the allowance check and the turn-count ceiling used to be derived
+// from the CLIENT-SUPPLIED `messages` array: `isFirstCall = messages.length
+// === 0` for the allowance gate, and `assistantTurns = messages.filter(m =>
+// m.role === 'assistant').length` for the turn ceiling. Send any non-empty
+// messages array and BOTH checks were skipped, on both the Haiku turn path
+// and the Sonnet resort path -- an unbounded number of Sonnet calls for the
+// price of one crafted request body, reachable by any free signup via the
+// 7-day trial (trial mirrors Pro's caps). Confirmed exploitable, not
+// theoretical.
+//
+// Fixed by moving both checks server-side, verified against real ai_usage
+// rows rather than trusted client state:
+//   - checkAllowance(user.id, 'tidy_up') is now called before EVERY model
+//     call in this route (every turn AND the resort), not just when the
+//     client happens to send an empty array. Its own tidy_up TIER_CAPS entry
+//     (lib/allowance.js) is a real monthly ceiling that cannot be bypassed by
+//     lying about the request body, because it counts genuine past ai_usage
+//     rows this route itself wrote.
+//   - The 8-turn-per-session ceiling now counts real ai_usage rows tagged
+//     action:'tidy_up', model:haiku, created within the last
+//     SESSION_WINDOW_MIN minutes for this user (see countRecentTurns below)
+//     -- not the client's own array. A user who never sends assistant
+//     messages back still gets counted correctly, because the count comes
+//     from what this server actually did, not from what the client claims.
+// The first call of a session still ALSO logs under action:'analyse' (one
+// scoring credit per session, preserved from the original design), but that
+// is now in addition to the tidy_up check above, never instead of it.
 
 const TIDY_UP_TIERS = new Set(['pro', 'max', 'trial'])
 const MAX_TURNS = 8
+const SESSION_WINDOW_MIN = 60 // see countRecentTurns below
 
 const TIDY_SYSTEM_PROMPT = `You are the voice behind "Help me tidy up" inside Requite, a UK job-search tool. A user has just clicked this button from their pipeline board because it feels like too much right now. Your job is to have a short, warm conversation that helps them see their pipeline clearly again, then hand off to a re-sorting step that moves the lower-priority stuff into an "If you have time" holding area so the board feels smaller and calmer.
 
@@ -217,6 +235,33 @@ async function getUser() {
   return user
 }
 
+// Real, server-verified turn count for the 8-turn ceiling -- see the Audit
+// Stage 2 (L2) comment at the top of this file for why this replaced trusting
+// messages.filter(role==='assistant').length from the client. Counts this
+// user's own Haiku tidy_up calls in the last SESSION_WINDOW_MIN minutes,
+// which is what a "session" actually is here: there is no session id, so a
+// short recent-activity window is the honest proxy, immune to a client
+// simply omitting assistant turns from the array it sends back. A user who
+// pauses for over an hour mid-conversation gets treated as starting fresh,
+// which is a harmless UX quirk (not a cost one): the MONTHLY tidy_up cap
+// checked before every call still bounds total spend regardless of how the
+// turns are paced.
+async function countRecentTurns(service, userId) {
+  const since = new Date(Date.now() - SESSION_WINDOW_MIN * 60 * 1000).toISOString()
+  const { count, error } = await service
+    .from('ai_usage')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('action', 'tidy_up')
+    .eq('model', MODELS.haiku)
+    .gte('created_at', since)
+  if (error) {
+    console.error('[tidy-up] countRecentTurns query failed for user=' + userId + ':', error.message)
+    return MAX_TURNS // fail closed: an unreadable count must not read as zero turns used
+  }
+  return count || 0
+}
+
 async function callAnthropic(apiKey, model, systemPrompt, messages, maxTokens) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -255,25 +300,47 @@ export async function POST(req) {
   try { body = await req.json() } catch {}
   const action = body?.action
   const messages = Array.isArray(body?.messages) ? body.messages : []
+  const isFirstCall = messages.length === 0
 
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'analyse')
-  if (!TIDY_UP_TIERS.has(tier)) {
+  // Tier gate + the "one score credit per session" check -- unchanged in
+  // spirit from the original design, still keyed off isFirstCall for WHICH
+  // credit gets spent, but that is no longer the only thing standing between
+  // a request and a real model call. See tidyAllowance below.
+  const scoreAllowance = await checkAllowance(user.id, 'analyse')
+  if (!TIDY_UP_TIERS.has(scoreAllowance.tier)) {
     return Response.json({
-      locked: true, tier,
+      locked: true, tier: scoreAllowance.tier,
       error: 'Help me tidy up is a Pro feature. Upgrade to use it, free plans can still use the board as normal.',
     }, { status: 403 })
   }
-  const isFirstCall = messages.length === 0
-  if (isFirstCall && !allowed) {
+  if (isFirstCall && !scoreAllowance.allowed) {
     return Response.json({
-      locked: true, tier, used, cap,
-      error: `Monthly AI scoring limit reached (${used}/${cap} on your ${tier} plan). This uses the same monthly allowance as job scoring.`,
+      locked: true, tier: scoreAllowance.tier, used: scoreAllowance.used, cap: scoreAllowance.cap,
+      error: scoreAllowance.spendExceeded ? SPEND_CEILING_MESSAGE
+        : `Monthly AI scoring limit reached (${scoreAllowance.used}/${scoreAllowance.cap} on your ${scoreAllowance.tier} plan). This uses the same monthly allowance as job scoring.`,
     }, { status: 429 })
   }
 
+  // The real gate (Audit Stage 2, L2) -- checked before EVERY model call in
+  // this route, turn or resort, using a bucket this route itself writes to on
+  // every call below. This cannot be bypassed by lying about `messages`,
+  // because `used` here comes from real ai_usage rows, not the request body.
+  const tidyAllowance = await checkAllowance(user.id, 'tidy_up')
+  if (!tidyAllowance.allowed) {
+    return Response.json({
+      locked: true, tier: tidyAllowance.tier, used: tidyAllowance.used, cap: tidyAllowance.cap,
+      error: tidyAllowance.spendExceeded ? SPEND_CEILING_MESSAGE
+        : `Monthly tidy-up limit reached (${tidyAllowance.used}/${tidyAllowance.cap} on your ${tidyAllowance.tier} plan). It resets on the 1st.`,
+    }, { status: 429 })
+  }
+
+  const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
   if (action === 'turn') {
-    const assistantTurns = messages.filter(m => m.role === 'assistant').length
-    if (assistantTurns >= MAX_TURNS) {
+    // Server-verified turn count, not the client's own array -- see
+    // countRecentTurns above and the Audit Stage 2 (L2) note at the top.
+    const recentTurns = await countRecentTurns(service, user.id)
+    if (recentTurns >= MAX_TURNS) {
       return Response.json({ message: "That's plenty for now. Let me sort your board.", done: true, forcedConclusion: true })
     }
 
@@ -282,10 +349,14 @@ export async function POST(req) {
       : messages
 
     const data = await callAnthropic(apiKey, MODELS.haiku, TIDY_SYSTEM_PROMPT, wireMessages, 300)
-    if (isFirstCall && data.usage) {
-      after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'analyse', usage: data.usage }))
-    } else if (data.usage) {
+    if (data.usage) {
+      // Every turn, including the first, is logged under tidy_up -- this is
+      // both the cost-visibility record and the real count countRecentTurns
+      // and the next checkAllowance('tidy_up') call read back.
       after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'tidy_up', usage: data.usage }))
+      // The first call ALSO spends one shared scoring credit, preserved from
+      // the original design: a tidy-up session costs the same as one score.
+      if (isFirstCall) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'analyse', usage: data.usage }))
     }
 
     const parsed = parseJsonReply(data)

@@ -8,7 +8,7 @@ import { scoreMatch } from '../../../lib/match-engine'
 import { buildAiContext } from '../../../lib/ai-context'
 import { checkForLoop } from '../../../lib/loop-guard'
 import { STYLE_RULES } from '../../../lib/brand'
-import { checkAllowance } from '../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../lib/allowance'
 import { RUBRIC, computeOverall } from '../../../lib/scoring'
 import { logIfError } from '../../../lib/log-errors'
 import { fetchJobPage, extractJobPostingJsonLd, extractPlainText, extractPublishedDate } from '../../../lib/job-page-scrape'
@@ -25,23 +25,32 @@ export async function POST(req) {
   )
   const { data: { user } } = await supabase.auth.getUser()
 
-  let profile = null
-  let careerHistory = []
-  let wishlists = []
-  if (user) {
-    const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const [profileRes, historyRes, wishlistRes] = await Promise.all([
-      service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track').eq('user_id', user.id).single(),
-      service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
-      service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
-    ])
-    logIfError('analyse profiles', profileRes)
-    logIfError('analyse career_history', historyRes)
-    logIfError('analyse wishlists', wishlistRes)
-    profile = profileRes.data
-    careerHistory = historyRes.data || []
-    wishlists = wishlistRes.data || []
-  }
+  // AUDIT STAGE 2 (L1), FIXED IN STAGE 77 -- do not reintroduce this bug.
+  // This route used to have NO 401 at all: both allowance checks below sat
+  // inside `if (user)` blocks, so an anonymous POST skipped the analyse cap,
+  // the analyse_search cap AND the shared web_search pool, and usage tracking
+  // (also gated on a user id) never fired, so the spend was invisible as well
+  // as uncapped. Confirmed live: an anonymous POST with an unfetchable
+  // jobLink reached Strategy 3 and returned a real Sonnet + web_search
+  // result with no ai_usage row. middleware.js does not cover this route --
+  // protectedPrefixes matches page routes only, not /api/analyse. Every
+  // caller of this route is inside the authenticated /app area already (see
+  // AggregatorTab, EngineTab, FeedTab, TodayDashboard), so requiring a real
+  // session here breaks no genuine use.
+  if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 })
+
+  const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  const [profileRes, historyRes, wishlistRes] = await Promise.all([
+    service.from('profiles').select('target_roles, seniority, industries, max_office_days, salary_floor, postcode, hard_filters_json, track').eq('user_id', user.id).single(),
+    service.from('career_history').select('role_title, company, start_date, end_date').eq('user_id', user.id).order('start_date', { ascending: false }).limit(5),
+    service.from('wishlists').select('company').eq('user_id', user.id).limit(5),
+  ])
+  logIfError('analyse profiles', profileRes)
+  logIfError('analyse career_history', historyRes)
+  logIfError('analyse wishlists', wishlistRes)
+  const profile = profileRes.data
+  const careerHistory = historyRes.data || []
+  const wishlists = wishlistRes.data || []
 
   const { jobLink, roleTitle, company, jdText, priorResponse } = await req.json()
   if (!jobLink && !jdText) return Response.json({ error: 'No job link or description provided' }, { status: 400 })
@@ -56,17 +65,16 @@ export async function POST(req) {
     raw_json: {},
   })
 
-  // Allowance gate — checked after deterministic score so we can always return it in the error
-  if (user) {
-    const { allowed, used, cap, tier } = await checkAllowance(user.id, 'analyse')
-    if (!allowed) {
-      return Response.json({
-        error: cap === 0
-          ? 'AI scoring is not available on your current plan. Upgrade to unlock.'
-          : `AI scoring limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to continue.`,
-        limitReached: true, used, cap, tier, deterministicScore,
-      }, { status: 429 })
-    }
+  // Allowance gate — checked after deterministic score so we can always return it in the error.
+  // Unconditional now (was `if (user)`, the L1 leak above) -- user is guaranteed here.
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'analyse')
+  if (!allowed) {
+    return Response.json({
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
+        ? 'AI scoring is not available on your current plan. Upgrade to unlock.'
+        : `AI scoring limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to continue.`,
+      limitReached: true, used, cap, tier, deterministicScore,
+    }, { status: 429 })
   }
 
   const CANDIDATE = buildAiContext(profile, careerHistory, wishlists)
@@ -166,7 +174,7 @@ ${STYLE_RULES}`
       '',
       'Analyse this role against the candidate profile. Focus on role fit only.',
     ].filter(l => l !== undefined).join('\n')
-    return runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
+    return runClaude(apiKey, SYSTEM, userMsg, user.id, deterministicScore, priorResponse)
   }
 
   // Strategy 2: Direct page fetch with JSON-LD extraction (lib/job-page-scrape.js —
@@ -203,7 +211,7 @@ ${STYLE_RULES}`
         'Analyse this role against the candidate profile. Focus on role fit only; never comment on job availability.',
       ].filter(l => l !== undefined).join('\n')
 
-      const result = await runClaude(apiKey, SYSTEM, userMsg, user?.id, deterministicScore, priorResponse)
+      const result = await runClaude(apiKey, SYSTEM, userMsg, user.id, deterministicScore, priorResponse)
       // extractedJd lets the client auto-fill its paste box with what we actually
       // pulled, so a successful link-only submission still ends with a real job.jd
       // stored on the role, not just a score.
@@ -235,34 +243,34 @@ RULES, follow exactly:
 ${SCORING}
 ${JSON_SCHEMA}`
 
-    // Gate Sonnet web-search separately — more expensive, tighter cap
-    if (user) {
-      const searchCheck = await checkAllowance(user.id, 'analyse_search')
-      if (!searchCheck.allowed) {
-        return Response.json({
-          deterministicScore,
-          signal: 'maybe',
-          score: deterministicScore?.score || 5,
-          signalReason: 'Web search limit reached. Paste the job description directly for a full AI score.',
-          limitReached: true, action: 'analyse_search',
-        })
-      }
-      // Shared web_search pool (Stage 64) — checked in addition to the
-      // analyse_search cap above, since this is one of several features
-      // that all draw on the same expensive call type. See lib/allowance.js.
-      const searchPool = await checkAllowance(user.id, 'web_search')
-      if (!searchPool.allowed) {
-        return Response.json({
-          deterministicScore,
-          signal: 'maybe',
-          score: deterministicScore?.score || 5,
-          signalReason: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Paste the job description directly for a full AI score, or upgrade for more.`,
-          limitReached: true, action: 'web_search',
-        })
-      }
+    // Gate Sonnet web-search separately — more expensive, tighter cap.
+    // Unconditional now (was `if (user)`, the L1 leak) -- user is guaranteed
+    // present by the 401 above, so both checks always run.
+    const searchCheck = await checkAllowance(user.id, 'analyse_search')
+    if (!searchCheck.allowed) {
+      return Response.json({
+        deterministicScore,
+        signal: 'maybe',
+        score: deterministicScore?.score || 5,
+        signalReason: searchCheck.spendExceeded ? SPEND_CEILING_MESSAGE : 'Web search limit reached. Paste the job description directly for a full AI score.',
+        limitReached: true, action: 'analyse_search',
+      })
+    }
+    // Shared web_search pool (Stage 64) — checked in addition to the
+    // analyse_search cap above, since this is one of several features
+    // that all draw on the same expensive call type. See lib/allowance.js.
+    const searchPool = await checkAllowance(user.id, 'web_search')
+    if (!searchPool.allowed) {
+      return Response.json({
+        deterministicScore,
+        signal: 'maybe',
+        score: deterministicScore?.score || 5,
+        signalReason: searchPool.spendExceeded ? SPEND_CEILING_MESSAGE : `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Paste the job description directly for a full AI score, or upgrade for more.`,
+        limitReached: true, action: 'web_search',
+      })
     }
 
-    const result = await runClaudeWithSearch(apiKey, searchPrompt, deterministicScore, user?.id)
+    const result = await runClaudeWithSearch(apiKey, searchPrompt, deterministicScore, user.id)
     try {
       const body = await result.json()
       return Response.json({ ...body, _usedWebSearch: true })
@@ -352,7 +360,7 @@ async function runClaudeWithSearch(apiKey, prompt, deterministicScore, userId) {
       body: JSON.stringify({
         model: MODELS.sonnet,
         max_tokens: 2600,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
         messages: [{ role: 'user', content: prompt }],
       }),
     })

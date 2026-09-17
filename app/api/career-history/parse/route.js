@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { after } from 'next/server'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { logIfError } from '../../../../lib/log-errors'
 import { MODELS } from '../../../../lib/anthropic'
@@ -174,10 +174,10 @@ export async function POST(request) {
   const user = await getUser()
   if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 })
 
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'parse_career_history')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'parse_career_history')
   if (!allowed) {
     return Response.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Career history parsing is not available on your current plan.'
         : `Parse limit reached (${used}/${cap} this month on your ${tier} plan). Try again next month.`,
       limitReached: true, used, cap, tier,

@@ -6,7 +6,7 @@ import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { buildAiContext } from '../../../lib/ai-context'
-import { checkAllowance } from '../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../lib/allowance'
 import { logIfError } from '../../../lib/log-errors'
 
 export async function POST(req) {
@@ -22,10 +22,10 @@ export async function POST(req) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'negotiation_prep')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'negotiation_prep')
   if (!allowed) {
     return Response.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Negotiation prep is not available on your current plan. Upgrade to Pro or Max to unlock.'
         : `Negotiation prep limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
       limitReached: true, used, cap, tier,

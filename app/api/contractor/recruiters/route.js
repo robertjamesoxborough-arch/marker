@@ -5,7 +5,7 @@ import { after } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
 import { trackAiUsage } from '../../../../lib/ai-usage'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 
 
 export async function POST() {
@@ -24,10 +24,10 @@ export async function POST() {
   // Recruiter search is Sonnet + web_search, the most expensive call in the
   // product. Gate it (cost guardrail 1): Free is hard-blocked, Pro/Max are
   // monthly-capped. checkAllowance only counts ai_usage rows, no spend.
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'recruiter_search')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'recruiter_search')
   if (!allowed) {
     return Response.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Recruiter search is a Pro or Max feature. Upgrade to get UK agencies matched to your profile.'
         : `Recruiter search limit reached (${used}/${cap} this month on your ${tier} plan). It resets on the 1st.`,
       limitReached: true, used, cap, tier,
@@ -40,7 +40,7 @@ export async function POST() {
   const searchPool = await checkAllowance(user.id, 'web_search')
   if (!searchPool.allowed) {
     return Response.json({
-      error: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st.`,
+      error: searchPool.spendExceeded ? SPEND_CEILING_MESSAGE : `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st.`,
       limitReached: true, used: searchPool.used, cap: searchPool.cap, tier: searchPool.tier, action: 'web_search',
     }, { status: 429 })
   }
@@ -106,7 +106,7 @@ Identify 10 UK recruitment agencies that actively place senior ${field} contract
       model: MODELS.sonnet,
       max_tokens: 5200,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       messages: [{ role: 'user', content: userMsg }],
     }),
   })

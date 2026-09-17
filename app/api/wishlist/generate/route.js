@@ -1,9 +1,19 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
+import { trackAiUsage } from '../../../../lib/ai-usage'
+
+// AUDIT STAGE 2 (L6), FIXED IN STAGE 77 -- do not reintroduce this bug.
+// This route had a real 401 but NO allowance check and NO usage tracking at
+// all: any user on any tier, including Free, could call it in a loop and
+// nothing would show up in ai_usage or count against any cap. It is the only
+// AI route in the app that was completely invisible to the cost dashboard.
+// Gated the same way as every other cheap Haiku rider (cv_lint, cv_questions,
+// cv_gap_analysis): its own wishlist_generate TIER_CAPS entry.
 
 const TRACK_CONTEXT = {
   parent:         'Prioritise companies known for generous parental leave (20+ weeks full pay), flexible return policies, and family-friendly culture.',
@@ -23,6 +33,16 @@ export async function POST() {
   )
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'wishlist_generate')
+  if (!allowed) {
+    return NextResponse.json({
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
+        ? 'Wishlist suggestions are not available on your current plan.'
+        : `Wishlist suggestion limit reached (${used}/${cap} this month on your ${tier} plan). It resets on the 1st.`,
+      limitReached: true, used, cap, tier,
+    }, { status: 429 })
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -88,6 +108,8 @@ ${STYLE_RULES}`
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })
+
+    if (message.usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'wishlist_generate', usage: message.usage }))
 
     // content[0] is not always the text block — see Stage 45 note in cv/generate.
     const text = (message.content || []).filter(c => c.type === 'text').map(c => c.text).join('') || ''

@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { after } from 'next/server'
 import { MODELS } from '../../../../lib/anthropic'
 import { STYLE_RULES } from '../../../../lib/brand'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 import { trackAiUsage } from '../../../../lib/ai-usage'
 import { logIfError } from '../../../../lib/log-errors'
 
@@ -94,7 +94,7 @@ ${STYLE_RULES}`
     body: JSON.stringify({
       model: MODELS.sonnet,
       max_tokens: 3900,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       messages: [{ role: 'user', content: prompt }],
     }),
   })
@@ -145,12 +145,12 @@ export async function POST(request) {
     return Response.json({ companies, cachedAt, source: 'cache' })
   }
 
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'analyse_search')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'analyse_search')
   if (!allowed) {
     const { companies, cachedAt } = await readCache(service, user.id)
     return Response.json({
       companies, cachedAt, limitReached: true, used, cap, tier,
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'Live company research is a Pro feature. Upgrade to refresh your list; free plans can still browse the cached one.'
         : `Refresh limit reached (${used}/${cap} this month on your ${tier} plan). Showing your last cached list.`,
     }, { status: 429 })
@@ -163,7 +163,7 @@ export async function POST(request) {
     const { companies, cachedAt } = await readCache(service, user.id)
     return Response.json({
       companies, cachedAt, limitReached: true, used: searchPool.used, cap: searchPool.cap, tier: searchPool.tier,
-      error: `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st. Showing your last cached list.`,
+      error: searchPool.spendExceeded ? SPEND_CEILING_MESSAGE : `You've used your web searches for this month (${searchPool.used}/${searchPool.cap}). Upgrade for more, or it resets on the 1st. Showing your last cached list.`,
     }, { status: 429 })
   }
 

@@ -7,7 +7,7 @@ import { trackAiUsage } from '../../../../lib/ai-usage'
 import { MODELS } from '../../../../lib/anthropic'
 import { buildAiContext } from '../../../../lib/ai-context'
 import { checkVerifiedStats } from '../../../../lib/verified-stats'
-import { checkAllowance } from '../../../../lib/allowance'
+import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../../lib/allowance'
 import { logIfError } from '../../../../lib/log-errors'
 import { extractCvSections } from '../../../../lib/cv-extract'
 import { lintCvStructure, buildAtsSummary } from '../../../../lib/cv-lint'
@@ -235,10 +235,10 @@ export async function POST(request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Allowance gate — checked before any AI call
-  const { allowed, used, cap, tier } = await checkAllowance(user.id, 'cv')
+  const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'cv')
   if (!allowed) {
     return NextResponse.json({
-      error: cap === 0
+      error: spendExceeded ? SPEND_CEILING_MESSAGE : cap === 0
         ? 'CV generation is not available on your current plan. Upgrade to Pro or Max to unlock.'
         : `CV generation limit reached (${used}/${cap} this month on your ${tier} plan). Upgrade to unlock more.`,
       limitReached: true, used, cap, tier,
@@ -306,7 +306,7 @@ export async function POST(request) {
     const qAllowance = await checkAllowance(user.id, 'cv_questions')
     if (!qAllowance.allowed) {
       return NextResponse.json({
-        error: qAllowance.cap === 0
+        error: qAllowance.spendExceeded ? SPEND_CEILING_MESSAGE : qAllowance.cap === 0
           ? 'Ask-first mode is not available on your current plan.'
           : `You've used your quick-questions allowance for this month (${qAllowance.used}/${qAllowance.cap}). Write now instead, or it resets on the 1st.`,
         limitReached: true, used: qAllowance.used, cap: qAllowance.cap, tier: qAllowance.tier,
@@ -548,12 +548,22 @@ ${candidateContext}`
     // Gap analysis — flag, never block. A failure here must never fail the
     // CV response itself; the tailored CV is the primary deliverable.
     // Skipped for contractor mode: there's no single JD to gap-check against.
+    // Audit Stage 2 (L7) — this was previously an uncapped rider, tracked in
+    // ai_usage but absent from TIER_CAPS, so nothing but the 'cv' cap itself
+    // bounded it. Now gated the same way as the cv_lint rider just below:
+    // its own allowance, sized above every tier's 'cv' cap (see
+    // lib/allowance.js) so it never blocks a legitimate generation, only
+    // spam of the rider call itself, and skipped silently rather than
+    // surfaced as an error when denied.
     let gapAnalysis = null
     if (!isContractor) {
       try {
-        const { gaps, usage } = await runGapAnalysis(client, roleTitle, jd, cvRaw, careerHistory)
-        gapAnalysis = gaps
-        if (usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cv_gap_analysis', usage }))
+        const gapAllowance = await checkAllowance(user.id, 'cv_gap_analysis')
+        if (gapAllowance.allowed) {
+          const { gaps, usage } = await runGapAnalysis(client, roleTitle, jd, cvRaw, careerHistory)
+          gapAnalysis = gaps
+          if (usage) after(() => trackAiUsage({ userId: user.id, model: MODELS.haiku, action: 'cv_gap_analysis', usage }))
+        }
       } catch { /* gapAnalysis stays null; CV text is unaffected */ }
     }
 
