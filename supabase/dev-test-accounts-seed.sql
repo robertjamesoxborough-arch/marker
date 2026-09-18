@@ -73,3 +73,34 @@
 -- where au.email like '%requite-internal.test' order by au.email;
 -- -- track must read 'standard' (or any truthy value) on all 5, not null,
 -- -- or /app's onboarding gate fires regardless of cvRaw/career_history.
+
+-- ============================================================================
+-- STAGE 80: the 6th account, rob.test.onboard@requite-internal.test.
+-- Free tier. Unlike the 5 above, this one is NEVER left populated between
+-- visits -- app/onboardtier/route.js calls reset_onboarding_test_account()
+-- (migration 020) on every single hit, before signing in, so it always
+-- lands on /onboard genuinely blank. The one-off setup below only needs to
+-- run ONCE, right after creating the account (email_confirm:true) via the
+-- Admin API -- the reset function handles every visit after that.
+
+-- \set onboard_id '...'
+
+-- update users set is_test_account = true, trial_ends_at = created_at, tier = 'free'
+-- where id = :'onboard_id';
+
+-- The account starts blank already (a freshly-trigger-created profile row
+-- has no track/cvRaw/history), so no profile-copy or career_history-copy
+-- step is needed here -- unlike the 5 tier accounts above, this one is
+-- never meant to carry Rob's real history at rest. Confirm it's genuinely
+-- blank at any time (including right after Admin API creation, before ever
+-- calling the reset function) with:
+-- select public.reset_onboarding_test_account(:'onboard_id'::uuid);
+-- select track, target_roles, industries, hard_filters_json,
+--        (select count(*) from career_history where user_id = :'onboard_id'::uuid) as ch_count,
+--        (select count(*) from pipeline_items where user_id = :'onboard_id'::uuid) as pi_count,
+--        (select count(*) from dismissed_jobs where user_id = :'onboard_id'::uuid) as dj_count,
+--        (select count(*) from wishlists      where user_id = :'onboard_id'::uuid) as wl_count,
+--        (select count(*) from ai_usage       where user_id = :'onboard_id'::uuid) as au_count
+-- from profiles where user_id = :'onboard_id'::uuid;
+-- -- track must be null, target_roles/industries '{}', hard_filters_json '{}',
+-- -- and every count 0.
