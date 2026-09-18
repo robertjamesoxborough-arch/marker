@@ -1,0 +1,75 @@
+-- TEMPORARY, Stage 78 (corrected Stage 79). One-off admin script, NOT a
+-- migration -- it is not auto-applied and does not run in CI or on deploy.
+-- It documents exactly what was run directly against production to seed
+-- the 5 dev test-tier accounts, so the seed is reviewable and reproducible
+-- rather than existing only in shell history. Delete this file along with
+-- everything else in the PROGRESS.md removal checklist once Stripe
+-- checkout is live and tested.
+--
+-- Replace the 5 placeholder ids below with real ids before running (from
+-- `select id, email from auth.users where email like '%requite-internal.test'`
+-- after creating the 5 accounts via the Admin API -- this script does not
+-- create the auth.users rows themselves, only seeds the already-created
+-- accounts' profile data).
+--
+-- STAGE 79 CORRECTION: the original Stage 78 seed copied Rob's real
+-- profile verbatim, INCLUDING his own profiles.track, which is null on his
+-- real account. app/app/page.js's onboarding gate is `if (!p?.track)
+-- router.replace('/onboard')` -- keyed ONLY on track, independent of
+-- cvRaw or career_history. So all 5 test accounts had a fully populated
+-- profile (cvRaw, career history, target roles, all correctly copied) but
+-- still bounced to /onboard on every visit, because track was null. This
+-- script includes the fix (track = 'standard', the same value a real
+-- completed onboarding writes when the user doesn't opt into the
+-- easy-life/balanced track -- see app/onboard/page.js's `finish()`) so a
+-- future re-seed does not reintroduce the same bug.
+
+-- \set free_id    '...'
+-- \set pro_id     '...'
+-- \set max_id     '...'
+-- \set trial_id   '...'
+-- \set sandbox_id '...'
+-- \set rob_id     'ebd1fd83-da55-4404-abfa-7b93c4eed56e'  -- robertjamesoxborough@gmail.com
+
+-- 1. Tier, trial state, and the is_test_account marker.
+-- update users set is_test_account = true, trial_ends_at = created_at where id in
+--   (:'free_id', :'pro_id', :'max_id', :'sandbox_id');
+-- update users set is_test_account = true, trial_ends_at = now() + interval '7 days' where id = :'trial_id';
+-- update users set tier = 'free' where id = :'free_id';
+-- update users set tier = 'pro'  where id = :'pro_id';
+-- update users set tier = 'max'  where id = :'max_id';
+-- update users set tier = 'max'  where id = :'sandbox_id';
+-- -- trial account: tier deliberately left at the real signup default ('free')
+-- -- -- see lib/test-routes.js and app/trialtier/route.js for why.
+
+-- 2. Copy Rob's real profile fields, INCLUDING the track fix.
+-- update profiles p set
+--   hard_filters_json = r.hard_filters_json || jsonb_build_object('tracks', jsonb_build_array('standard')),
+--   target_roles      = r.target_roles,
+--   seniority         = r.seniority,
+--   industries        = r.industries,
+--   max_office_days   = r.max_office_days,
+--   salary_floor      = r.salary_floor,
+--   postcode          = r.postcode,
+--   track             = 'standard',  -- NOT r.track -- see the Stage 79 correction note above
+--   name              = r.name
+-- from profiles r
+-- where r.user_id = :'rob_id'
+--   and p.user_id in (:'free_id', :'pro_id', :'max_id', :'trial_id', :'sandbox_id');
+
+-- 3. Copy Rob's real career history rows onto each test account.
+-- insert into career_history (user_id, company, role_title, start_date, end_date, achievements, confidence, source)
+-- select v.new_id, c.company, c.role_title, c.start_date, c.end_date, c.achievements, c.confidence, c.source
+-- from career_history c
+-- cross join (values
+--   (:'free_id'::uuid), (:'pro_id'::uuid), (:'max_id'::uuid), (:'trial_id'::uuid), (:'sandbox_id'::uuid)
+-- ) as v(new_id)
+-- where c.user_id = :'rob_id';
+
+-- Verify after running:
+-- select au.email, p.track, (p.hard_filters_json->>'cvRaw' is not null) as has_cvraw,
+--        (select count(*) from career_history c where c.user_id = p.user_id) as ch_count
+-- from profiles p join auth.users au on au.id = p.user_id
+-- where au.email like '%requite-internal.test' order by au.email;
+-- -- track must read 'standard' (or any truthy value) on all 5, not null,
+-- -- or /app's onboarding gate fires regardless of cvRaw/career_history.
