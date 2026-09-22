@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { track } from '@vercel/analytics'
-import { COLUMNS, PasteJdCallout, ProgressBar, STEPS_ANALYSE, VerdictCard } from '../shared'
+import { COLUMNS, MetallicCTA, PasteJdCallout, ProgressBar, STEPS_ANALYSE, VerdictCard } from '../shared'
 
 export default function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJob, stripped = false }) {
   const [url,          setUrl]          = useState('')
@@ -207,11 +207,8 @@ export default function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJ
           </div>
           {pullStatus === 'failed' ? (
             <>
-              <a href={url.trim()} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'block', textAlign: 'center', padding: '13px', borderRadius: 10, background: 'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #C77DFF)', color: '#fff', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 14, textDecoration: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.25)', marginBottom: 6 }}>
-                Open the job page ↗
-              </a>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Some job sites let us pull details in automatically; many block it, so pasting is the sure way.</div>
+              <MetallicCTA href={url.trim()} style={{ marginBottom: 6 }}>Open the job page ↗</MetallicCTA>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--marker-mid)', lineHeight: 1.6 }}>Some job sites let us pull details in automatically; many block it, so grab it from the page and paste it below instead.</div>
               <button onClick={() => setPullStatus('idle')} style={{ background: 'none', border: 'none', padding: '4px 0 0', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--marker-mid)', textDecoration: 'underline', cursor: 'pointer' }}>Try a different link</button>
             </>
           ) : (
@@ -228,7 +225,7 @@ export default function EngineTab({ profile, jobs: pipelineJobs, addJob, updateJ
         )}
 
         <div style={{ marginBottom: 10 }}>
-          <PasteJdCallout subtext="This is what actually gets scored: a link alone doesn't always pull cleanly." />
+          <PasteJdCallout subtext="This is what actually gets scored: a link alone doesn't always pull cleanly." jobLink={pullStatus !== 'failed' ? url.trim() || undefined : undefined} />
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description…" rows={7}
             style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid var(--marker-border)', borderRadius: 10, background: '#fff', outline: 'none', fontFamily: 'var(--font-body)', color: 'var(--marker-text)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
         </div>

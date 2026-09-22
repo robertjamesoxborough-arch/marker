@@ -50,7 +50,7 @@ export default function EditJobModal({ job, onClose, onSave, onDelete }) {
           </div>
         </div>
         <div style={{ marginBottom: 20 }}>
-          <PasteJdCallout subtext="Scoring, CV tailoring and interview prep all read this: worth pasting the full thing, not just a summary." />
+          <PasteJdCallout jobLink={jobLink.trim() || undefined} subtext="Scoring, CV tailoring and interview prep all read this: worth pasting the full thing, not just a summary." />
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={6} placeholder="Paste the full job description here…" style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>

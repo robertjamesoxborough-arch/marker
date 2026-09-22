@@ -85,7 +85,7 @@ export default function ContractorCvPanel({ profile }) {
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--marker-mid)', lineHeight: 1.6 }}>
-        Generate a skills-led CV to send directly to recruitment agencies, not tied to any single role: the same premium output as your AI Generate CV (verified-stats check, format-safe layout), just framed for contractor mailshots.
+        Generate a skills-led CV to send directly to recruitment agencies, not tied to any single role: the same premium output as the CV Generator (verified-stats check, format-safe layout), just framed for contractor mailshots.
       </div>
 
       <button onClick={generate} disabled={loading}

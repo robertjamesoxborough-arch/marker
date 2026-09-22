@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ProgressBar } from '../shared'
+import { MetallicCTA, ProgressBar } from '../shared'
 
 export default function RecruiterPanel({ profile, mode }) {
   const hfj = profile?.hard_filters_json || {}
@@ -125,11 +125,11 @@ Make sure the CV is tailored to ${r.agency}'s typical clients: ${(r.companies ||
           {allowance && allowance.cap === 0 ? (
             <>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>Recruiter search is a Pro or Max feature.</div>
-              <a href="/pricing" className="btn btn-primary" style={{ fontSize: 13, fontWeight: 600 }}>Upgrade to unlock →</a>
+              <MetallicCTA href="/pricing" style={{ width: 'auto', display: 'inline-block', padding: '10px 20px', fontSize: 13 }}>Upgrade to unlock →</MetallicCTA>
             </>
           ) : (
             <>
-              <button onClick={generate} className="btn btn-primary" style={{ fontSize: 14, fontWeight: 600 }}>Find my recruiters →</button>
+              <MetallicCTA onClick={generate} style={{ width: 'auto', display: 'inline-block', padding: '11px 22px' }}>Find my recruiters →</MetallicCTA>
               {remaining !== null && (
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', letterSpacing: '0.04em' }}>{remaining} of {allowance.cap} searches left this month</div>
               )}

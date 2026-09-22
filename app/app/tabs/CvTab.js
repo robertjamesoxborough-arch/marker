@@ -5,6 +5,16 @@ import ContractorCvPanel from './ContractorCvPanel'
 import RecruiterPanel from './RecruiterPanel'
 import DirectCvPanel from './DirectCvPanel'
 
+// One-line explanation shown under the section toggle — added so
+// "Recruiters" (and every other section) says what it actually does,
+// not just what it's called.
+const SECTION_HELP = {
+  generate: 'Write a CV tailored to one role’s job description.',
+  cover: 'Write a cover letter tailored to one role’s job description.',
+  contractor_cv: 'Write a skills-led CV for contractor mailshots, not tied to a single role.',
+  recruiters: 'Find UK recruitment agencies matched to your field and seniority, with a ready-to-use CV prompt for each.',
+}
+
 export default function CvTab({ profile, jobs: allJobs, updateJob, prefill, onClearPrefill, onSwitchToEngine }) {
   const cvRaw = profile?.hard_filters_json?.cvRaw || ''
   const hfj   = profile?.hard_filters_json || {}
@@ -45,12 +55,12 @@ export default function CvTab({ profile, jobs: allJobs, updateJob, prefill, onCl
         </div>
       </div>
 
-      {/* Section toggle — AI Generate is the primary, default path; the old
-          separate "Tailor CV" copy-paste tab is gone, folded into AI
-          Generate as a one-click fallback (see the toggle inside it). */}
-      <div style={{ display: 'flex', gap: 6, padding: '12px 16px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)' }}>
+      {/* Section toggle — CV Generator is the primary, default path; the old
+          separate "Tailor CV" copy-paste tab is gone, folded into CV
+          Generator as a one-click fallback (see the toggle inside it). */}
+      <div style={{ display: 'flex', gap: 6, padding: '12px 16px 8px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)' }}>
         {[
-          ...(searchMode !== 'contractor' ? [{ id: 'generate', label: 'AI Generate' }, { id: 'cover', label: 'Cover Letter' }] : []),
+          ...(searchMode !== 'contractor' ? [{ id: 'generate', label: 'CV Generator' }, { id: 'cover', label: 'Cover Letter Generator' }] : []),
           ...(searchMode !== 'perm' ? [{ id: 'contractor_cv', label: 'Contractor CV' }] : []),
           { id: 'recruiters', label: 'Recruiters' },
         ].map(s => (
@@ -60,6 +70,11 @@ export default function CvTab({ profile, jobs: allJobs, updateJob, prefill, onCl
           </button>
         ))}
       </div>
+      {SECTION_HELP[section] && (
+        <div style={{ padding: '8px 16px 12px', borderBottom: '1px solid var(--marker-border)', background: 'var(--marker-cream-2)', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', lineHeight: 1.5 }}>
+          {SECTION_HELP[section]}
+        </div>
+      )}
 
       {section === 'contractor_cv' && (
         <ContractorCvPanel profile={profile} />

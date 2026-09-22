@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Packer } from 'docx'
 import { buildCvDocx } from '../../../lib/cv-docx'
-import { PasteJdCallout, buildCvFallbackPrompt, buildCoverLetterFallbackPrompt } from '../shared'
+import { MetallicCTA, PasteJdCallout, buildCvFallbackPrompt, buildCoverLetterFallbackPrompt } from '../shared'
 
 
 
@@ -127,7 +127,7 @@ export default function DirectCvPanel({ allJobs, profile, updateJob, docType = '
         <div style={{ fontSize: 13, color: 'var(--marker-mid)', maxWidth: 340, lineHeight: 1.6 }}>
           Requite writes a tailored cover letter for any role in your pipeline, matched to your CV and the job description, and it never invents a number that is not in your CV. Available on Pro (20/month) and Max (60/month).
         </div>
-        <a href="/pricing" className="btn btn-primary" style={{ fontSize: 14, fontWeight: 600 }}>Upgrade to unlock →</a>
+        <MetallicCTA href="/pricing" style={{ width: 'auto', display: 'inline-block', padding: '10px 20px' }}>Upgrade to unlock →</MetallicCTA>
       </div>
     )
   }
@@ -159,17 +159,17 @@ export default function DirectCvPanel({ allJobs, profile, updateJob, docType = '
         </select>
       </div>
 
-      {/* No JD stored — a real, obvious way to fix it right here, not a dead end */}
+      {/* One more step before we can tailor for this role: grab the JD and
+          drop it in. A normal step in the flow, not a failure state — so no
+          warning colours, no "we couldn't find it" framing. */}
       {selectedJob && !selectedJob.jd && (
-        <div style={{ padding: 16, borderRadius: 10, background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: 'var(--marker-black)', marginBottom: 10 }}>No job description stored for this role yet</div>
-          <PasteJdCallout subtext={selectedJob.jobLink ? <>Don&apos;t have it handy? <a href={selectedJob.jobLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--marker-mid)', fontWeight: 600 }}>Open the job posting ↗</a> and copy it from there.</> : undefined} />
+        <div style={{ padding: 16, borderRadius: 10, background: 'var(--marker-cream-2)', border: '1px solid var(--marker-border)' }}>
+          <PasteJdCallout jobLink={selectedJob.jobLink} subtext="One more step before we can tailor for this role: grab the description from the posting and drop it in below." />
           <textarea value={jdDraft} onChange={e => setJdDraft(e.target.value)} placeholder="Paste the full job description here…" rows={7}
-            style={{ display: 'block', width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--marker-border)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--marker-text)', background: '#fff', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10, marginTop: 8 }} />
-          <button onClick={saveJdAndGenerate} disabled={!jdDraft.trim() || loading}
-            style={{ width: '100%', padding: '11px', borderRadius: 8, background: jdDraft.trim() ? 'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #C77DFF)' : 'var(--marker-border)', color: jdDraft.trim() ? '#fff' : 'var(--marker-mid)', textShadow: jdDraft.trim() ? '0 1px 2px rgba(0,0,0,0.25)' : 'none', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 14, cursor: jdDraft.trim() && !loading ? 'pointer' : 'default' }}>
+            style={{ display: 'block', width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--marker-border)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--marker-text)', background: '#fff', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
+          <MetallicCTA onClick={saveJdAndGenerate} disabled={!jdDraft.trim() || loading}>
             {loading ? (isCover ? 'Writing…' : 'Generating…') : 'Save JD & generate →'}
-          </button>
+          </MetallicCTA>
         </div>
       )}
 

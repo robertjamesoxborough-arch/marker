@@ -348,7 +348,7 @@ export default function PrepTab({ jobs, profile, updateJob, onSwitchToPipeline, 
         {selectedJob?.jd ? (
           <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--marker-text)', marginBottom: 6 }}>Job description <span style={{ fontWeight: 400, color: 'var(--marker-mid)' }}>(pulled from this role, edit if needed)</span></label>
         ) : (
-          <PasteJdCallout subtext="Claude will research the company live via web search regardless, but the JD is what makes prep specific to this role." />
+          <PasteJdCallout jobLink={selectedJob?.jobLink} subtext="Claude will research the company live via web search regardless, but the JD is what makes prep specific to this role." />
         )}
         <textarea value={jdText} onChange={e => setJdText(e.target.value)} placeholder="Paste the full job description here…" rows={selectedJob?.jd ? 4 : 7} style={{ display: 'block', width: '100%', padding: '9px 12px', fontSize: 13, border: '1px solid var(--marker-border)', borderRadius: 8, background: '#fff', color: 'var(--marker-text)', outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.5 }} />
       </div>

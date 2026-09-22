@@ -30,21 +30,46 @@ export function AdzunaBadge() {
   )
 }
 
-// Shared paste-JD chrome (Stage 59) — the Stage 55 rainbow-gradient style
-// (originally just the "Open the job page ↗" fallback button) extracted
-// into one component and applied everywhere a job description gets pasted:
-// the manual-add/edit flow, interview prep, the single-role scorer, CV
-// generation's no-JD-stored fallback, and Aggregator bring-in. Previously
-// each of these five looked different — a plain placeholder inside a field
-// literally labelled "Notes" in one case — so pasting a JD never read as
-// one deliberate, recognisable step. One banner, one design language.
-export function PasteJdCallout({ label = 'PASTE THE JOB DESCRIPTION HERE', subtext }) {
+// The one metallic-rainbow CTA treatment, used consistently for whichever
+// action is the single most-wanted one on a surface: the paste-JD entry
+// point and upgrade/unlock prompts. Reuses the site's existing .holo-foil
+// gradient (already the metallic language used on top-tier score badges)
+// instead of the old ad-hoc bright rainbow gradient it's replacing.
+export function MetallicCTA({ href, onClick, children, style, type = 'button', disabled = false }) {
+  const Tag = href ? 'a' : 'button'
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, background: 'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #C77DFF)', color: '#fff', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.25)', letterSpacing: '0.02em' }}>
-        📋 {label}
-      </div>
-      {subtext && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', marginTop: 6, lineHeight: 1.6 }}>{subtext}</div>}
+    <Tag
+      href={disabled ? undefined : href}
+      onClick={disabled ? undefined : onClick}
+      type={href ? undefined : type}
+      disabled={href ? undefined : disabled}
+      target={href ? '_blank' : undefined}
+      rel={href ? 'noopener noreferrer' : undefined}
+      className="holo-foil"
+      style={{ display: 'block', width: '100%', textAlign: 'center', padding: '12px', borderRadius: 10, border: 'none', color: 'var(--marker-black)', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 14, textDecoration: 'none', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1, boxSizing: 'border-box', ...style }}>
+      {children}
+    </Tag>
+  )
+}
+
+// Shared paste-JD chrome (Stage 59, restyled Stage 84) — applied everywhere
+// a job description gets pasted: the manual-add/edit flow, interview prep,
+// the single-role scorer, CV generation's no-JD-stored fallback, and
+// Aggregator bring-in. Framed as a deliberate step ("paste it in"), never
+// as something that should have populated on its own — legal/technical
+// reasons mean Requite can't auto-fill a JD, so this is the normal path,
+// not a fallback for a failure. When the role's source link is already
+// known, leads with one prominent metallic CTA that opens it in a new tab
+// so "copy the description across" reads as one deliberate step rather
+// than a dead end.
+export function PasteJdCallout({ label = 'Paste the job description', subtext, jobLink }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 500, color: 'var(--marker-black)', marginBottom: jobLink ? 8 : 4 }}>{label}</div>
+      {jobLink && (
+        <MetallicCTA href={jobLink} style={{ padding: '11px', fontSize: 13, marginBottom: 8 }}>Copy it from the job posting ↗</MetallicCTA>
+      )}
+      {subtext && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--marker-mid)', lineHeight: 1.6 }}>{subtext}</div>}
     </div>
   )
 }

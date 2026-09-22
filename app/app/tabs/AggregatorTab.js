@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { matchJob } from '../../../lib/job-match'
 import { buildChannelUrls, CHANNELS, CHANNEL_LABELS, isChannelOverdue } from '../../../lib/channel-urls'
-import { MAX_BRING_IN_BATCH, CHANNEL_CADENCE_LABEL, channelTimeAgo, PasteJdCallout, describeDuplicateMatch, VerdictCard } from '../shared'
+import { MAX_BRING_IN_BATCH, CHANNEL_CADENCE_LABEL, channelTimeAgo, MetallicCTA, PasteJdCallout, describeDuplicateMatch, VerdictCard } from '../shared'
 
 export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJobs, dismissedJobs }) {
   const targetRoles = profile?.target_roles || []
@@ -259,12 +259,12 @@ export default function AggregatorTab({ profile, addJob, onTabSwitch, pipelineJo
         </div>
 
         {!bringInOpen ? (
-          <button onClick={openBringIn} style={{ display: 'inline-block', padding: '10px 20px', borderRadius: 8, background: 'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #C77DFF)', color: '#fff', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, textShadow: '0 1px 2px rgba(0,0,0,0.25)', cursor: 'pointer' }}>
-            📋 Bring in roles to score
-          </button>
+          <MetallicCTA onClick={openBringIn} style={{ width: 'auto', display: 'inline-block', padding: '10px 20px', fontSize: 13 }}>
+            Bring in roles to score
+          </MetallicCTA>
         ) : (
           <div>
-            <PasteJdCallout label="PASTE LINKS OR JOB DESCRIPTIONS HERE" subtext={`One per line, up to ${MAX_BRING_IN_BATCH} at a time.`} />
+            <PasteJdCallout label="Paste links or job descriptions" subtext={`One per line, up to ${MAX_BRING_IN_BATCH} at a time.`} />
             <textarea
               value={bringInText}
               onChange={e => setBringInText(e.target.value)}
