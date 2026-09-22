@@ -5,7 +5,7 @@ import { after } from 'next/server'
 
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
-import { buildAiContext } from '../../../lib/ai-context'
+import { buildAiContext, hasEnoughProfile, THIN_PROFILE_MESSAGE } from '../../../lib/ai-context'
 import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../lib/allowance'
 import { logIfError } from '../../../lib/log-errors'
 
@@ -50,7 +50,7 @@ async function loadCandidate(service, userId) {
   const profileCvRaw = profile?.hard_filters_json?.cvRaw || ''
   const candidateContext = profile ? buildAiContext(profile, careerHist, wishlists) : 'Candidate profile not available.'
   const candidateName = profile?.name || null
-  return { profileCvRaw, candidateContext, candidateName, careerHist }
+  return { profile, profileCvRaw, candidateContext, candidateName, careerHist }
 }
 
 // Prior-stage notes (interview_stage_notes, migration 014) -- read-only
@@ -155,6 +155,18 @@ Give ONE short, ready-to-say answer. First person, spoken rhythm, plain English,
 
 // ── Pack build ───────────────────────────────────────────────────────
 async function handlePackBuild(service, user, body) {
+  // STAGE 81 FIX -- do not reintroduce this bug. Checked BEFORE any
+  // allowance is spent, so a too-thin attempt never burns a real credit for
+  // a call that was never going to produce a real result. Same class as
+  // /api/analyse's fix: an interview prep pack asked to reason about a
+  // candidate it has almost no context on risks the model breaking the
+  // strict-JSON instruction and 500ing on a parse failure. See
+  // lib/ai-context.js's hasEnoughProfile comment for the full mechanism.
+  const { profile, profileCvRaw, candidateContext, candidateName } = await loadCandidate(service, user.id)
+  if (!hasEnoughProfile(profile)) {
+    return Response.json({ error: THIN_PROFILE_MESSAGE, needsOnboarding: true }, { status: 400 })
+  }
+
   const { allowed, used, cap, tier, spendExceeded } = await checkAllowance(user.id, 'interview_prep')
   if (!allowed) {
     return Response.json({
@@ -176,7 +188,6 @@ async function handlePackBuild(service, user, body) {
     }, { status: 429 })
   }
 
-  const { profileCvRaw, candidateContext, candidateName } = await loadCandidate(service, user.id)
   const displayName = candidateName || 'the candidate'
 
   const { job, stage, interviewer, cvBase64, notes, jdText } = body

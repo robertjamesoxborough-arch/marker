@@ -5,7 +5,7 @@ import { after } from 'next/server'
 import { trackAiUsage } from '../../../lib/ai-usage'
 import { MODELS } from '../../../lib/anthropic'
 import { scoreMatch } from '../../../lib/match-engine'
-import { buildAiContext } from '../../../lib/ai-context'
+import { buildAiContext, hasEnoughProfile, THIN_PROFILE_MESSAGE } from '../../../lib/ai-context'
 import { checkForLoop } from '../../../lib/loop-guard'
 import { STYLE_RULES } from '../../../lib/brand'
 import { checkAllowance, SPEND_CEILING_MESSAGE } from '../../../lib/allowance'
@@ -64,6 +64,26 @@ export async function POST(req) {
     freshness: null,
     raw_json: {},
   })
+
+  // STAGE 81 FIX -- do not reintroduce this bug. See lib/ai-context.js's
+  // hasEnoughProfile comment for the full mechanism: buildAiContext()
+  // returns close to an empty string for a genuinely thin profile, and the
+  // model does not reliably keep returning strict JSON against almost no
+  // context -- it sometimes replies conversationally instead, which fails
+  // the JSON-match regex below and previously 500'd as "Could not parse
+  // response". Guard BEFORE the allowance check too, so a too-thin attempt
+  // never spends a scoring credit for a call that was never going to
+  // produce a real score anyway. No AI call is made past this point.
+  if (!hasEnoughProfile(profile)) {
+    return Response.json({
+      error: THIN_PROFILE_MESSAGE,
+      needsOnboarding: true,
+      signal: 'maybe',
+      score: deterministicScore?.score || 5,
+      signalReason: THIN_PROFILE_MESSAGE,
+      deterministicScore,
+    })
+  }
 
   // Allowance gate — checked after deterministic score so we can always return it in the error.
   // Unconditional now (was `if (user)`, the L1 leak above) -- user is guaranteed here.
