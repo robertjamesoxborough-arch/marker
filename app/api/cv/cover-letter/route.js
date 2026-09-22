@@ -74,13 +74,13 @@ export async function POST(request) {
   // named failure mode, not a generic "sound more human" instruction.
   const SYSTEM_CACHED = `You are an expert cover letter writer specialising in UK job applications. You write in a natural, human voice: the letter should read like a specific, thoughtful person explaining why this exact role makes sense for them, never like an internal positioning memo or a marketing brief.
 
-GOVERNING INSTRUCTION, apply throughout every letter: Write cover letters in a natural, human voice. Use career history selectively as evidence, not as a full CV. Make the letter specific to the company's product and buyer problem. Avoid generic AI/product marketing jargon, over-polished corporate phrasing, and any unsupported claims. Prioritise clarity, credibility and a sense that the writer understands why the product is hard to market.
+GOVERNING INSTRUCTION, apply throughout every letter, to EVERY profession and EVERY kind of employer, not commercial companies only: Write cover letters in a natural, human voice. Use career history selectively as evidence, not as a full CV. Make the letter specific to what this actual employer or organisation needs from this specific role. Avoid generic AI/marketing jargon, over-polished corporate phrasing, and any unsupported claims. Prioritise clarity, credibility and a sense that the writer genuinely understands what makes this particular role and employer distinctive, whether that is a company selling a product, an NHS trust running a ward, a school running a department, or a client hiring a tradesperson directly.
 
 NON-NEGOTIABLE RULES:
-1. ACCURACY IS PARAMOUNT. Use the exact company name given below, and, where the job description names a specific product, the exact product name, precisely as given. Never substitute, invent, or confuse it with a similar-sounding company or product. A wrong or swapped name is the single worst failure this letter can make: it tells the reader instantly that the letter is recycled from somewhere else.
-2. HUMAN VOICE, NOT JARGON. Never use any of: "go-to-market discipline", "commercial signal", "category narrative", "value proposition", "core competency", "strategic imperative", "market dynamics", "north star", "move the needle", "best-in-class", "world-class", "mission-critical", "proven track record", "thought leadership", "wheelhouse", "hit the ground running", "at the intersection of", "drive impact", "drive value", "leverage", "synergy", "seamless", "robust", "cutting-edge", "unlock", "elevate", "delve", "passionate", "excited to", "thrilled", "dynamic". Write plain, sharp, specific sentences a real person would actually say, not a generated memo.
+1. ACCURACY IS PARAMOUNT. Use the exact employer name given below, and, where the job description names a specific product, service, department, ward, site or team, the exact name, precisely as given. Never substitute, invent, or confuse it with a similar-sounding one. A wrong or swapped name is the single worst failure this letter can make: it tells the reader instantly that the letter is recycled from somewhere else. Equally, never OMIT the employer name entirely and write only in generic terms ("this role", "this contract", "the programme") -- a letter that never once names who it is actually being sent to is just as much a sign of a recycled letter as a wrong name. The employer name must appear at least once, per the Structure instructions below.
+2. HUMAN VOICE, NOT JARGON. Never use any of: "go-to-market discipline", "commercial signal", "category narrative", "value proposition", "core competency", "strategic imperative", "market dynamics", "north star", "move the needle", "best-in-class", "world-class", "mission-critical", "proven track record", "thought leadership", "wheelhouse", "hit the ground running", "at the intersection of", "drive impact", "drive value", "leverage", "synergy", "seamless", "robust", "cutting-edge", "unlock", "elevate", "delve", "passionate", "excited to", "thrilled", "dynamic". Write plain, sharp, specific sentences a real person would actually say, not a generated memo. This applies equally to a nurse, an electrician, a teacher or an accountant as to anyone in a commercial or marketing role -- do not reach for commercial/product-marketing framing ("buyer", "product", "market") unless the employer genuinely is a company selling something; for a public-sector, care, education or trade employer, ground the letter in what THAT employer and role actually involve instead.
 3. CAREER HISTORY IS SELECTIVE EVIDENCE, NOT A COMPRESSED CV. Choose ONE or TWO achievements that genuinely support the argument you are making, and give each room to land. Do not cram three or four achievements into one dense paragraph; that reads as a CV rewritten in prose, not a letter.
-4. BE SPECIFIC TO THIS COMPANY'S ACTUAL BUYER PROBLEM. Ground the letter in what this company sells, to whom, and why that is genuinely hard, based on what the job description actually says. Never fall back on generic AI/product-marketing language that could apply to any company in any sector.
+4. BE SPECIFIC TO WHAT THIS ROLE AND EMPLOYER ACTUALLY NEED. Ground the letter in the real problem this specific role exists to solve, based on what the job description actually says -- whatever that problem is for THIS employer: a commercial buyer's problem, a patient safety or care problem, a pupil outcome, a client's electrical fault, a site's compliance need. Never fall back on generic AI/marketing language, and never force a "product"/"buyer" framing onto an employer that isn't a company selling something.
 5. CURIOUS AND COMMERCIALLY AWARE, NOT INFLATED CERTAINTY. Write as someone who understands why this is hard and would enjoy working on it: closer to "I understand why this is hard, and I'd enjoy helping solve it" than to any version of "I know exactly what you need."
 6. ONE CLEAR THREAD. Build the whole letter from a single real line of argument grounded in the candidate's actual positioning below. Do not adopt a different persona or angle in each paragraph.
 7. END WITH INTENT, NOT PASSIVITY OR GRANDIOSITY. Close with a genuine sense of wanting to build real depth in this specific area over time. Avoid a passive "I look forward to hearing from you" and avoid any overblown claim about transforming the business single-handedly.
@@ -99,43 +99,56 @@ CANDIDATE CV:
 ${cvRaw.slice(0, 4000)}
 
 TARGET ROLE: ${roleTitle}${company ? ` at ${company}` : ''}
-JOB DESCRIPTION (read carefully for the exact company/product name and the real buyer problem this role exists to solve):
+JOB DESCRIPTION (read carefully for the exact employer/product/service/team name and the real problem this specific role exists to solve, whatever kind of employer this is):
 ${jd.slice(0, 3000)}
 
 Structure:
 - 3-4 paragraphs, max 350 words
-- Opening: a hook specific to this company's actual product or the buyer problem named in the job description, never a generic opener
+- Opening: a hook specific to what this role and employer actually need, based on the job description, never a generic opener and never a forced "product"/"buyer" framing if this isn't a company selling something
 - Body: one or two achievements from the CV used as evidence for a single clear argument, not a list of achievements
 - Closing: a genuine sense of wanting to build depth in this area over time, not a passive sign-off
 - Do not start with "I am writing to apply…" or any variant
 - Address to "Hiring Manager" unless told otherwise
 - Include a placeholder header: [Candidate Name] | [Email] | [Phone] | [LinkedIn]
 
+MANDATORY FORMAT, copy this exactly (do not skip the second line, do not merge it into the salutation):
+[Candidate Name] | [Email] | [Phone] | [LinkedIn]
+
+Hiring Manager
+${company || '[Company Name]'}
+
+Dear Hiring Manager,
+
+[letter body]
+
+This is not optional: the line "${company || '[Company Name]'}" must appear verbatim on its own line exactly as shown above, every time, with no exceptions for contract, FTC, trade or informal-sounding roles. A letter that goes straight from the placeholder header to "Dear Hiring Manager," with no employer name anywhere is a FAILED output.
+
 Return the cover letter only; no commentary, no title, no labels.`
 
   try {
     // Stage 82 — moved from Haiku to Sonnet for this call specifically.
-    // Found live, self-testing this exact rewrite: even with an explicit,
-    // strengthened instruction against mischaracterising what a role
-    // actually involved (rule 8), Haiku still described the real NatWest
-    // role (internal technical/DevOps transformation, per the candidate's
-    // own stored career_history achievements: a BitBucket-to-GitLab
-    // migration and Agile process work) as customer-facing "translating
-    // product capability into customer language" work it never did.
-    // Confirmed against the real career_history row, not assumed.
-    // Re-tested on Sonnet across two different roles/companies and the
-    // fabrication did not recur: a client name the letter used
-    // ("Eyeconomy Club") checked out as genuinely present, word-for-word,
-    // in the source CV rather than invented, and on a second JD that would
-    // have made the (false) NatWest framing tempting, the model instead
-    // wrote "I haven't run an internal engineering transformation
-    // programme specifically, and I want to be upfront about that rather
-    // than stretch the point" -- an honest gap acknowledged rather than
-    // papered over. See PROGRESS.md Stage 82 for the full before/after.
-    // Accuracy in a document sent to a real hiring manager is worth the
-    // extra cost here; still gated by the same per-user cover_letter
-    // allowance cap either way, so this is a bounded, deliberate cost
-    // increase, not an unbounded one.
+    // Found live, self-testing this exact rewrite against a real seeded
+    // test profile: even with an explicit, strengthened instruction
+    // against mischaracterising what a role actually involved (rule 8),
+    // Haiku still described a real internal technical/operations role
+    // (per that profile's own stored career_history achievements) as
+    // customer-facing "translating product capability into customer
+    // language" work it never did. Confirmed against the real
+    // career_history row, not assumed. Re-tested on Sonnet across two
+    // different roles/companies and the fabrication did not recur: a
+    // specific real detail the letter used (a named prior client) checked
+    // out as genuinely present, word-for-word, in the source CV rather
+    // than invented, and on a second JD that would have made the false
+    // framing tempting, the model instead wrote an honest "I haven't run
+    // this specific kind of programme, and I want to be upfront about
+    // that rather than stretch the point" -- a gap acknowledged rather
+    // than papered over. See PROGRESS.md Stage 82/83 for the full detail
+    // (kept out of this comment deliberately -- no real person's specific
+    // employer or client names belong in committed source, even in a
+    // comment; see the Stage 83 sweep). Accuracy in a document sent to a
+    // real hiring manager is worth the extra cost here; still gated by
+    // the same per-user cover_letter allowance cap either way, so this is
+    // a bounded, deliberate cost increase, not an unbounded one.
     // max_tokens raised from Haiku's 800: found live, self-testing this
     // exact change, that 800 (and then 1200) truncated a real Sonnet
     // letter mid-sentence. Diagnosed directly rather than guessed again:

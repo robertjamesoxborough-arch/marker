@@ -485,7 +485,17 @@ Match score: X/100
   }
 
   const candidateContext = buildAiContext(profile, careerHistory, wishlists)
-  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers at senior level. Your outputs are used directly by candidates; accuracy, specificity, and professional tone are essential.
+  // Stage 83 fix -- do not reintroduce this. This system prompt previously
+  // told the model it was "working with UK job seekers at senior level",
+  // unconditionally, for every single user regardless of their actual
+  // seniority or field -- a graduate, an apprentice, an NQT teacher all
+  // got a prompt asserting they were senior. Real seniority is already
+  // passed dynamically, per candidate, via candidateContext below
+  // (buildAiContext only adds a "Seniority: X." line when profile.seniority
+  // is actually set, and adds nothing at all otherwise) -- the hardcoded
+  // claim here did nothing but contradict or override that real signal.
+  // Removed outright rather than replaced with a different assumption.
+  const SYSTEM_CACHED = `You are an expert CV writer and ATS specialist working with UK job seekers across every profession and seniority level. Your outputs are used directly by candidates; accuracy, specificity, and professional tone are essential, calibrated to the specific candidate and role below, not assumed.
 
 STYLE RULES: Write in British English. Never use em dashes (—) in any output. Use colons, commas, or full stops instead.
 
