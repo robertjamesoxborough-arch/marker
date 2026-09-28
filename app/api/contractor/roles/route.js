@@ -10,6 +10,7 @@ import { applyFreshnessToRow, filterAndSortByFreshness } from '../../../../lib/f
 import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { MODELS } from '../../../../lib/anthropic'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
+import { adzunaFetch } from '../../../../lib/adzuna-http'
 
 // Cost rules 1 + 2, same pattern as /api/feed-web and /api/feed-gov. Default
 // reads the shared, nightly-scored jobs_cache (source='adzuna', tagged
@@ -125,10 +126,11 @@ async function runFreshScan(service, apiKey, userId, profile, maxDaysOld) {
   if (!budget.allowed) return { jobs: 0, budgetExhausted: true }
 
   const raw = []
-  for (const query of contractQueries) {
+  // A partial grant (Stage 85) runs only the first `granted` queries.
+  for (const query of contractQueries.slice(0, budget.granted)) {
     try {
       const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(query)}&salary_min=${salaryMin}&max_days_old=${days}&sort_by=date`
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      const res = await adzunaFetch(url, { signal: AbortSignal.timeout(8000) }, 'contractor-roles')
       if (!res.ok) continue
       const data = await res.json()
       for (const job of (data.results || [])) {

@@ -19,6 +19,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { reserveAdzuna } from '../../../lib/adzuna-budget'
+import { adzunaFetch } from '../../../lib/adzuna-http'
 
 const SALARY_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const STATIC_TTL_MS = 3 * 24 * 60 * 60 * 1000
@@ -112,7 +113,7 @@ export async function POST(req) {
     try {
       const query = encodeURIComponent(effectiveTitle)
       const url = `https://api.adzuna.com/v1/api/jobs/gb/histogram?app_id=${adzunaId}&app_key=${adzunaKey}&what=${query}&content-type=application/json`
-      const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+      const res = await adzunaFetch(url, { signal: AbortSignal.timeout(6000) }, 'salary-estimate')
       if (res.ok) {
         const data = await res.json()
         const buckets = data.histogram

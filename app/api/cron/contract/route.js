@@ -4,7 +4,8 @@ import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
-import { buildContractRoleQueries } from '../../../../lib/aggregate-role-queries'
+import { adzunaFetch, sleep, ADZUNA_MIN_GAP_MS } from '../../../../lib/adzuna-http'
+import { buildContractRoleQueries, NIGHTLY_CAPS, rotateNightly } from '../../../../lib/aggregate-role-queries'
 
 // Nightly, shared ingest for contract/interim roles — no existing cron
 // covered this source before Stage 22. Same pattern as cron/adzuna: generic,
@@ -37,10 +38,10 @@ async function fetchAdzuna(appId, apiKey, what) {
   url.searchParams.set('content-type', 'application/json')
   url.searchParams.set('sort_by', 'date')
 
-  const res = await fetch(url.toString(), {
+  const res = await adzunaFetch(url.toString(), {
     headers: { 'User-Agent': REQUITE_USER_AGENT },
     signal: AbortSignal.timeout(12000),
-  })
+  }, 'cron-contract')
   if (!res.ok) throw new Error(`Adzuna HTTP ${res.status}`)
   return res.json()
 }
@@ -74,19 +75,24 @@ export async function GET(request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
-  const ROLE_QUERIES = await buildContractRoleQueries(supabase)
+  const ALL_ROLE_QUERIES = await buildContractRoleQueries(supabase)
+  // Stage 85: rotate under NIGHTLY_CAPS.contract (see lib/aggregate-role-queries.js).
+  const tonight = rotateNightly(ALL_ROLE_QUERIES, NIGHTLY_CAPS.contract, q => q.what)
 
-  const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length, kind: 'cron', service: supabase })
+  const budget = await reserveAdzuna({ calls: tonight.length, kind: 'cron', service: supabase })
   if (!budget.allowed) {
-    return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
+    return NextResponse.json({ ok: false, skipped: `adzuna budget exhausted (${budget.limitedBy} ceiling)` })
   }
+  const ROLE_QUERIES = tonight.slice(0, budget.granted)
 
   const now = new Date().toISOString()
   const rows = []
   const errors = []
 
-  for (const { what, family } of ROLE_QUERIES) {
+  for (const [i, { what, family }] of ROLE_QUERIES.entries()) {
     try {
+      // Adzuna's default is 25 calls a minute: space every call after the first.
+      if (i) await sleep(ADZUNA_MIN_GAP_MS)
       const data = await fetchAdzuna(appId, apiKey, what)
       const results = Array.isArray(data.results) ? data.results : []
       results.forEach(job => {
@@ -128,13 +134,15 @@ export async function GET(request) {
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 
-  // No separate prune here — cron/adzuna already deletes source='adzuna'
-  // rows older than 3 days, which covers these too regardless of track_tags.
+  // No separate prune here. cron/adzuna already deletes source='adzuna'
+  // rows older than 4 days, which covers these too regardless of track_tags.
 
   return NextResponse.json({
     ok: true,
     inserted: deduped.length,
     queries: ROLE_QUERIES.length,
+    queriesTotal: ALL_ROLE_QUERIES.length,
+    budget: { granted: budget.granted, requested: budget.requested, limitedBy: budget.limitedBy, week: budget.week, month: budget.month },
     errors,
   })
 }

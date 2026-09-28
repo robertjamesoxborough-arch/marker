@@ -12,6 +12,7 @@ import { isUkEligible } from '../../../lib/uk-eligibility'
 import { MODELS } from '../../../lib/anthropic'
 import { pullAtsRows } from '../../../lib/ats'
 import { reserveAdzuna } from '../../../lib/adzuna-budget'
+import { adzunaFetch } from '../../../lib/adzuna-http'
 
 // Fresh scan re-pulls 43 ATS boards in parallel + a small Adzuna top-up + a
 // bounded scoring pass; give it room beyond the default so it never truncates.
@@ -118,10 +119,11 @@ async function runFreshScan(service, apiKey, userId, maxDaysOld, profile) {
     adzunaBudget = await reserveAdzuna({ calls: queries.length, kind: 'ondemand', service })
     if (adzunaBudget.allowed) {
       const days = Number.isFinite(maxDaysOld) && maxDaysOld > 0 ? maxDaysOld : 14
-      for (const what of queries) {
+      // A partial grant (Stage 85) runs only the first `granted` queries.
+      for (const what of queries.slice(0, adzunaBudget.granted)) {
         try {
           const url = `https://api.adzuna.com/v1/api/jobs/gb/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=20&what=${encodeURIComponent(what)}&max_days_old=${days}&sort_by=date`
-          const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+          const res = await adzunaFetch(url, { signal: AbortSignal.timeout(8000) }, 'feed-web')
           if (!res.ok) continue
           const data = await res.json()
           for (const job of (data.results || [])) {

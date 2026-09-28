@@ -4,11 +4,12 @@ import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
-import { buildAdzunaRoleQueries, ADZUNA_CATEGORIES } from '../../../../lib/aggregate-role-queries'
+import { adzunaFetch, sleep, ADZUNA_MIN_GAP_MS } from '../../../../lib/adzuna-http'
+import { buildAdzunaRoleQueries, ADZUNA_CATEGORIES, NIGHTLY_CAPS, rotateNightly } from '../../../../lib/aggregate-role-queries'
 
 const BASE = 'https://api.adzuna.com/v1/api/jobs/gb/search/1'
 
-async function fetchAdzuna(appId, apiKey, { what, category, resultsPerPage = 50 }) {
+async function fetchAdzuna(appId, apiKey, { what, category, resultsPerPage = 50 }, label) {
   const url = new URL(BASE)
   url.searchParams.set('app_id', appId)
   url.searchParams.set('app_key', apiKey)
@@ -18,10 +19,10 @@ async function fetchAdzuna(appId, apiKey, { what, category, resultsPerPage = 50 
   url.searchParams.set('content-type', 'application/json')
   url.searchParams.set('sort_by', 'date')
 
-  const res = await fetch(url.toString(), {
+  const res = await adzunaFetch(url.toString(), {
     headers: { 'User-Agent': REQUITE_USER_AGENT },
     signal: AbortSignal.timeout(12000),
-  })
+  }, label)
   if (!res.ok) throw new Error(`Adzuna HTTP ${res.status}`)
   return res.json()
 }
@@ -61,7 +62,7 @@ export async function GET(request) {
   // bounded and deduped — still one shared nightly batch (Cost Guardrails
   // RULE 1), just no longer structurally incapable of covering anyone
   // outside the founder's own profession.
-  const ROLE_QUERIES = await buildAdzunaRoleQueries(supabase)
+  const ALL_ROLE_QUERIES = await buildAdzunaRoleQueries(supabase)
 
   // Stage 70 — category sweep. Even the widened ROLE_QUERIES above is still
   // a hand-picked (if broadened) list of profession TEXT — it can only ever
@@ -75,10 +76,21 @@ export async function GET(request) {
   // accountant listings, 24k+ primary teacher, 8k+ plumber, 27k+ care
   // worker — that was invisible to jobs_cache before this, purely because
   // nothing ever asked for it.
-  const budget = await reserveAdzuna({ calls: ROLE_QUERIES.length + ADZUNA_CATEGORIES.length, kind: 'cron', service: supabase })
+  //
+  // Stage 85: both lists now rotate under NIGHTLY_CAPS instead of running in
+  // full every night (see lib/aggregate-role-queries.js). A partial budget
+  // grant trims categories first, then roles, so real user demand goes last.
+  const roleTonight = rotateNightly(ALL_ROLE_QUERIES, NIGHTLY_CAPS.roles, q => q.what)
+  const categoriesTonight = rotateNightly(ADZUNA_CATEGORIES, NIGHTLY_CAPS.categories)
+  const budget = await reserveAdzuna({ calls: roleTonight.length + categoriesTonight.length, kind: 'cron', service: supabase })
   if (!budget.allowed) {
-    return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
+    return NextResponse.json({ ok: false, skipped: `adzuna budget exhausted (${budget.limitedBy} ceiling)` })
   }
+  const ROLE_QUERIES = roleTonight.slice(0, budget.granted)
+  const CATEGORIES = categoriesTonight.slice(0, budget.granted - ROLE_QUERIES.length)
+  let callIndex = 0
+  // Adzuna's default is 25 calls a minute: space every call after the first.
+  const pace = async () => { if (callIndex++) await sleep(ADZUNA_MIN_GAP_MS) }
 
   const now = new Date().toISOString()
   const rows = []
@@ -87,7 +99,8 @@ export async function GET(request) {
   // Run queries sequentially to avoid hammering the API
   for (const { what, family } of ROLE_QUERIES) {
     try {
-      const data = await fetchAdzuna(appId, apiKey, { what, resultsPerPage: 50 })
+      await pace()
+      const data = await fetchAdzuna(appId, apiKey, { what, resultsPerPage: 50 }, 'cron-adzuna')
       const results = Array.isArray(data.results) ? data.results : []
       results.forEach(job => {
         if (!isUkEligible(job.location?.display_name)) return
@@ -120,9 +133,10 @@ export async function GET(request) {
   // listing already caught by a ROLE_QUERIES text match just de-dupes on
   // upsert, exactly like cron/contract's shared-ID reasoning), smaller page
   // size since the goal here is universal breadth, not depth per sector.
-  for (const category of ADZUNA_CATEGORIES) {
+  for (const category of CATEGORIES) {
     try {
-      const data = await fetchAdzuna(appId, apiKey, { category, resultsPerPage: 30 })
+      await pace()
+      const data = await fetchAdzuna(appId, apiKey, { category, resultsPerPage: 30 }, 'cron-adzuna')
       const results = Array.isArray(data.results) ? data.results : []
       results.forEach(job => {
         if (!isUkEligible(job.location?.display_name)) return
@@ -162,18 +176,23 @@ export async function GET(request) {
     if (error) return NextResponse.json({ error: error.message, errors }, { status: 500 })
   }
 
-  // Prune Adzuna rows older than 3 days
+  // Prune Adzuna rows older than 4 days. Was 3: with categories rotating on
+  // a 3-night cycle (Stage 85), a 3-day window left no margin, so one missed
+  // or partly granted night would drop a sector from the cache entirely.
   await supabase
     .from('jobs_cache')
     .delete()
     .eq('source', 'adzuna')
-    .lt('cached_at', new Date(Date.now() - 3 * 86400000).toISOString())
+    .lt('cached_at', new Date(Date.now() - 4 * 86400000).toISOString())
 
   return NextResponse.json({
     ok: true,
     inserted: deduped.length,
     roleQueries: ROLE_QUERIES.length,
-    categoryQueries: ADZUNA_CATEGORIES.length,
+    roleQueriesTotal: ALL_ROLE_QUERIES.length,
+    categoryQueries: CATEGORIES.length,
+    categoriesTotal: ADZUNA_CATEGORIES.length,
+    budget: { granted: budget.granted, requested: budget.requested, limitedBy: budget.limitedBy, week: budget.week, month: budget.month },
     errors,
   })
 }

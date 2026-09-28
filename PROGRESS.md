@@ -22,6 +22,45 @@ Stage 78 added 6 dev-only routes (`/freetier`, `/protier`, `/maxtier`, `/trialti
 
 ## CURRENT STATE
 
+**Stage:** 85 complete (2026-09-28). Adzuna compliance: own app, nightly spend cut from 119 to 70 calls, weekly and monthly ceilings, every call recorded.
+
+**Why.** Until 2026-09-28 Requite and Rob's personal job hunt tracker shared ONE Adzuna app ID (confirmed from the `utm_source` app ID in live Adzuna links, compared by fingerprint only). Adzuna's limits are per app, and the two projects kept separate ledgers that could not see each other. Requite's nightly crons alone reserved 2,754 calls in the 30 days to 2026-09-28 (65 a night from 08-30, 113 from 09-13, 119 from 09-23), over Adzuna's documented default of 2,500 a month before a single tracker call. Adzuna's terms allow it to suspend an app it suspects of a breach, which would have taken both projects down.
+
+**App ID split (Rob did this, 2026-09-28).**
+
+| Adzuna app | Registered to | Used by |
+|---|---|---|
+| New app, registered as commercial use | robert@oxocreatives.com | Requite (this repo). `ADZUNA_APP_ID` and `ADZUNA_API_KEY` in Vercel Production, both updated 2026-09-28 09:39 to 09:40 UTC |
+| Original app, personal use | Rob's Hotmail address | Job hunt tracker only |
+
+Verified: every Adzuna credential read in this repo is `process.env.ADZUNA_APP_ID` / `process.env.ADZUNA_API_KEY`, nothing hardcoded (grep for literal IDs and keys: none). Note the variable is `ADZUNA_API_KEY`, not `ADZUNA_APP_KEY` (that name survives only in an old comment in salary-estimate). The production deploy `marker-8wf2snv4o` was created at 09:40:41, five seconds after the key update, so it carries both new values. **Runtime proof is pending the first real call** (tonight's 03:00 UTC cron): `admin_metrics_cache` row `adzuna_headers:latest` records `app`, a SHA-1 prefix of the app ID in use. The OLD shared app's prefix is `4094166c`; any other value confirms the new app. The `utm_source` in new `jobs_cache` Adzuna links will show the same. The two Adzuna vars are set for Production only (Preview and Development have none), and the local `.env.local` still holds the OLD app ID with an invalid key, so update it before any local Adzuna testing.
+
+**1. Nightly crons cut to 70 calls, rotating.** New `NIGHTLY_CAPS` and `rotateNightly()` in `lib/aggregate-role-queries.js`: each cron spends at most its cap per night and walks through its full query list over consecutive nights (sorted first, so the slice does not depend on Postgres row order).
+
+| Cron | Before (calls/night) | After | Full list covered every |
+|---|---|---|---|
+| `cron/adzuna` role queries | 35 (24 floor + 11 from profiles) | 24 | 2 nights |
+| `cron/adzuna` category sweep | 29 | 10 | 3 nights |
+| `cron/contract` | 24 (14 floor + 10 from profiles) | 16 | 2 nights |
+| `cron/gov` | 31 (18 floor + 13 from profiles) | 20 | 2 nights |
+| **Total** | **119** (3,570/month) | **70** (about 2,170/month) | |
+
+The caps also stop sign-up growth from raising the nightly spend: a longer list just takes more nights to cycle. The `cron/adzuna` prune window went from 3 days to 4, so a sector on the 3-night category cycle cannot drop out of `jobs_cache` if one night is missed or only partly granted. A partial grant in `cron/adzuna` trims categories before role queries. All three crons now also space calls 2.6s apart (Adzuna's default is 25 a minute; they previously fired back to back).
+
+**Coverage cost (estimate, measure after a week).** New rows per night before the cut: category sweep 747, floor role and contract queries 525, profile-derived queries 318, gov 102. Category pages were nearly full (about 26 new of 30 per call), so running each category every third night loses roughly two thirds of that stream: about 250 a night instead of 747. Role, contract and gov pages were well short of full (about 14, 15 and 3 new per call), so running them every second night should catch most of the same listings in one larger page. Expected total: roughly 1,100 to 1,250 new rows a night, down from about 1,690.
+
+**2. Weekly and monthly ceilings.** `lib/adzuna-budget.js`: `ADZUNA_WEEKLY_LIMIT` 1,000 and `ADZUNA_MONTHLY_LIMIT` 2,500 (Adzuna's documented defaults; env-overridable), alongside the unchanged daily ceilings (220 cron, 160 on-demand). Both are ROLLING sums of the daily ledger rows (7 and 31 days), which also bounds any calendar week or month. `ADZUNA_LEDGER_EPOCH = 2026-09-29` leaves the old shared-app days out of the sums. Reservations are now PARTIAL by default (`granted` = the smallest room left under daily, weekly and monthly; `limitedBy` names the ceiling that bit); every caller slices its queries to `granted`. Before this, the daily cap was all-or-nothing. `getAdzunaUsage()` also returns week and month usage.
+
+**3. Nothing bypasses the guard.** All seven Adzuna API call sites (three crons; `salary-estimate`, `contractor/roles`, `feed-gov`, `feed-web`) reserve before calling and now go through one wrapper. No other code calls the Adzuna API (`resolve-url`, `safe-fetch` and the UI only handle adzuna.co.uk job links).
+
+**4. Headers and error bodies recorded.** New `lib/adzuna-http.js` `adzunaFetch()`: the first Adzuna response on each server instance records its headers (any rate, limit, quota, remaining, reset or retry header, plus every header name) and the app fingerprint to `adzuna_headers:latest`. Every 4xx records Adzuna's full error body (with `app_id` and `app_key` stripped from the request) to `adzuna_error:<label>`. Both are logged too, but stored in the table because function logs here expire quickly.
+
+**Verified.** `node lib/adzuna-budget.test.mjs`: 31 PASS, 0 FAIL (rotation covers every list in the stated number of nights from any start night, including a list grown to 44; each ceiling grants partially and names itself; rolling week excludes day 7; epoch excludes pre-split days; all-or-nothing option; headers recorded once; 4xx body recorded; key and ID never logged; caller can still read the body). All existing `lib/*.test.js` suites pass. `npm run build` clean (the `admin_taglines` build-time message is pre-existing, confirmed on the unchanged tree).
+
+**Adzuna commercial licensing is an ACTIVE blocker, not a future one.** See OPEN QUESTIONS / BLOCKERS item 7.
+
+---
+
 **Stage:** 84 complete — Session BM, the paste-JD UX and CTA-consistency sweep Rob asked for after real user feedback ("why am I pasting a job in from somewhere? You gave me the JD, why can't it be populated?"). Cannot auto-populate a JD (legal/technical), so the fix was making the paste step read as deliberate and integrated, never as a failure the app should have avoided.
 
 **What changed.** Every paste-JD entry point (the single-role scorer, CV/cover-letter generation's no-JD-stored box, interview prep, the manual edit modal, Aggregator's batch bring-in) now shares one restyled `PasteJdCallout` in `app/app/shared.js`: title reworded from the shouty "PASTE THE JOB DESCRIPTION HERE" to a calm "Paste the job description", and — the main fix — when the role's source link is already known (`jobLink` on the pipeline item), it leads with one prominent "Copy it from the job posting ↗" button that opens the real posting in a new tab, right above the paste box. `DirectCvPanel`'s "No job description stored for this role yet" box (amber warning background, reads as a problem) is now the same calm cream/border panel as everywhere else, framed as "One more step before we can tailor for this role", never "we couldn't find it" — the app never implies a JD should have auto-populated.
@@ -2786,8 +2825,9 @@ Wired into two places: `FeedTab`'s Live Roles header (hits `feed-web` AND `feed-
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Set |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ Set |
 | `ANTHROPIC_API_KEY` | ✅ Set in Vercel (`jobtrackergeneral` alias removed in Stage 1) |
-| `ADZUNA_APP_ID` | ✅ Set |
-| `ADZUNA_API_KEY` | ✅ Set |
+| `ADZUNA_APP_ID` | ✅ Set, Production only. Requite's OWN Adzuna app (registered to robert@oxocreatives.com, commercial use) since 2026-09-28; before that it was shared with the personal job hunt tracker |
+| `ADZUNA_API_KEY` | ✅ Set, Production only, same app. Code reads this name, not `ADZUNA_APP_KEY` |
+| `ADZUNA_WEEKLY_LIMIT` / `ADZUNA_MONTHLY_LIMIT` | Optional overrides (defaults 1,000 / 2,500). Only raise once Adzuna confirms commercial limits in writing |
 | `CRON_SECRET` | ✅ Set |
 | `RESEND_API_KEY` | ✅ Set |
 | `ADMIN_EMAIL` | ✅ Set |
@@ -2806,6 +2846,7 @@ Wired into two places: `FeedTab`'s Live Roles header (hits `feed-web` AND `feed-
 4. **Brand name** — ✅ Confirmed: **Requite**. Wired through `BRAND_NAME` constant. Rename later = one find-replace.
 5. **Infrastructure** — ✅ Building on existing paid Marker Supabase + Vercel projects throughout all 13 stages. No new projects or subscriptions needed.
 6. **`jobtrackergeneral` env alias** — ✅ Removed in Stage 1. All routes now use `ANTHROPIC_API_KEY` only.
+7. **Adzuna commercial licence: ACTIVE blocker (2026-09-28).** Requite is pre-launch commercial use running nightly on a developer key. Adzuna's terms allow commercial use "subject to a 14 day trial period", after which "a licence agreement may be required", and let Adzuna suspend an app it suspects of a breach. Rob has emailed Adzuna about commercial access and limits. Until they reply: nightly spend stays at 70 (Stage 85) under the documented default ceilings. When they reply, revisit `NIGHTLY_CAPS`, `ADZUNA_WEEKLY_LIMIT`, `ADZUNA_MONTHLY_LIMIT` and the daily ceilings against the limits they confirm, and check `adzuna_headers:latest` for any quota headers. The admin to-do "Apply for Adzuna commercial API access" is this item.
 
 ---
 

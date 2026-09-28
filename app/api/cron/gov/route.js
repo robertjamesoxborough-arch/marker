@@ -4,6 +4,8 @@ import { isUkEligible } from '../../../../lib/uk-eligibility'
 import { isSourceEnabled } from '../../../../lib/source-flags'
 import { REQUITE_USER_AGENT } from '../../../../lib/robots'
 import { reserveAdzuna } from '../../../../lib/adzuna-budget'
+import { adzunaFetch, sleep, ADZUNA_MIN_GAP_MS } from '../../../../lib/adzuna-http'
+import { NIGHTLY_CAPS, rotateNightly } from '../../../../lib/aggregate-role-queries'
 
 
 // Generic gov queries covering all our role families. Kept to 2-3 words each
@@ -113,20 +115,25 @@ export async function GET(request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
-  const queries = await widenGovQueries(supabase, GOV_QUERIES)
+  const allQueries = await widenGovQueries(supabase, GOV_QUERIES)
+  // Stage 85: rotate under NIGHTLY_CAPS.gov (see lib/aggregate-role-queries.js).
+  const tonight = rotateNightly(allQueries, NIGHTLY_CAPS.gov)
 
-  const budget = await reserveAdzuna({ calls: queries.length, kind: 'cron', service: supabase })
+  const budget = await reserveAdzuna({ calls: tonight.length, kind: 'cron', service: supabase })
   if (!budget.allowed) {
-    return NextResponse.json({ ok: false, skipped: `adzuna daily budget exhausted (${budget.used}/${budget.limit})` })
+    return NextResponse.json({ ok: false, skipped: `adzuna budget exhausted (${budget.limitedBy} ceiling)` })
   }
+  const queries = tonight.slice(0, budget.granted)
 
   const now = new Date().toISOString()
   const rows = []
   const errors = []
   const seen = new Set()
 
-  for (const what of queries) {
+  for (const [i, what] of queries.entries()) {
     try {
+      // Adzuna's default is 25 calls a minute: space every call after the first.
+      if (i) await sleep(ADZUNA_MIN_GAP_MS)
       const url = new URL('https://api.adzuna.com/v1/api/jobs/gb/search/1')
       url.searchParams.set('app_id', appId)
       url.searchParams.set('app_key', apiKey)
@@ -140,10 +147,10 @@ export async function GET(request) {
       url.searchParams.set('sort_by', 'date')
       url.searchParams.set('content-type', 'application/json')
 
-      const res = await fetch(url.toString(), {
+      const res = await adzunaFetch(url.toString(), {
         headers: { 'User-Agent': REQUITE_USER_AGENT },
         signal: AbortSignal.timeout(10000),
-      })
+      }, 'cron-gov')
       if (!res.ok) { errors.push(`${what}: HTTP ${res.status}`); continue }
       const data = await res.json()
 
@@ -199,6 +206,8 @@ export async function GET(request) {
     ok: true,
     inserted: deduped.length,
     queries: queries.length,
+    queriesTotal: allQueries.length,
+    budget: { granted: budget.granted, requested: budget.requested, limitedBy: budget.limitedBy, week: budget.week, month: budget.month },
     errors,
   })
 }
