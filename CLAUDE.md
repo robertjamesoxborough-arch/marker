@@ -25,3 +25,10 @@ vercel ls marker --yes
 Compare the newest deployment's age against the last commit. On 2026-08-20 production was found running a build from 13 August, seven days stale, missing five stages of work that had all been committed, pushed, and reported as shipped.
 
 Connecting the GitHub repo in the Vercel dashboard would fix this permanently. It cannot be done from the CLI.
+
+## Crons paused
+
+- All scheduled crons were paused on 29 Sept 2026 to stop API spend while the project is parked.
+- Backup is in `PAUSED_CRONS.md`.
+- If job data, feeds, scores or emails look stale or missing, this is the likely cause. Check this before debugging anything else.
+- Only restore when Rob asks.

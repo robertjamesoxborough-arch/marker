@@ -1,0 +1,42 @@
+# Paused Vercel crons
+
+Paused on 29 September 2026 to stop API spend while the project is parked.
+
+**To restore:** paste the array below back into `vercel.json` as `"crons"`, then redeploy to production.
+
+```json
+"crons": [
+  {
+    "path": "/api/cron/ats",
+    "schedule": "0 2 * * *"
+  },
+  {
+    "path": "/api/cron/adzuna",
+    "schedule": "0 3 * * *"
+  },
+  {
+    "path": "/api/cron/gov",
+    "schedule": "0 4 * * *"
+  },
+  {
+    "path": "/api/cron/contract",
+    "schedule": "30 4 * * *"
+  },
+  {
+    "path": "/api/cron/wishlist-scrape",
+    "schedule": "45 4 * * *"
+  },
+  {
+    "path": "/api/cron/score-cache",
+    "schedule": "30 5 * * *"
+  },
+  {
+    "path": "/api/cron/email-trials",
+    "schedule": "0 8 * * *"
+  },
+  {
+    "path": "/api/cron/freshness",
+    "schedule": "0 6 * * *"
+  }
+]
+```
